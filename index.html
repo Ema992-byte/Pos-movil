@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>POS Móvil - Despensa La Nueva</title>
+  <!-- Tailwind CSS para estilos rápidos -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* Estilos específicos para la impresión del ticket */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #ticket-impresion, #ticket-impresion * {
+        visibility: visible;
+      }
+      #ticket-impresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+        font-family: monospace;
+        font-size: 12px;
+        color: #000;
+        padding: 5px;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- ================= PANTALLA 1: LOGIN ================= -->
+  <div id="pantalla-login" class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-sm">
+      <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Iniciar Sesión - POS</h2>
+      
+      <div id="login-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4 text-sm"></div>
+
+      <form id="form-login" onsubmit="iniciarSesion(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+          <input type="email" id="email" required placeholder="usuario@ejemplo.com" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+          <input type="password" id="password" required placeholder="••••••••" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"/>
+        </div>
+        <button type="submit" id="btn-login" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">
+          Ingresar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= PANTALLA 2: PRINCIPAL DEL POS ================= -->
+  <div id="pantalla-pos" class="hidden min-h-screen flex flex-col">
+    <!-- Encabezado -->
+    <header class="bg-blue-600 text-white p-4 flex justify-between items-center shadow-md">
+      <h1 class="font-bold text-lg">Punto de Venta</h1>
+      <button onclick="cerrarSesion()" class="bg-red-500 text-xs px-3 py-2 rounded font-semibold hover:bg-red-600">
+        Cerrar Sesión
+      </button>
+    </header>
+
+    <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 max-w-7xl mx-auto w-full">
+      
+      <!-- COLUMNA IZQUIERDA: Buscador y Lista de Productos -->
+      <div class="md:col-span-2 bg-white p-4 rounded-xl shadow flex flex-col h-[75vh]">
+        
+        <!-- Buscador -->
+        <div class="mb-4">
+          <input
+            type="text"
+            id="input-buscador"
+            oninput="filtrarProductos()"
+            placeholder="🔍 Buscar producto por nombre o código..."
+            class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <!-- Catálogo de productos -->
+        <div id="lista-productos" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
+          <!-- Se cargan dinámicamente con JS -->
+        </div>
+      </div>
+
+      <!-- COLUMNA DERECHA: Carrito de Compras -->
+      <div class="bg-white p-4 rounded-xl shadow flex flex-col h-[75vh]">
+        <h2 class="text-xl font-bold mb-3 border-b pb-2">Carrito de Compras</h2>
+        
+        <!-- Lista de items en el carrito -->
+        <div id="lista-carrito" class="flex-1 overflow-y-auto space-y-2">
+          <p class="text-gray-400 text-center py-8">El carrito está vacío</p>
+        </div>
+
+        <!-- Total y Botón de Venta -->
+        <div class="border-t pt-4 mt-2">
+          <div class="flex justify-between text-xl font-bold mb-4">
+            <span>Total:</span>
+            <span id="total-carrito">$0.00</span>
+          </div>
+          <button 
+            onclick="confirmarVentaEImprimir()" 
+            class="w-full bg-green-600 text-white font-bold py-3 rounded-xl text-lg hover:bg-green-700 transition flex justify-center items-center gap-2">
+            🖨️ Confirmar e Imprimir Ticket
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= TICKET OCULTO PARA IMPRESIÓN ================= -->
+  <div id="ticket-impresion" class="hidden">
+    <h2 style="text-align: center; font-weight: bold; font-size: 14px;">DESPENSA LA NUEVA</h2>
+    <p style="text-align: center;">Ticket de Venta</p>
+    <p id="ticket-fecha" style="text-align: center; font-size: 10px;"></p>
+    <hr style="border-dash: 1px dashed #000; margin: 5px 0;" />
+    
+    <div id="ticket-items"></div>
+    
+    <hr style="border-dash: 1px dashed #000; margin: 5px 0;" />
+    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
+      <span>TOTAL:</span>
+      <span id="ticket-total">$0.00</span>
+    </div>
+    <p style="text-align: center; margin-top: 15px;">¡Gracias por su compra!</p>
+  </div>
+
+
+  <!-- ================= LÓGICA JAVASCRIPT ================= -->
+  <script>
+    // 1. CONFIGURACIÓN DE SUPABASE
+    const SUPABASE_URL = 'https://xjvhzfdgdivumluuegmm.supabase.co'; // La URL que copiaste de Data API
+    const SUPABASE_KEY = 'sb_publishable_lPJ95RgDRb5Vi4lLGrFULg_HI8_57RP'; // Tu Publishable Key
+
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);    
+
+    let productosData = [];
+    let carrito = [];
+
+    // Comprobar estado de sesión al cargar la página
+    window.addEventListener('DOMContentLoaded', async () => {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session) {
+        mostrarPantallaPOS();
+      }
+    });
+
+    // 2. AUTENTICACIÓN
+    async function iniciarSesion(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('login-error');
+      
+      errorDiv.classList.add('hidden');
+
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorDiv.innerText = "Error: " + error.message;
+        errorDiv.classList.remove('hidden');
+      } else {
+        mostrarPantallaPOS();
+      }
+    }
+
+    async function cerrarSesion() {
+      await _supabase.auth.signOut();
+      document.getElementById('pantalla-pos').classList.add('hidden');
+      document.getElementById('pantalla-login').classList.remove('hidden');
+    }
+
+    function mostrarPantallaPOS() {
+      document.getElementById('pantalla-login').classList.add('hidden');
+      document.getElementById('pantalla-pos').classList.remove('hidden');
+      cargarProductos();
+    }
+
+    // 3. CARGA Y FILTRADO DE PRODUCTOS
+    async function cargarProductos() {
+      const { data, error } = await _supabase.from('productos').select('*');
+      if (error) {
+        console.error("Error al obtener productos:", error);
+        return;
+      }
+
+      // Normalizar datos por si hay valores nulos
+      productosData = (data || []).map(p => ({
+        id: p.id,
+        nombre: p.nombre || p.detalle || 'Producto sin nombre',
+        precio: p.precio != null ? Number(p.precio) : 0,
+        imagen_url: p.imagen_url || 'https://via.placeholder.com/150'
+      }));
+
+      renderizarProductos(productosData);
+    }
+
+    function renderizarProductos(lista) {
+      const contenedor = document.getElementById('lista-productos');
+      contenedor.innerHTML = '';
+
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<p class="col-span-full text-center text-gray-400 py-6">No se encontraron productos</p>';
+        return;
+      }
+
+      lista.forEach(prod => {
+        const card = document.createElement('div');
+        card.className = "border rounded-lg p-2 flex flex-col justify-between bg-gray-50 hover:shadow-md transition cursor-pointer";
+        card.onclick = () => agregarAlCarrito(prod);
+
+        card.innerHTML = `
+          <img src="${prod.imagen_url}" alt="${prod.nombre}" class="w-full h-24 object-cover rounded mb-2"/>
+          <h3 class="font-semibold text-sm line-clamp-2">${prod.nombre}</h3>
+          <p class="text-blue-600 font-bold mt-1">$${prod.precio.toFixed(2)}</p>
+        `;
+        contenedor.appendChild(card);
+      });
+    }
+
+    function filtrarProductos() {
+      const query = document.getElementById('input-buscador').value.toLowerCase();
+      const filtrados = productosData.filter(p => p.nombre.toLowerCase().includes(query));
+      renderizarProductos(filtrados);
+    }
+
+    // 4. GESTIÓN DEL CARRITO
+    function agregarAlCarrito(producto) {
+      const existe = carrito.find(item => item.id === producto.id);
+      if (existe) {
+        existe.cantidad += 1;
+      } else {
+        carrito.push({ ...producto, cantidad: 1 });
+      }
+      actualizarCarritoUI();
+    }
+
+    function cambiarCantidad(id, delta) {
+      const item = carrito.find(i => i.id === id);
+      if (item) {
+        item.cantidad += delta;
+        if (item.cantidad <= 0) {
+          carrito = carrito.filter(i => i.id !== id);
+        }
+      }
+      actualizarCarritoUI();
+    }
+
+    function actualizarCarritoUI() {
+      const contenedor = document.getElementById('lista-carrito');
+      contenedor.innerHTML = '';
+
+      if (carrito.length === 0) {
+        contenedor.innerHTML = '<p class="text-gray-400 text-center py-8">El carrito está vacío</p>';
+        document.getElementById('total-
