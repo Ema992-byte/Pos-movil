@@ -3,75 +3,224 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POS Móvil</title>
-  <!-- Tailwind CSS para los estilos gráficos -->
+  <title>POS Móvil - Despensa La Nueva</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Librería cliente de Supabase -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
   <!-- PANTALLA DE INICIO DE SESIÓN -->
   <div id="loginSection" class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-    <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Iniciar Sesión</h2>
-    
+    <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">Despensa La Nueva 🛒</h2>
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-slate-600 mb-1">Correo Electrónico</label>
         <input type="email" id="email" required placeholder="admi@pos.com"
           class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
       </div>
-
       <div>
         <label class="block text-sm font-medium text-slate-600 mb-1">Contraseña</label>
         <input type="password" id="password" required placeholder="••••••••"
           class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
       </div>
-
       <button type="submit"
         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors">
-        Ingresar
+        Ingresar al POS
       </button>
     </form>
   </div>
 
-  <!-- PANTALLA PRINCIPAL DEL POS (Oculta por defecto) -->
-  <div id="posSection" class="hidden bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl text-center">
-    <h1 class="text-3xl font-bold text-slate-800 mb-4">Punto de Venta (POS)</h1>
-    <p class="text-emerald-600 font-semibold mb-6">¡Sesión iniciada con éxito!</p>
-    <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded-lg">
-      Cerrar Sesión
-    </button>
+  <!-- PANTALLA PRINCIPAL DEL POS -->
+  <div id="posSection" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-5xl">
+    <div class="flex justify-between items-center mb-6 border-b pb-4">
+      <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
+      <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm">
+        Cerrar Sesión
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Sección de Productos y Buscador -->
+      <div class="flex flex-col h-[500px]">
+        <h3 class="text-lg font-semibold text-slate-700 mb-2">Catálogo de Productos</h3>
+        
+        <!-- Buscador en tiempo real -->
+        <div class="mb-3">
+          <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarProductos()"
+            class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+        </div>
+
+        <div id="productosList" class="space-y-2 overflow-y-auto pr-2 flex-grow border border-slate-100 rounded-lg p-2">
+          <p class="text-slate-400 text-sm text-center py-4">Cargando productos...</p>
+        </div>
+      </div>
+
+      <!-- Carrito / Venta Actual -->
+      <div class="bg-slate-50 p-4 rounded-xl flex flex-col justify-between border border-slate-200 h-[500px]">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-700 mb-3">Venta Actual</h3>
+          <div id="carritoList" class="space-y-2 overflow-y-auto max-h-[300px] pr-1 mb-4">
+            <p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>
+          </div>
+        </div>
+        
+        <div class="border-t pt-4">
+          <div class="flex justify-between text-xl font-bold text-slate-800 mb-4">
+            <span>Total:</span>
+            <span id="totalVenta">$0.00</span>
+          </div>
+          <button onclick="cobrarVenta()"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors">
+            Cobrar / Registrar Venta
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- CÓDIGO JAVASCRIPT Y CONEXIÓN A SUPABASE -->
+  <!-- SCRIPT DE LÓGICA Y CONEXIÓN -->
   <script>
-    // Configuración de Supabase con tus credenciales reales
     const SUPABASE_URL = 'https://xjvhzfdgdivumluuegmm.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_lPJ95RgDRb5Vi4lLGrFULg_HI8_57RP';
-
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Evento de inicio de sesión
+    let todosLosProductos = [];
+    let carrito = [];
+
+    // Manejo del Login
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      const { data, error } = await _supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         alert('Error al ingresar: ' + error.message);
       } else {
-        alert('¡Bienvenido! Inicio de sesión exitoso.');
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('posSection').classList.remove('hidden');
+        cargarProductos();
       }
     });
+
+    // Cargar productos de Supabase
+    async function cargarProductos() {
+      const contenedor = document.getElementById('productosList');
+      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Cargando productos de Supabase...</p>';
+
+      const { data, error } = await _supabase.from('productos').select('*').limit(300);
+
+      if (error) {
+        contenedor.innerHTML = '<p class="text-red-500 text-sm text-center">Error al cargar productos</p>';
+        return;
+      }
+
+      todosLosProductos = data;
+      mostrarProductos(todosLosProductos);
+    }
+
+    function mostrarProductos(productos) {
+      const contenedor = document.getElementById('productosList');
+
+      if (productos.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">No se encontraron productos.</p>';
+        return;
+      }
+
+      contenedor.innerHTML = '';
+      productos.forEach(prod => {
+        contenedor.innerHTML += `
+          <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm text-sm">
+            <div>
+              <p class="font-semibold text-slate-800">${prod.nombre}</p>
+              <p class="text-xs text-slate-500">Stock: ${prod.stock} | <strong>$${prod.precio}</strong></p>
+            </div>
+            <button onclick="agregarAlCarrito('${prod.codigo}', '${prod.nombre.replace(/'/g, "")}', ${prod.precio})"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md text-xs font-medium">
+              Agregar
+            </button>
+          </div>
+        `;
+      });
+    }
+
+    function filtrarProductos() {
+      const texto = document.getElementById('buscador').value.toLowerCase();
+      const filtrados = todosLosProductos.filter(p => 
+        p.nombre.toLowerCase().includes(texto) || String(p.codigo).includes(texto)
+      );
+      mostrarProductos(filtrados);
+    }
+
+    function agregarAlCarrito(codigo, nombre, precio) {
+      const itemExistente = carrito.find(item => item.codigo === codigo);
+      if (itemExistente) {
+        itemExistente.cantidad += 1;
+      } else {
+        carrito.push({ codigo, nombre, precio, cantidad: 1 });
+      }
+      actualizarCarritoVisual();
+    }
+
+    function actualizarCarritoVisual() {
+      const contenedor = document.getElementById('carritoList');
+      const totalSpan = document.getElementById('totalVenta');
+
+      if (carrito.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>';
+        totalSpan.textContent = '$0.00';
+        return;
+      }
+
+      contenedor.innerHTML = '';
+      let total = 0;
+
+      carrito.forEach((item, index) => {
+        let subtotal = item.precio * item.cantidad;
+        total += subtotal;
+        contenedor.innerHTML += `
+          <div class="flex justify-between items-center bg-white p-2 rounded border text-sm shadow-sm">
+            <div>
+              <p class="font-medium text-slate-800">${item.nombre}</p>
+              <p class="text-xs text-slate-500">$${item.precio} x ${item.cantidad}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-semibold text-slate-700">$${subtotal.toFixed(2)}</span>
+              <button onclick="removerDelCarrito(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-1">✕</button>
+            </div>
+          </div>
+        `;
+      });
+
+      totalSpan.textContent = '$' + total.toFixed(2);
+    }
+
+    function removerDelCarrito(index) {
+      carrito.splice(index, 1);
+      actualizarCarritoVisual();
+    }
+
+    async function cobrarVenta() {
+      if (carrito.length === 0) {
+        alert('El carrito está vacío');
+        return;
+      }
+
+      let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+
+      const { error } = await _supabase.from('ventas').insert([{ total: total }]);
+
+      if (error) {
+        alert('Error al registrar la venta: ' + error.message);
+      } else {
+        alert('¡Venta cobrada y registrada con éxito! Total: $' + total.toFixed(2));
+        carrito = [];
+        actualizarCarritoVisual();
+      }
+    }
 
     function cerrarSesion() {
       _supabase.auth.signOut();
