@@ -51,7 +51,7 @@
         
         <!-- Buscador en tiempo real -->
         <div class="mb-3">
-          <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarProductos()"
+          <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarProductosDebounced()"
             class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
         </div>
 
@@ -91,6 +91,7 @@
 
     let todosLosProductos = [];
     let carrito = [];
+    let timerBusqueda = null;
 
     // Manejo del Login
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -123,23 +124,26 @@
 
       todosLosProductos = data;
       document.getElementById('cantProductos').textContent = `${data.length} productos`;
-      mostrarProductos(todosLosProductos);
+      mostrarProductos(todosLosProductos.slice(0, 40));
     }
 
     function mostrarProductos(productos) {
       const contenedor = document.getElementById('productosList');
 
-      if (productos.length === 0) {
+      if (!productos || productos.length === 0) {
         contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">No se encontraron productos.</p>';
         return;
       }
 
-      contenedor.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      const tempDiv = document.createElement('div');
+
+      let htmlContent = '';
       productos.forEach((prod, idx) => {
         const idUnico = prod.id || prod.codigo || idx;
-        const nombreEscapado = prod.nombre.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const nombreEscapado = (prod.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
-        contenedor.innerHTML += `
+        htmlContent += `
           <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm text-sm">
             <div class="pr-2 flex-grow">
               <p class="font-semibold text-slate-800">${prod.nombre}</p>
@@ -156,14 +160,30 @@
           </div>
         `;
       });
+
+      tempDiv.innerHTML = htmlContent;
+      contenedor.innerHTML = '';
+      contenedor.appendChild(tempDiv);
+    }
+
+    function filtrarProductosDebounced() {
+      clearTimeout(timerBusqueda);
+      timerBusqueda = setTimeout(filtrarProductos, 120);
     }
 
     function filtrarProductos() {
-      const texto = document.getElementById('buscador').value.toLowerCase();
+      const texto = document.getElementById('buscador').value.trim().toLowerCase();
+      
+      if (!texto) {
+        mostrarProductos(todosLosProductos.slice(0, 40));
+        return;
+      }
+
       const filtrados = todosLosProductos.filter(p => 
         (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
         (p.codigo && String(p.codigo).includes(texto))
-      );
+      ).slice(0, 40);
+
       mostrarProductos(filtrados);
     }
 
@@ -171,7 +191,6 @@
       const inputQty = document.getElementById(`qty_input_${idUnico}`);
       const cantidadAAgregar = parseInt(inputQty ? inputQty.value : 1) || 1;
 
-      // Buscar ítem en el carrito usando la clave única idUnico
       const itemExistente = carrito.find(item => item.idUnico === idUnico);
       
       if (itemExistente) {
@@ -207,7 +226,6 @@
               <p class="text-xs text-slate-500">$${item.precio} c/u</p>
             </div>
             
-            <!-- Entrada de teclado para editar la cantidad directamente -->
             <div class="flex items-center gap-1">
               <span class="text-xs text-slate-400">Cant:</span>
               <input type="number" min="1" value="${item.cantidad}" 
