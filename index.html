@@ -44,7 +44,10 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Sección de Productos y Buscador -->
       <div class="flex flex-col h-[520px]">
-        <h3 class="text-lg font-semibold text-slate-700 mb-2">Catálogo de Productos</h3>
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-semibold text-slate-700">Catálogo de Productos</h3>
+          <span id="cantProductos" class="text-xs text-slate-500 font-medium"></span>
+        </div>
         
         <!-- Buscador en tiempo real -->
         <div class="mb-3">
@@ -53,7 +56,7 @@
         </div>
 
         <div id="productosList" class="space-y-2 overflow-y-auto pr-2 flex-grow border border-slate-100 rounded-lg p-2">
-          <p class="text-slate-400 text-sm text-center py-4">Cargando productos...</p>
+          <p class="text-slate-400 text-sm text-center py-4">Cargando catálogo completo...</p>
         </div>
       </div>
 
@@ -106,12 +109,12 @@
       }
     });
 
-    // Cargar productos de Supabase
+    // Cargar catálogo completo (hasta 2000 items)
     async function cargarProductos() {
       const contenedor = document.getElementById('productosList');
-      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Cargando productos de Supabase...</p>';
+      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Cargando catálogo completo de Supabase...</p>';
 
-      const { data, error } = await _supabase.from('productos').select('*').limit(300);
+      const { data, error } = await _supabase.from('productos').select('*').range(0, 1999);
 
       if (error) {
         contenedor.innerHTML = '<p class="text-red-500 text-sm text-center">Error al cargar productos</p>';
@@ -119,6 +122,7 @@
       }
 
       todosLosProductos = data;
+      document.getElementById('cantProductos').textContent = `${data.length} productos`;
       mostrarProductos(todosLosProductos);
     }
 
@@ -171,9 +175,7 @@
         carrito.push({ codigo, nombre, precio, cantidad: cantidadAAgregar });
       }
 
-      // Restablecer el input de cantidad a 1
       if (inputQty) inputQty.value = 1;
-
       actualizarCarritoVisual();
     }
 
@@ -200,7 +202,6 @@
               <p class="text-xs text-slate-500">$${item.precio} c/u</p>
             </div>
             
-            <!-- Controles para editar cantidad directamente -->
             <div class="flex items-center gap-1">
               <button onclick="cambiarCantidad(${index}, -1)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded font-bold text-xs">-</button>
               <span class="w-8 text-center font-semibold text-xs">${item.cantidad}</span>
