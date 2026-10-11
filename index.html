@@ -109,7 +109,7 @@
       }
     });
 
-    // Cargar catálogo completo (hasta 2000 items)
+    // Cargar catálogo completo
     async function cargarProductos() {
       const contenedor = document.getElementById('productosList');
       contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Cargando catálogo completo de Supabase...</p>';
@@ -135,18 +135,20 @@
       }
 
       contenedor.innerHTML = '';
-      productos.forEach(prod => {
-        const nombreLimpio = prod.nombre.replace(/'/g, "").replace(/"/g, "");
+      productos.forEach((prod, idx) => {
+        const idUnico = prod.id || prod.codigo || idx;
+        const nombreEscapado = prod.nombre.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
         contenedor.innerHTML += `
           <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm text-sm">
-            <div>
+            <div class="pr-2 flex-grow">
               <p class="font-semibold text-slate-800">${prod.nombre}</p>
               <p class="text-xs text-slate-500">Stock: ${prod.stock} | <strong>$${prod.precio}</strong></p>
             </div>
-            <div class="flex items-center gap-2">
-              <input type="number" id="qty_${prod.codigo}" value="1" min="1" 
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <input type="number" id="qty_input_${idUnico}" value="1" min="1" 
                 class="w-14 px-2 py-1 text-center border rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
-              <button onclick="agregarAlCarrito('${prod.codigo}', '${nombreLimpio}', ${prod.precio})"
+              <button onclick="agregarAlCarrito('${idUnico}', '${nombreEscapado}', ${prod.precio})"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md text-xs font-medium">
                 Agregar
               </button>
@@ -159,20 +161,23 @@
     function filtrarProductos() {
       const texto = document.getElementById('buscador').value.toLowerCase();
       const filtrados = todosLosProductos.filter(p => 
-        p.nombre.toLowerCase().includes(texto) || String(p.codigo).includes(texto)
+        (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
+        (p.codigo && String(p.codigo).includes(texto))
       );
       mostrarProductos(filtrados);
     }
 
-    function agregarAlCarrito(codigo, nombre, precio) {
-      const inputQty = document.getElementById(`qty_${codigo}`);
+    function agregarAlCarrito(idUnico, nombre, precio) {
+      const inputQty = document.getElementById(`qty_input_${idUnico}`);
       const cantidadAAgregar = parseInt(inputQty ? inputQty.value : 1) || 1;
 
-      const itemExistente = carrito.find(item => item.codigo === codigo);
+      // Buscar ítem en el carrito usando la clave única idUnico
+      const itemExistente = carrito.find(item => item.idUnico === idUnico);
+      
       if (itemExistente) {
         itemExistente.cantidad += cantidadAAgregar;
       } else {
-        carrito.push({ codigo, nombre, precio, cantidad: cantidadAAgregar });
+        carrito.push({ idUnico, nombre, precio, cantidad: cantidadAAgregar });
       }
 
       if (inputQty) inputQty.value = 1;
@@ -202,13 +207,15 @@
               <p class="text-xs text-slate-500">$${item.precio} c/u</p>
             </div>
             
+            <!-- Entrada de teclado para editar la cantidad directamente -->
             <div class="flex items-center gap-1">
-              <button onclick="cambiarCantidad(${index}, -1)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded font-bold text-xs">-</button>
-              <span class="w-8 text-center font-semibold text-xs">${item.cantidad}</span>
-              <button onclick="cambiarCantidad(${index}, 1)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded font-bold text-xs">+</button>
+              <span class="text-xs text-slate-400">Cant:</span>
+              <input type="number" min="1" value="${item.cantidad}" 
+                onchange="modificarCantidadDirecta(${index}, this.value)"
+                class="w-16 px-2 py-1 text-center font-semibold border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
             </div>
 
-            <div class="text-right min-w-[60px]">
+            <div class="text-right min-w-[65px]">
               <span class="font-semibold text-slate-700 text-xs">$${subtotal.toFixed(2)}</span>
             </div>
 
@@ -220,12 +227,14 @@
       totalSpan.textContent = '$' + total.toFixed(2);
     }
 
-    function cambiarCantidad(index, delta) {
-      carrito[index].cantidad += delta;
-      if (carrito[index].cantidad <= 0) {
-        carrito.splice(index, 1);
+    function modificarCantidadDirecta(index, nuevaCantidad) {
+      const cant = parseInt(nuevaCantidad);
+      if (isNaN(cant) || cant <= 0) {
+        removerDelCarrito(index);
+      } else {
+        carrito[index].cantidad = cant;
+        actualizarCarritoVisual();
       }
-      actualizarCarritoVisual();
     }
 
     function removerDelCarrito(index) {
