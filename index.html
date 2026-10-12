@@ -152,7 +152,7 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM -->
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (Con Atendido Por) -->
   <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
     <div class="text-center font-bold text-sm tracking-wider mb-0.5">LA NUEVA</div>
     <div class="text-center text-[9px] text-slate-700 mb-1.5">Punto de Venta Móvil</div>
@@ -161,9 +161,17 @@
       TICKET DE COMPRA
     </div>
     
-    <div class="flex justify-between text-[9px] mb-2">
+    <div class="flex justify-between text-[9px] mb-1">
+      <span class="font-bold">Fecha/Hora:</span>
       <span id="ticketFecha">--/--/---- --:--</span>
+    </div>
+    <div class="flex justify-between text-[9px] mb-1">
+      <span class="font-bold">Comprobante:</span>
       <span id="ticketIdVenta">Ticket #---</span>
+    </div>
+    <div class="flex justify-between text-[9px] mb-2">
+      <span class="font-bold">Atendido por:</span>
+      <span id="ticketAtendidoPor">E.J</span>
     </div>
 
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
@@ -243,6 +251,21 @@
       }
     });
 
+    function obtenerAtendidoPor(email) {
+      const emailLower = (email || '').toLowerCase();
+      if (emailLower.includes('admi')) {
+        return 'E.J';
+      } else if (emailLower.includes('vendedor1')) {
+        return 'Vendedor 1';
+      } else if (emailLower.includes('vendedor2')) {
+        return 'Vendedor 2';
+      } else {
+        // Extraer nombre base del correo si es otro
+        let nombre = emailLower.split('@')[0];
+        return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+      }
+    }
+
     function iniciarSesionExitosa(email, productosData) {
       usuarioActualEmail = email;
       document.getElementById('loginSection').classList.add('hidden');
@@ -253,10 +276,10 @@
 
       const esAdmin = email.toLowerCase().includes('admi');
       if (esAdmin) {
-        document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (Acceso Total)';
+        document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (E.J)';
         document.getElementById('btnAdminPrecios').classList.remove('hidden');
       } else {
-        document.getElementById('usuarioRol').textContent = 'Perfil: Vendedor';
+        document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
         document.getElementById('btnAdminPrecios').classList.add('hidden');
       }
 
@@ -667,6 +690,7 @@
     function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
+      document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
       
       const ticketItemsContainer = document.getElementById('ticketItems');
       ticketItemsContainer.innerHTML = '';
