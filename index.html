@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- QuaggaJS para escaneo de códigos de barras por cámara -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
@@ -67,10 +69,14 @@
           <span id="cantProductos" class="text-xs text-slate-500 font-medium"></span>
         </div>
         
-        <!-- Buscador en tiempo real -->
-        <div class="mb-3">
-          <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarProductosDebounced()"
+        <!-- Buscador y Escáner de Código de Barras -->
+        <div class="mb-3 flex gap-2">
+          <input type="text" id="buscador" placeholder="🔍 Buscar nombre o escanear código..." oninput="filtrarProductosDebounced()" onkeypress="detectarEnterEscaneo(event)"
             class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+          <button onclick="abrirScannerCamara()" title="Escanear con cámara"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center shrink-0">
+            📷
+          </button>
         </div>
 
         <div id="productosList" class="space-y-2 overflow-y-auto pr-2 flex-grow border border-slate-100 rounded-lg p-2">
@@ -98,6 +104,19 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ESCÁNER DE CÁMARA -->
+  <div id="modalScanner" class="hidden fixed inset-0 bg-black/80 flex flex-col items-center justify-center p-4 z-50">
+    <div class="bg-white p-4 rounded-2xl shadow-xl w-full max-w-md text-center">
+      <h3 class="text-lg font-bold text-slate-800 mb-2">Escanee el Código de Barras 📷</h3>
+      <div id="interactive" class="viewport relative w-full h-64 bg-black rounded-lg overflow-hidden mb-4">
+        <canvas class="drawingBuffer absolute top-0 left-0"></canvas>
+      </div>
+      <button onclick="cerrarScannerCamara()" class="w-full bg-rose-500 hover:bg-rose-600 text-white py-2 rounded-lg font-medium text-sm">
+        Cancelar / Cerrar Cámara
+      </button>
     </div>
   </div>
 
@@ -207,6 +226,7 @@
     let carrito = [];
     let timerBusqueda = null;
     let usuarioActualEmail = '';
+    let scannerActivo = false;
 
     window.addEventListener('online', actualizarEstadoRed);
     window.addEventListener('offline', actualizarEstadoRed);
@@ -333,7 +353,7 @@
           <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm text-sm">
             <div class="pr-2 flex-grow">
               <p class="font-semibold text-slate-800">${prod.nombre}</p>
-              <p class="text-xs text-slate-500">Stock: ${prod.stock} | <strong>$${prod.precio}</strong></p>
+              <p class="text-xs text-slate-500">Cód: ${prod.codigo || 'S/C'} | Stock: ${prod.stock} | <strong>$${prod.precio}</strong></p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <input type="number" id="qty_input_${idUnico}" value="1" min="1" 
@@ -362,9 +382,85 @@
       }
       const filtrados = todosLosProductos.filter(p => 
         (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
-        (p.codigo && String(p.codigo).includes(texto))
+        (p.codigo && String(p.codigo).toLowerCase().includes(texto))
       ).slice(0, 40);
       mostrarProductos(filtrados);
+    }
+
+    function detectarEnterEscaneo(event) {
+      if (event.key === 'Enter') {
+        const codigoEscaneado = document.getElementById('buscador').value.trim();
+        if (!codigoEscaneado) return;
+
+        // Buscar coincidencia exacta por código de barras o código interno
+        const productoEncontrado = todosLosProductos.find(p => 
+          p.codigo && String(p.codigo).trim().toLowerCase() === codigoEscaneado.toLowerCase()
+        );
+
+        if (productoEncontrado) {
+          const idUnico = productoEncontrado.id || productoEncontrado.codigo;
+          agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
+          document.getElementById('buscador').value = '';
+          mostrarProductos(todosLosProductos.slice(0, 40));
+        }
+      }
+    }
+
+    // Funciones para Escáner con Cámara (QuaggaJS)
+    function abrirScannerCamara() {
+      document.getElementById('modalScanner').classList.remove('hidden');
+      scannerActivo = true;
+
+      Quagga.init({
+        inputStream : {
+          name : "Live",
+          type : "LiveStream",
+          target: document.querySelector('#interactive'),
+          constraints: {
+            facingMode: "environment" // Cámara trasera preferentemente
+          },
+        },
+        decoder : {
+          readers : ["ean_reader", "ean_8_reader", "upc_reader", "code_128_reader"]
+        }
+      }, function(err) {
+          if (err) {
+            alert('Error al iniciar la cámara: ' + err);
+            cerrarScannerCamara();
+            return;
+          }
+          Quagga.start();
+      });
+
+      Quagga.onDetected(function(result) {
+        if (!scannerActivo) return;
+        const codigoLeido = result.codeResult.code;
+        
+        // Buscar el producto con el código leído
+        const productoEncontrado = todosLosProductos.find(p => 
+          p.codigo && String(p.codigo).trim() === String(codigoLeido).trim()
+        );
+
+        if (productoEncontrado) {
+          const idUnico = productoEncontrado.id || productoEncontrado.codigo;
+          agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
+          cerrarScannerCamara();
+          alert(`¡Producto agregado con éxito: ${productoEncontrado.nombre}!`);
+        } else {
+          document.getElementById('buscador').value = codigoLeido;
+          cerrarScannerCamara();
+          filtrarProductos();
+          alert(`Código escaneado (${codigoLeido}) no encontrado exacto en base de datos. Se filtró en pantalla.`);
+        }
+      });
+    }
+
+    function cerrarScannerCamara() {
+      scannerActivo = false;
+      try {
+        Quagga.stop();
+      } catch (e) {}
+      document.getElementById('modalScanner').classList.add('hidden');
     }
 
     async function abrirModalHistorial() {
@@ -761,7 +857,6 @@
           return;
         }
 
-        // Encabezados con Fecha y Hora separadas en columnas
         let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
         
         data.forEach(d => {
@@ -770,8 +865,8 @@
 
           if (d.ventas && d.ventas.creado_en) {
             let fechaObj = new Date(d.ventas.creado_en);
-            fechaPart = fechaObj.toLocaleDateString(); // Ejemplo: 12/10/2026
-            horaPart = fechaObj.toLocaleTimeString();   // Ejemplo: 12:50:00
+            fechaPart = fechaObj.toLocaleDateString();
+            horaPart = fechaObj.toLocaleTimeString();
           } else {
             fechaPart = 'N/A';
             horaPart = 'N/A';
