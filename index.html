@@ -11,8 +11,6 @@
   <!-- QuaggaJS para escaneo de códigos de barras por cámara -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
-  <!-- Enlace PWA Manifest -->
-  <link rel="manifest" href="manifest.json">
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
   <!-- INDICADOR DE ESTADO DE RED -->
@@ -966,4 +964,44 @@
           .select('*')
           .order('id', { ascending: false });
 
-        if (errDet
+        if (errDetalles) throw errDetalles;
+
+        if (!detalles || detalles.length === 0) {
+          alert('No hay detalles de ventas registrados para descargar.');
+          return;
+        }
+
+        let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
+        
+        let fechaActualStr = new Date().toLocaleDateString();
+        let horaActualStr = new Date().toLocaleTimeString();
+
+        detalles.forEach(d => {
+          let operador = 'E.J';
+          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
+
+          csvContent += `${d.venta_id},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Error al generar el reporte detallado CSV: ' + (err.message || err));
+      }
+    }
+
+    function cerrarSesion() {
+      _supabase.auth.signOut();
+      document.getElementById('posSection').classList.add('hidden');
+      document.getElementById('loginSection').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
