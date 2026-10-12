@@ -36,9 +36,14 @@
   <div id="posSection" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-5xl">
     <div class="flex justify-between items-center mb-6 border-b pb-4">
       <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
-      <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm">
-        Cerrar Sesión
-      </button>
+      <div class="flex gap-2">
+        <button onclick="descargarReporteCSV()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
+          📊 Descargar Reporte
+        </button>
+        <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
+          Cerrar Sesión
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -49,7 +54,7 @@
           <span id="cantProductos" class="text-xs text-slate-500 font-medium"></span>
         </div>
         
-        <!-- Buscador en tiempo real -->
+        <!-- Buscador en tiempo real optimizado -->
         <div class="mb-3">
           <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarProductosDebounced()"
             class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
@@ -76,11 +81,28 @@
           </div>
           <button onclick="cobrarVenta()"
             class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors">
-            Cobrar / Registrar Venta
+            Cobrar, Imprimir y Registrar
           </button>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- SECCIÓN OCULTA PARA IMPRESIÓN DE TICKET -->
+  <div id="ticketImpresion" class="hidden p-6 font-mono text-sm max-w-xs mx-auto bg-white">
+    <div class="text-center font-bold text-lg mb-1">LA NUEVA 🛒</div>
+    <div class="text-center text-xs mb-3">Punto de Venta Móvil</div>
+    <div class="text-xs mb-2" id="ticketFecha">Fecha: --/--/---- --:--</div>
+    <div class="border-t border-dashed border-black my-2"></div>
+    <div id="ticketItems" class="space-y-1 text-xs">
+      <!-- Items del ticket -->
+    </div>
+    <div class="border-t border-dashed border-black my-2"></div>
+    <div class="flex justify-between font-bold text-base">
+      <span>TOTAL:</span>
+      <span id="ticketTotal">$0.00</span>
+    </div>
+    <div class="text-center text-xs mt-4">¡Gracias por su compra!</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA Y CONEXIÓN -->
@@ -135,9 +157,7 @@
         return;
       }
 
-      const fragment = document.createDocumentFragment();
       const tempDiv = document.createElement('div');
-
       let htmlContent = '';
       productos.forEach((prod, idx) => {
         const idUnico = prod.id || prod.codigo || idx;
@@ -268,15 +288,106 @@
 
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
-      const { error } = await _supabase.from('ventas').insert([{ total: total }]);
+      // 1. Guardar la venta principal en Supabase
+      const { data: ventaData, error: ventaError } = await _supabase
+        .from('ventas')
+        .insert([{ total: total }])
+        .select();
+
+      if (ventaError) {
+        alert('Error al registrar la venta: ' + ventaError.message);
+        return;
+      }
+
+      // 2. Guardar el detalle de los productos vendidos
+      const ventaId = ventaData[0].id;
+      const detallesInserts = carrito.map(item => ({
+        venta_id: ventaId,
+        nombre_producto: item.nombre,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio,
+        subtotal: item.precio * item.cantidad
+      }));
+
+      await _supabase.from('detalle_ventas').insert(detallesInserts);
+
+      // 3. Preparar e imprimir el ticket
+      generarEImprimirTicket(total);
+
+      // 4. Limpiar carrito
+      alert('¡Venta registrada y guardada con éxito!');
+      carrito = [];
+      actualizarCarritoVisual();
+    }
+
+    function generarEImprimirTicket(total) {
+      const fechaActual = new Date().toLocaleString();
+      document.getElementById('ticketFecha').textContent = `Fecha: ${fechaActual}`;
+      
+      const ticketItemsContainer = document.getElementById('ticketItems');
+      ticketItemsContainer.innerHTML = '';
+
+      carrito.forEach(item => {
+        let sub = item.precio * item.cantidad;
+        ticketItemsContainer.innerHTML += `
+          <div class="flex justify-between">
+            <span>${item.cantidad}x ${item.nombre}</span>
+            <span>$${sub.toFixed(2)}</span>
+          </div>
+        `;
+      });
+
+      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
+
+      // Imprimir mediante ventana flotante del navegador
+      const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
+      const ventanaImpresion = window.open('', '_blank', 'width=350,height=600');
+      ventanaImpresion.document.write(`
+        <html>
+          <head>
+            <title>Ticket de Venta</title>
+            <script src="https://cdn.tailwindcss.com"><\/script>
+          </head>
+          <body class="bg-white p-4">
+            ${contenidoTicket}
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(() => window.close(), 500);
+              }
+            <\/script>
+          </body>
+        </html>
+      `);
+      ventanaImpresion.document.close();
+    }
+
+    async function descargarReporteCSV() {
+      const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
 
       if (error) {
-        alert('Error al registrar la venta: ' + error.message);
-      } else {
-        alert('¡Venta cobrada y registrada con éxito! Total: $' + total.toFixed(2));
-        carrito = [];
-        actualizarCarritoVisual();
+        alert('Error al obtener reporte: ' + error.message);
+        return;
       }
+
+      if (!data || data.length === 0) {
+        alert('No hay ventas registradas todavía.');
+        return;
+      }
+
+      // Crear formato CSV
+      let csvContent = "data:text/csv;charset=utf-8,ID Venta,Total,Fecha y Hora\n";
+      data.forEach(v => {
+        csvContent += `${v.id},${v.total},${v.creado_en || ''}\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "reporte_ventas_la_nueva.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     function cerrarSesion() {
