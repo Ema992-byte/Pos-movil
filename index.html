@@ -46,10 +46,11 @@
         <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           📜 Historial
         </button>
+        <!-- Módulos exclusivos de Administrador -->
         <button id="btnAdminPrecios" onclick="abrirModalPrecios()" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           ⚙️ Modificar Precios
         </button>
-        <button onclick="descargarReporteCSV()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
+        <button id="btnAdminReporte" onclick="descargarReporteCSV()" class="hidden bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
           📊 Reporte
         </button>
         <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
@@ -152,7 +153,7 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (Con Atendido Por) -->
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM -->
   <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
     <div class="text-center font-bold text-sm tracking-wider mb-0.5">LA NUEVA</div>
     <div class="text-center text-[9px] text-slate-700 mb-1.5">Punto de Venta Móvil</div>
@@ -260,7 +261,6 @@
       } else if (emailLower.includes('vendedor2')) {
         return 'Vendedor 2';
       } else {
-        // Extraer nombre base del correo si es otro
         let nombre = emailLower.split('@')[0];
         return nombre.charAt(0).toUpperCase() + nombre.slice(1);
       }
@@ -278,9 +278,11 @@
       if (esAdmin) {
         document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (E.J)';
         document.getElementById('btnAdminPrecios').classList.remove('hidden');
+        document.getElementById('btnAdminReporte').classList.remove('hidden');
       } else {
         document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
         document.getElementById('btnAdminPrecios').classList.add('hidden');
+        document.getElementById('btnAdminReporte').classList.add('hidden');
       }
 
       mostrarProductos(todosLosProductos.slice(0, 40));
@@ -394,6 +396,7 @@
         return;
       }
 
+      // Consulta global a la tabla unificada de ventas de Supabase
       const { data, error } = await _supabase
         .from('ventas')
         .select('*')
