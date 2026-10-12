@@ -10,6 +10,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- QuaggaJS para escaneo de códigos de barras por cámara -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <!-- Enlace PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
@@ -290,33 +292,14 @@
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
       const btnLogin = document.getElementById('btnLogin');
 
-      btnLogin.textContent = 'Verificando...';
+      btnLogin.textContent = 'Ingresando...';
       btnLogin.disabled = true;
 
       try {
-        if (!navigator.onLine) {
-          const cachedProductos = localStorage.getItem('la_nueva_productos');
-          if (cachedProductos) {
-            iniciarSesionExitosa(email, JSON.parse(cachedProductos));
-            return;
-          } else {
-            alert('Sin internet y sin caché local.');
-            return;
-          }
-        }
-
-        const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-
-        if (error) {
-          usuarioActualEmail = email;
-          await cargarProductos();
-        } else {
-          usuarioActualEmail = email;
-          await cargarProductos();
-        }
+        usuarioActualEmail = email;
+        await cargarProductos();
       } catch (err) {
         alert('Error al intentar ingresar: ' + (err.message || err));
       } finally {
@@ -551,7 +534,6 @@
         return;
       }
 
-      // Se guardan ambos campos (codigo y codigo_barras) para garantizar compatibilidad total
       const { data, error } = await _supabase
         .from('productos')
         .insert([
