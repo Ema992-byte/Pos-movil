@@ -411,8 +411,8 @@
 
       let htmlContent = '';
       productos.forEach((prod, idx) => {
-        const idUnico = prod.id || prod.codigo || prod.codigo_barras || idx;
-        const codigoMostrado = prod.codigo || prod.codigo_barras || 'S/C';
+        const idUnico = prod.id || prod.codigo_barras || idx;
+        const codigoMostrado = prod.codigo_barras || 'S/C';
         const nombreEscapado = (prod.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const fotoUrl = prod.foto || prod.imagen_url || '';
         
@@ -460,7 +460,7 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          const maxDim = 600; // Redimensionar para optimizar peso en DB
+          const maxDim = 600;
           let width = img.width;
           let height = img.height;
 
@@ -510,12 +510,12 @@
     }
 
     function abrirModalEditarProducto(id) {
-      const prod = todosLosProductos.find(p => String(p.id) === String(id) || String(p.codigo) === String(id));
+      const prod = todosLosProductos.find(p => String(p.id) === String(id) || String(p.codigo_barras) === String(id));
       if (!prod) return;
 
       document.getElementById('modalProductoTitulo').textContent = 'Editar Producto y Foto ✏️';
       document.getElementById('editProductoId').value = prod.id;
-      document.getElementById('nuevoCodigo').value = prod.codigo || prod.codigo_barras || '';
+      document.getElementById('nuevoCodigo').value = prod.codigo_barras || '';
       document.getElementById('nuevoNombre').value = prod.nombre || '';
       document.getElementById('nuevoStock').value = prod.stock || 0;
       document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
@@ -560,7 +560,6 @@
       }
 
       const datosProducto = {
-        codigo: codigo,
         codigo_barras: codigo,
         nombre: nombre,
         foto: fotoBase64Actual,
@@ -572,11 +571,9 @@
       let error = null;
 
       if (editId) {
-        // Modo Edición
         const res = await _supabase.from('productos').update(datosProducto).eq('id', editId);
         error = res.error;
       } else {
-        // Modo Nuevo
         const res = await _supabase.from('productos').insert([datosProducto]);
         error = res.error;
       }
@@ -604,9 +601,8 @@
       }
       const filtrados = todosLosProductos.filter(p => {
         const nombre = (p.nombre || '').toLowerCase();
-        const cod1 = String(p.codigo || '').toLowerCase();
-        const cod2 = String(p.codigo_barras || '').toLowerCase();
-        return nombre.includes(texto) || cod1.includes(texto) || cod2.includes(texto);
+        const cod = String(p.codigo_barras || '').toLowerCase();
+        return nombre.includes(texto) || cod.includes(texto);
       }).slice(0, 40);
       mostrarProductos(filtrados);
     }
@@ -617,14 +613,12 @@
         if (!codigoEscaneado) return;
 
         const productoEncontrado = todosLosProductos.find(p => {
-          const c1 = String(p.codigo || '').trim().toLowerCase();
-          const c2 = String(p.codigo_barras || '').trim().toLowerCase();
-          const busqueda = codigoEscaneado.toLowerCase();
-          return c1 === busqueda || c2 === busqueda;
+          const c = String(p.codigo_barras || '').trim().toLowerCase();
+          return c === codigoEscaneado.toLowerCase();
         });
 
         if (productoEncontrado) {
-          const idUnico = productoEncontrado.id || productoEncontrado.codigo || productoEncontrado.codigo_barras;
+          const idUnico = productoEncontrado.id || productoEncontrado.codigo_barras;
           agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
           document.getElementById('buscador').value = '';
           mostrarProductos(todosLosProductos.slice(0, 40));
@@ -662,13 +656,12 @@
         const codigoLeido = String(result.codeResult.code).trim();
         
         const productoEncontrado = todosLosProductos.find(p => {
-          const c1 = String(p.codigo || '').trim();
-          const c2 = String(p.codigo_barras || '').trim();
-          return c1 === codigoLeido || c2 === codigoLeido;
+          const c = String(p.codigo_barras || '').trim();
+          return c === codigoLeido;
         });
 
         if (productoEncontrado) {
-          const idUnico = productoEncontrado.id || productoEncontrado.codigo || productoEncontrado.codigo_barras;
+          const idUnico = productoEncontrado.id || productoEncontrado.codigo_barras;
           agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
           cerrarScannerCamara();
           alert(`¡Producto agregado con éxito: ${productoEncontrado.nombre}!`);
@@ -799,9 +792,8 @@
 
       const encontrados = todosLosProductos.filter(p => {
         const n = (p.nombre || '').toLowerCase();
-        const c1 = String(p.codigo || '').toLowerCase();
-        const c2 = String(p.codigo_barras || '').toLowerCase();
-        return n.includes(texto) || c1.includes(texto) || c2.includes(texto);
+        const c = String(p.codigo_barras || '').toLowerCase();
+        return n.includes(texto) || c.includes(texto);
       }).slice(0, 15);
 
       if (encontrados.length === 0) {
