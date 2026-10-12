@@ -43,11 +43,9 @@
         <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
       </div>
       <div class="flex gap-2 flex-wrap">
-        <!-- Historial y Reimpresión -->
         <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           📜 Historial
         </button>
-        <!-- Botón exclusivo de Administrador para Precios -->
         <button id="btnAdminPrecios" onclick="abrirModalPrecios()" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           ⚙️ Modificar Precios
         </button>
@@ -154,19 +152,44 @@
     </div>
   </div>
 
-  <!-- SECCIÓN OCULTA PARA IMPRESIÓN DE TICKET -->
-  <div id="ticketImpresion" class="hidden p-6 font-mono text-sm max-w-xs mx-auto bg-white">
-    <div class="text-center font-bold text-lg mb-1">LA NUEVA 🛒</div>
-    <div class="text-center text-xs mb-3">Punto de Venta Móvil</div>
-    <div class="text-xs mb-2" id="ticketFecha">Fecha: --/--/---- --:--</div>
-    <div class="border-t border-dashed border-black my-2"></div>
-    <div id="ticketItems" class="space-y-1 text-xs"></div>
-    <div class="border-t border-dashed border-black my-2"></div>
-    <div class="flex justify-between font-bold text-base">
-      <span>TOTAL:</span>
+  <!-- PLANTILLA DE TICKET PROFESIONAL (Estilo Modelo) -->
+  <div id="ticketImpresion" class="hidden p-4 font-mono text-xs max-w-[300px] mx-auto bg-white text-black">
+    <div class="text-center font-bold text-base tracking-wider mb-0.5">LA NUEVA</div>
+    <div class="text-center text-[10px] text-slate-600 mb-2">Punto de Venta Móvil</div>
+    
+    <div class="border-t border-b border-black py-1 my-2 text-center font-bold tracking-widest text-[11px]">
+      TICKET DE COMPRA
+    </div>
+    
+    <div class="flex justify-between text-[10px] mb-3">
+      <span id="ticketFecha">Fecha: --/--/---- --:--</span>
+      <span id="ticketIdVenta">Ticket #---</span>
+    </div>
+
+    <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[10px] border-dashed">
+      <span class="w-8">Ud.</span>
+      <span class="flex-grow px-1">Descripción</span>
+      <span class="w-12 text-right">P.U.</span>
+      <span class="w-14 text-right">Importe</span>
+    </div>
+    <div class="border-b border-black mb-2"></div>
+
+    <!-- Items del Ticket -->
+    <div id="ticketItems" class="space-y-1.5 text-[11px]">
+      <!-- Se inyecta dinámicamente -->
+    </div>
+
+    <div class="border-t border-dashed border-black my-3"></div>
+
+    <div class="flex justify-between font-bold text-sm">
+      <span>TOTAL</span>
       <span id="ticketTotal">$0.00</span>
     </div>
-    <div class="text-center text-xs mt-4">¡Gracias por su compra!</div>
+
+    <div class="border-t border-dashed border-black my-3"></div>
+
+    <div class="text-center text-[11px] font-semibold mt-3">¡GRACIAS POR SU VISITA!</div>
+    <div class="text-center text-[9px] text-slate-500 mt-1">Conserve este ticket para cambios o devoluciones.</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA -->
@@ -402,14 +425,13 @@
         return;
       }
 
-      // Preparar estructura para reimprimir
       const itemsParaTicket = detalles.map(d => ({
         nombre: d.nombre_producto,
         cantidad: d.cantidad,
         precio: d.precio_unitario
       }));
 
-      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId} (REIMPRESIÓN)`);
+      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`);
     }
 
     // Modal Precios
@@ -601,15 +623,17 @@
 
           await _supabase.from('detalle_ventas').insert(detallesInserts);
           alert('¡Venta registrada con éxito!');
+          imprimirTicketGenerico(carrito, total, fechaActualStr, `Ticket #${ventaId}`);
         } catch (err) {
           guardarVentaOffline(ventaLocal);
+          imprimirTicketGenerico(carrito, total, fechaActualStr, 'Ticket (Pendiente Sync)');
         }
       } else {
         guardarVentaOffline(ventaLocal);
         alert('⚡ Sin internet: Venta guardada localmente.');
+        imprimirTicketGenerico(carrito, total, fechaActualStr, 'Ticket (Offline)');
       }
 
-      imprimirTicketGenerico(carrito, total, fechaActualStr, 'Punto de Venta Móvil');
       carrito = [];
       actualizarCarritoVisual();
     }
@@ -648,17 +672,22 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
-    function imprimirTicketGenerico(items, total, fechaStr, subtitulo) {
+    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
       document.getElementById('ticketFecha').textContent = `Fecha: ${fechaStr}`;
+      document.getElementById('ticketIdVenta').textContent = tituloTicket;
+      
       const ticketItemsContainer = document.getElementById('ticketItems');
       ticketItemsContainer.innerHTML = '';
 
       items.forEach(item => {
-        let sub = item.precio * item.cantidad;
+        let pUnit = parseFloat(item.precio || 0);
+        let importe = pUnit * item.cantidad;
         ticketItemsContainer.innerHTML += `
-          <div class="flex justify-between">
-            <span>${item.cantidad}x ${item.nombre}</span>
-            <span>$${sub.toFixed(2)}</span>
+          <div class="flex justify-between items-start gap-1">
+            <span class="w-8 text-center">${item.cantidad}</span>
+            <span class="flex-grow px-1">${item.nombre}</span>
+            <span class="w-12 text-right">$${pUnit.toFixed(2)}</span>
+            <span class="w-14 text-right font-bold">$${importe.toFixed(2)}</span>
           </div>
         `;
       });
