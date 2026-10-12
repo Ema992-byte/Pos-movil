@@ -12,9 +12,7 @@
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
   <!-- INDICADOR DE ESTADO DE RED -->
-  <div id="estadoRed" class="w-full max-w-5xl mb-2 text-center text-xs font-bold py-1 rounded hidden">
-    <!-- Se muestra dinámicamente si hay o no internet -->
-  </div>
+  <div id="estadoRed" class="w-full max-w-5xl mb-2 text-center text-xs font-bold py-1 rounded hidden"></div>
 
   <!-- PANTALLA DE INICIO DE SESIÓN -->
   <div id="loginSection" class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
@@ -22,7 +20,7 @@
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-slate-600 mb-1">Correo Electrónico</label>
-        <input type="email" id="email" required placeholder="admi@pos.com"
+        <input type="email" id="email" required placeholder="admi@pos.com ó vendedor@pos.com"
           class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
       </div>
       <div>
@@ -40,13 +38,20 @@
   <!-- PANTALLA PRINCIPAL DEL POS -->
   <div id="posSection" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-5xl">
     <div class="flex justify-between items-center mb-6 border-b pb-4">
-      <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
+        <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
+      </div>
       <div class="flex gap-2">
+        <!-- Botón exclusivo de Administrador para Precios -->
+        <button id="btnAdminPrecios" onclick="abrirModalPrecios()" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
+          ⚙️ Modificar Precios
+        </button>
         <button onclick="descargarReporteCSV()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
-          📊 Descargar Reporte
+          📊 Reporte
         </button>
         <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
-          Cerrar Sesión
+          Salir
         </button>
       </div>
     </div>
@@ -93,6 +98,42 @@
     </div>
   </div>
 
+  <!-- MODAL DE ADMINISTRACIÓN DE PRECIOS -->
+  <div id="modalPrecios" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+      <h3 class="text-xl font-bold text-slate-800 mb-4">Modificar Precio de Venta ⚙️</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Buscar producto a actualizar</label>
+          <input type="text" id="buscadorAdmin" placeholder="Escriba nombre o código..." oninput="filtrarProductosAdmin()"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div id="listaAdminPrecios" class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1 text-xs">
+          <!-- Opciones de productos -->
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Producto Seleccionado</label>
+          <input type="text" id="prodSeleccionadoNombre" readonly 
+            class="w-full px-3 py-2 bg-slate-100 border rounded-lg text-sm text-slate-600">
+          <input type="hidden" id="prodSeleccionadoId">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Nuevo Precio de Venta ($)</label>
+          <input type="number" id="nuevoPrecioInput" step="0.01" placeholder="Ej: 3500"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button onclick="guardarNuevoPrecio()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium">
+            Actualizar en Base de Datos
+          </button>
+          <button onclick="cerrarModalPrecios()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SECCIÓN OCULTA PARA IMPRESIÓN DE TICKET -->
   <div id="ticketImpresion" class="hidden p-6 font-mono text-sm max-w-xs mx-auto bg-white">
     <div class="text-center font-bold text-lg mb-1">LA NUEVA 🛒</div>
@@ -108,7 +149,7 @@
     <div class="text-center text-xs mt-4">¡Gracias por su compra!</div>
   </div>
 
-  <!-- SCRIPT DE LÓGICA Y MODO OFFLINE -->
+  <!-- SCRIPT DE LÓGICA Y ROLES -->
   <script>
     const SUPABASE_URL = 'https://xjvhzfdgdivumluuegmm.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_lPJ95RgDRb5Vi4lLGrFULg_HI8_57RP';
@@ -117,8 +158,8 @@
     let todosLosProductos = [];
     let carrito = [];
     let timerBusqueda = null;
+    let usuarioActualEmail = '';
 
-    // Control de Estado de Conexión en vivo
     window.addEventListener('online', actualizarEstadoRed);
     window.addEventListener('offline', actualizarEstadoRed);
 
@@ -131,33 +172,25 @@
         sincronizarVentasPendientes();
       } else {
         banner.className = 'w-full max-w-5xl mb-2 text-center text-xs font-bold py-1 rounded bg-amber-100 text-amber-800';
-        banner.textContent = '⚡ Modo Offline Activo (Operando sin internet)';
+        banner.textContent = '⚡ Modo Offline Activo';
         banner.classList.remove('hidden');
       }
     }
-
-    // Inicializar estado de red al cargar
     setTimeout(actualizarEstadoRed, 500);
 
-    // Manejo del Login (permite offline si ya guardó sesión o usa caché)
+    // Manejo del Login y Roles
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
       if (!navigator.onLine) {
-        // Modo offline directo si hay datos locales
         const cachedProductos = localStorage.getItem('la_nueva_productos');
         if (cachedProductos) {
-          document.getElementById('loginSection').classList.add('hidden');
-          document.getElementById('posSection').classList.remove('hidden');
-          todosLosProductos = JSON.parse(cachedProductos);
-          document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos (Offline)`;
-          mostrarProductos(todosLosProductos.slice(0, 40));
-          alert('Ingresando en modo offline con el catálogo guardado.');
+          iniciarSesionExitosa(email, JSON.parse(cachedProductos));
           return;
         } else {
-          alert('No hay internet y no se encontró catálogo guardado en este dispositivo.');
+          alert('Sin internet y sin caché local.');
           return;
         }
       }
@@ -167,61 +200,68 @@
       if (error) {
         alert('Error al ingresar: ' + error.message);
       } else {
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('posSection').classList.remove('hidden');
+        usuarioActualEmail = email;
         cargarProductos();
       }
     });
 
-    // Cargar catálogo (desde Supabase si hay red, o desde LocalStorage si está offline)
+    function iniciarSesionExitosa(email, productosData) {
+      usuarioActualEmail = email;
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('posSection').classList.remove('hidden');
+
+      todosLosProductos = productosData;
+      document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
+
+      // Definir Rol: Administrador si el correo contiene "admi" o "admin" (puedes cambiar esta regla)
+      const esAdmin = email.toLowerCase().includes('admi');
+      if (esAdmin) {
+        document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (Acceso Total)';
+        document.getElementById('btnAdminPrecios').classList.remove('hidden');
+      } else {
+        document.getElementById('usuarioRol').textContent = 'Perfil: Vendedor';
+        document.getElementById('btnAdminPrecios').classList.add('hidden');
+      }
+
+      mostrarProductos(todosLosProductos.slice(0, 40));
+    }
+
     async function cargarProductos() {
       const contenedor = document.getElementById('productosList');
-      
       if (!navigator.onLine) {
         cargarProductosOffline();
         return;
       }
 
-      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Actualizando catálogo desde Supabase...</p>';
+      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Actualizando catálogo...</p>';
 
       const { data, error } = await _supabase.from('productos').select('*').range(0, 1999);
 
       if (error) {
-        console.warn('Error de red, cargando desde caché local...');
         cargarProductosOffline();
         return;
       }
 
-      todosLosProductos = data;
-      // Guardar copia en el navegador para uso offline
       localStorage.setItem('la_nueva_productos', JSON.stringify(data));
-
-      document.getElementById('cantProductos').textContent = `${data.length} productos`;
-      mostrarProductos(todosLosProductos.slice(0, 40));
+      iniciarSesionExitosa(usuarioActualEmail, data);
     }
 
     function cargarProductosOffline() {
       const cached = localStorage.getItem('la_nueva_productos');
-      const contenedor = document.getElementById('productosList');
-
       if (cached) {
-        todosLosProductos = JSON.parse(cached);
-        document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos (Offline)`;
-        mostrarProductos(todosLosProductos.slice(0, 40));
+        iniciarSesionExitosa(usuarioActualEmail, JSON.parse(cached));
       } else {
-        contenedor.innerHTML = '<p class="text-red-500 text-sm text-center">Sin internet y sin catálogo guardado previamente.</p>';
+        document.getElementById('productosList').innerHTML = '<p class="text-red-500 text-sm text-center">Sin internet y sin catálogo guardado.</p>';
       }
     }
 
     function mostrarProductos(productos) {
       const contenedor = document.getElementById('productosList');
-
       if (!productos || productos.length === 0) {
         contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">No se encontraron productos.</p>';
         return;
       }
 
-      const tempDiv = document.createElement('div');
       let htmlContent = '';
       productos.forEach((prod, idx) => {
         const idUnico = prod.id || prod.codigo || idx;
@@ -244,10 +284,7 @@
           </div>
         `;
       });
-
-      tempDiv.innerHTML = htmlContent;
-      contenedor.innerHTML = '';
-      contenedor.appendChild(tempDiv);
+      contenedor.innerHTML = htmlContent;
     }
 
     function filtrarProductosDebounced() {
@@ -257,24 +294,104 @@
 
     function filtrarProductos() {
       const texto = document.getElementById('buscador').value.trim().toLowerCase();
-      
       if (!texto) {
         mostrarProductos(todosLosProductos.slice(0, 40));
         return;
       }
-
       const filtrados = todosLosProductos.filter(p => 
         (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
         (p.codigo && String(p.codigo).includes(texto))
       ).slice(0, 40);
-
       mostrarProductos(filtrados);
     }
 
+    // Funciones del Administrador para Modificar Precios
+    function abrirModalPrecios() {
+      document.getElementById('modalPrecios').classList.remove('hidden');
+      document.getElementById('buscadorAdmin').value = '';
+      document.getElementById('listaAdminPrecios').innerHTML = '<p class="text-slate-400 text-center py-2">Escriba arriba para buscar el producto</p>';
+      document.getElementById('prodSeleccionadoNombre').value = '';
+      document.getElementById('prodSeleccionadoId').value = '';
+      document.getElementById('nuevoPrecioInput').value = '';
+    }
+
+    function cerrarModalPrecios() {
+      document.getElementById('modalPrecios').classList.add('hidden');
+    }
+
+    function filtrarProductosAdmin() {
+      const texto = document.getElementById('buscadorAdmin').value.trim().toLowerCase();
+      const contenedor = document.getElementById('listaAdminPrecios');
+
+      if (!texto || texto.length < 2) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2">Escriba al menos 2 letras...</p>';
+        return;
+      }
+
+      const encontrados = todosLosProductos.filter(p => 
+        (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
+        (p.codigo && String(p.codigo).includes(texto))
+      ).slice(0, 15);
+
+      if (encontrados.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2">No se encontró el producto</p>';
+        return;
+      }
+
+      let html = '';
+      encontrados.forEach(p => {
+        const idVal = p.id;
+        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
+        html += `
+          <div onclick="seleccionarParaPrecio('${idVal}', '${nombreSeguro}', ${p.precio})" 
+            class="p-2 hover:bg-purple-50 cursor-pointer rounded border-b flex justify-between items-center">
+            <span>${p.nombre}</span>
+            <span class="font-semibold text-purple-700">$${p.precio}</span>
+          </div>
+        `;
+      });
+      contenedor.innerHTML = html;
+    }
+
+    function seleccionarParaPrecio(id, nombre, precioActual) {
+      document.getElementById('prodSeleccionadoId').value = id;
+      document.getElementById('prodSeleccionadoNombre').value = nombre;
+      document.getElementById('nuevoPrecioInput').value = precioActual;
+      document.getElementById('listaAdminPrecios').innerHTML = `<p class="text-emerald-600 text-center font-medium py-1">✓ Producto seleccionado</p>`;
+    }
+
+    async function guardarNuevoPrecio() {
+      const id = document.getElementById('prodSeleccionadoId').value;
+      const nuevoPrecio = parseFloat(document.getElementById('nuevoPrecioInput').value);
+
+      if (!id || isNaN(nuevoPrecio) || nuevoPrecio < 0) {
+        alert('Seleccione un producto y escriba un precio válido.');
+        return;
+      }
+
+      if (!navigator.onLine) {
+        alert('Debe tener conexión a internet para actualizar precios en la base de datos.');
+        return;
+      }
+
+      const { error } = await _supabase
+        .from('productos')
+        .update({ precio: nuevoPrecio })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al actualizar precio: ' + error.message);
+      } else {
+        alert('¡Precio actualizado con éxito en la base de datos!');
+        cerrarModalPrecios();
+        cargarProductos(); // Recargar catálogo actualizado
+      }
+    }
+
+    // Carrito y Cobro
     function agregarAlCarrito(idUnico, nombre, precio) {
       const inputQty = document.getElementById(`qty_input_${idUnico}`);
       const cantidadAAgregar = parseInt(inputQty ? inputQty.value : 1) || 1;
-
       const itemExistente = carrito.find(item => item.idUnico === idUnico);
       
       if (itemExistente) {
@@ -282,7 +399,6 @@
       } else {
         carrito.push({ idUnico, nombre, precio, cantidad: cantidadAAgregar });
       }
-
       if (inputQty) inputQty.value = 1;
       actualizarCarritoVisual();
     }
@@ -325,7 +441,6 @@
           </div>
         `;
       });
-
       totalSpan.textContent = '$' + total.toFixed(2);
     }
 
@@ -344,7 +459,6 @@
       actualizarCarritoVisual();
     }
 
-    // Cobrar venta (funciona online y offline guardando en cola si no hay red)
     async function cobrarVenta() {
       if (carrito.length === 0) {
         alert('El carrito está vacío');
@@ -377,19 +491,16 @@
           }));
 
           await _supabase.from('detalle_ventas').insert(detallesInserts);
-          alert('¡Venta registrada en la nube con éxito!');
+          alert('¡Venta registrada con éxito!');
         } catch (err) {
-          console.warn('Error al subir a Supabase, guardando localmente...', err);
           guardarVentaOffline(ventaLocal);
         }
       } else {
         guardarVentaOffline(ventaLocal);
-        alert('⚡ Sin conexión: Venta guardada localmente. Se sincronizará al volver el internet.');
+        alert('⚡ Sin internet: Venta guardada localmente.');
       }
 
-      // Imprimir ticket siempre
       generarEImprimirTicket(total);
-
       carrito = [];
       actualizarCarritoVisual();
     }
@@ -404,7 +515,6 @@
       let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length === 0) return;
 
-      console.log('Sincronizando ventas pendientes...', pendientes.length);
       for (let i = 0; i < pendientes.length; i++) {
         let v = pendientes[i];
         try {
@@ -424,20 +534,14 @@
             }));
             await _supabase.from('detalle_ventas').insert(det);
           }
-        } catch (e) {
-          console.error('Error sincronizando venta pendiente', e);
-          return;
-        }
+        } catch (e) { return; }
       }
-      // Limpiar cola si se subieron todas con éxito
       localStorage.removeItem('ventas_pendientes');
-      console.log('¡Sincronización completa!');
     }
 
     function generarEImprimirTicket(total) {
       const fechaActual = new Date().toLocaleString();
       document.getElementById('ticketFecha').textContent = `Fecha: ${fechaActual}`;
-      
       const ticketItemsContainer = document.getElementById('ticketItems');
       ticketItemsContainer.innerHTML = '';
 
@@ -450,7 +554,6 @@
           </div>
         `;
       });
-
       document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
 
       const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
@@ -476,32 +579,21 @@
     }
 
     async function descargarReporteCSV() {
-      let ventasLocal = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
-      
       if (!navigator.onLine) {
-        // Descargar reporte local si no hay internet
-        let csvContent = "data:text/csv;charset=utf-8,Total,Fecha (Pendiente Sync)\n";
-        ventasLocal.forEach(v => { csvContent += `${v.total},${v.creado_en}\n`; });
-        descargarCSVFile(csvContent, "reporte_ventas_offline.csv");
+        alert('Debe tener internet para descargar el reporte consolidado.');
         return;
       }
-
       const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
       if (error) {
-        alert('Error al obtener reporte: ' + error.message);
+        alert('Error: ' + error.message);
         return;
       }
-
       let csvContent = "data:text/csv;charset=utf-8,ID Venta,Total,Fecha y Hora\n";
       data.forEach(v => { csvContent += `${v.id},${v.total},${v.creado_en || ''}\n`; });
-      descargarCSVFile(csvContent, "reporte_ventas_la_nueva.csv");
-    }
-
-    function descargarCSVFile(content, filename) {
-      const encodedUri = encodeURI(content);
+      const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", filename);
+      link.setAttribute("download", "reporte_ventas_la_nueva.csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
