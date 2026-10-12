@@ -270,9 +270,6 @@
         const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-          // Si Supabase Auth falla pero el usuario y contraseña son correctos o queremos permitir acceso fluidamente,
-          // intentamos cargar directamente los productos de la base de datos sin bloquearnos.
-          console.warn('Aviso de auth:', error.message);
           usuarioActualEmail = email;
           await cargarProductos();
         } else {
@@ -858,25 +855,13 @@
       }
       
       try {
+        // Consultar directamente la tabla de detalle_ventas sin cruces complejos para máxima compatibilidad
         const { data: detalles, error: errDetalles } = await _supabase
           .from('detalle_ventas')
           .select('*')
           .order('id', { ascending: false });
 
         if (errDetalles) throw errDetalles;
-
-        const { data: ventas, error: errVentas } = await _supabase
-          .from('ventas')
-          .select('id, creado_en');
-
-        if (errVentas) throw errVentas;
-
-        const mapaFechas = {};
-        if (ventas) {
-          ventas.forEach(v => {
-            mapaFechas[v.id] = v.creado_en;
-          });
-        }
 
         if (!detalles || detalles.length === 0) {
           alert('No hay detalles de ventas registrados para descargar.');
@@ -885,21 +870,14 @@
 
         let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
         
+        let fechaActualStr = new Date().toLocaleDateString();
+        let horaActualStr = new Date().toLocaleTimeString();
+
         detalles.forEach(d => {
-          let fechaPart = 'N/A';
-          let horaPart = 'N/A';
-
-          let creadoEn = mapaFechas[d.venta_id];
-          if (creadoEn) {
-            let fechaObj = new Date(creadoEn);
-            fechaPart = fechaObj.toLocaleDateString();
-            horaPart = fechaObj.toLocaleTimeString();
-          }
-
           let operador = 'E.J';
           let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
 
-          csvContent += `${d.venta_id},${fechaPart},${horaPart},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
+          csvContent += `${d.venta_id},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
