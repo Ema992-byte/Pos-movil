@@ -855,7 +855,7 @@
       }
       
       try {
-        // Consultar directamente la tabla de detalle_ventas sin cruces complejos para máxima compatibilidad
+        // Consultar únicamente la tabla detalle_ventas para prevenir cualquier error de columnas externas
         const { data: detalles, error: errDetalles } = await _supabase
           .from('detalle_ventas')
           .select('*')
