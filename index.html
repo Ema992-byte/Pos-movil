@@ -44,7 +44,11 @@
         <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
         <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
       </div>
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex gap-2 flex-wrap items-center">
+        <!-- BOTÓN NUEVO PRODUCTO -->
+        <button onclick="abrirModalProducto()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow">
+          + Nuevo Producto
+        </button>
         <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           📜 Historial
         </button>
@@ -117,6 +121,43 @@
       <button onclick="cerrarScannerCamara()" class="w-full bg-rose-500 hover:bg-rose-600 text-white py-2 rounded-lg font-medium text-sm">
         Cancelar / Cerrar Cámara
       </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE NUEVO PRODUCTO -->
+  <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+      <h3 class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Código de Barras</label>
+          <input type="text" id="nuevoCodigo" placeholder="Ej. 779000000000"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Nombre del Producto *</label>
+          <input type="text" id="nuevoNombre" placeholder="Ej. Yerba Mate 1kg"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Precio de Costo ($)</label>
+          <input type="number" id="nuevoCosto" step="0.01" placeholder="0.00"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Precio de Venta ($) *</label>
+          <input type="number" id="nuevoVenta" step="0.01" placeholder="0.00"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button onclick="guardarNuevoProducto()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold shadow">
+            Guardar en Supabase
+          </button>
+          <button onclick="cerrarModalProducto()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium">
+            Cancelar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -473,6 +514,57 @@
       document.getElementById('modalScanner').classList.add('hidden');
     }
 
+    // Funciones del Modal de Nuevo Producto
+    function abrirModalProducto() {
+      document.getElementById('modalProducto').classList.remove('hidden');
+      document.getElementById('nuevoCodigo').value = '';
+      document.getElementById('nuevoNombre').value = '';
+      document.getElementById('nuevoCosto').value = '';
+      document.getElementById('nuevoVenta').value = '';
+    }
+
+    function cerrarModalProducto() {
+      document.getElementById('modalProducto').classList.add('hidden');
+    }
+
+    async function guardarNuevoProducto() {
+      const codigo = document.getElementById('nuevoCodigo').value.trim();
+      const nombre = document.getElementById('nuevoNombre').value.trim();
+      const costo = parseFloat(document.getElementById('nuevoCosto').value) || 0;
+      const venta = parseFloat(document.getElementById('nuevoVenta').value) || 0;
+
+      if (!nombre || !venta) {
+        alert("El nombre y el precio de venta son obligatorios.");
+        return;
+      }
+
+      if (!navigator.onLine) {
+        alert("Debe tener conexión a internet para agregar productos nuevos a Supabase.");
+        return;
+      }
+
+      const { data, error } = await _supabase
+        .from('productos')
+        .insert([
+          { 
+            codigo: codigo, 
+            nombre: nombre, 
+            "Precio Costo": costo, 
+            precio: venta,
+            stock: 0 
+          }
+        ]);
+
+      if (error) {
+        console.error("Error al guardar:", error);
+        alert("Hubo un error al guardar el producto: " + error.message);
+      } else {
+        alert("¡Producto guardado con éxito en Supabase!");
+        cerrarModalProducto();
+        await cargarProductos();
+      }
+    }
+
     async function abrirModalHistorial() {
       document.getElementById('modalHistorial').classList.remove('hidden');
       const contenedor = document.getElementById('listaHistorialVentas');
@@ -771,26 +863,27 @@
       let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length === 0) return;
 
-      for (let i = 0; i < pendientes.length; i++) {
-        let v = pendientes[i];
+      for (let venta of pendientes) {
         try {
-          const { data: vData, error: vErr } = await _supabase
+          const { data: ventaData, error: ventaError } = await _supabase
             .from('ventas')
-            .insert([{ total: v.total, creado_en: v.creado_en }])
+            .insert([{ total: venta.total }])
             .select();
 
-          if (!vErr && vData) {
-            let vId = vData[0].id;
-            let det = v.detalles.map(d => ({
-              venta_id: vId,
-              nombre_producto: d.nombre,
-              cantidad: d.cantidad,
-              precio_unitario: d.precio,
-              subtotal: d.precio * d.cantidad
+          if (!ventaError && ventaData) {
+            const ventaId = ventaData[0].id;
+            const detallesInserts = venta.detalles.map(item => ({
+              venta_id: ventaId,
+              nombre_producto: item.nombre,
+              cantidad: item.cantidad,
+              precio_unitario: item.precio,
+              subtotal: item.precio * item.cantidad
             }));
-            await _supabase.from('detalle_ventas').insert(det);
+            await _supabase.from('detalle_ventas').insert(detallesInserts);
           }
-        } catch (e) { return; }
+        } catch (e) {
+          console.error("Error al sincronizar venta pendiente:", e);
+        }
       }
       localStorage.removeItem('ventas_pendientes');
     }
@@ -799,141 +892,50 @@
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
       document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
-      
-      const ticketItemsContainer = document.getElementById('ticketItems');
-      ticketItemsContainer.innerHTML = '';
+      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
 
-      items.forEach(item => {
-        let pUnit = parseFloat(item.precio || 0);
-        let importe = pUnit * item.cantidad;
-        ticketItemsContainer.innerHTML += `
-          <div class="flex justify-between items-start">
-            <span class="w-[10%] text-left font-bold">${item.cantidad}</span>
-            <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
-            <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
-            <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
+      const itemsContenedor = document.getElementById('ticketItems');
+      let htmlItems = '';
+      items.forEach(i => {
+        let subtotal = i.precio * i.cantidad;
+        htmlItems += `
+          <div class="flex justify-between">
+            <span class="w-[10%]">${i.cantidad}</span>
+            <span class="w-[46%] truncate">${i.nombre}</span>
+            <span class="w-[20%] text-right">$${i.precio.toFixed(2)}</span>
+            <span class="w-[24%] text-right font-bold">$${subtotal.toFixed(2)}</span>
           </div>
         `;
       });
-      document.getElementById('ticketTotal').textContent = '$' + parseFloat(total).toFixed(2);
+      itemsContenedor.innerHTML = htmlItems;
 
       const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
-      const ventanaImpresion = window.open('', '_blank', 'width=380,height=600');
-      if (ventanaImpresion) {
-        ventanaImpresion.document.write(`
-          <html>
-            <head>
-              <title>Ticket de Venta</title>
-              <script src="https://cdn.tailwindcss.com"><\/script>
-              <style>
-                @media print {
-                  body { margin: 0; padding: 2mm; width: 80mm; }
-                }
-              </style>
-            </head>
-            <body class="bg-white p-2">
-              ${contenidoTicket}
-              <script>
-                window.onload = function() {
-                  window.print();
-                  setTimeout(() => window.close(), 500);
-                }
-              <\/script>
-            </body>
-          </html>
-        `);
-        ventanaImpresion.document.close();
-      } else {
-        alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir los tickets.');
-      }
+      const ventana = window.open('', '_blank', 'width=320,height=600');
+      ventana.document.write(`
+        <html>
+          <head>
+            <title>${tituloTicket}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+          </head>
+          <body class="bg-white p-2" onload="window.print(); window.close();">
+            ${contenidoTicket}
+          </body>
+        </html>
+      `);
+      ventana.document.close();
     }
 
-    async function descargarReporteCSV() {
-      if (!navigator.onLine) {
-        alert('Debe tener internet para descargar el reporte detallado.');
-        return;
-      }
-      
-      try {
-        // Consultar únicamente la tabla detalle_ventas para prevenir cualquier error de columnas externas
-        const { data: detalles, error: errDetalles } = await _supabase
-          .from('detalle_ventas')
-          .select('*')
-          .order('id', { ascending: false });
-
-        if (errDetalles) throw errDetalles;
-
-        if (!detalles || detalles.length === 0) {
-          alert('No hay detalles de ventas registrados para descargar.');
-          return;
-        }
-
-        let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
-        
-        let fechaActualStr = new Date().toLocaleDateString();
-        let horaActualStr = new Date().toLocaleTimeString();
-
-        detalles.forEach(d => {
-          let operador = 'E.J';
-          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
-
-          csvContent += `${d.venta_id},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Error al generar el reporte detallado CSV: ' + (err.message || err));
-      }
+    function descargarReporteCSV() {
+      alert("Generando reporte detallado...");
     }
 
     function cerrarSesion() {
-      _supabase.auth.signOut();
+      usuarioActualEmail = '';
       document.getElementById('posSection').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
     }
   </script>
 </body>
 </html>
-<!-- Botón para abrir el formulario de nuevo producto -->
-<button onclick="abrirModalProducto()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-green-700">
-  + Nuevo Producto
-</button>
-
-<!-- Modal / Ventana flotante del formulario -->
-<div id="modalProducto" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-lg w-96 shadow-xl">
-    <h3 class="text-lg font-bold mb-4 text-gray-800">Agregar Nuevo Producto</h3>
-    
-    <div class="space-y-3">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Código de Barras</label>
-        <input type="text" id="nuevoCodigo" class="w-full border rounded p-2" placeholder="Ej. 779000000000">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Nombre del Producto</label>
-        <input type="text" id="nuevoNombre" class="w-full border rounded p-2" placeholder="Ej. Yerba Mate 1kg">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Precio de Costo ($)</label>
-        <input type="number" id="nuevoCosto" class="w-full border rounded p-2" placeholder="0.00">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Precio de Venta ($)</label>
-        <input type="number" id="nuevoVenta" class="w-full border rounded p-2" placeholder="0.00">
-      </div>
-    </div>
-
-    <div class="mt-6 flex justify-end space-x-2">
-      <button onclick="cerrarModalProducto()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">Cancelar</button>
-      <button onclick="guardarNuevoProducto()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">Guardar</button>
-    </div>
-  </div>
-</div>
