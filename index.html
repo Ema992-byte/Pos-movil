@@ -392,7 +392,6 @@
         const codigoEscaneado = document.getElementById('buscador').value.trim();
         if (!codigoEscaneado) return;
 
-        // Buscar coincidencia exacta por código de barras o código interno
         const productoEncontrado = todosLosProductos.find(p => 
           p.codigo && String(p.codigo).trim().toLowerCase() === codigoEscaneado.toLowerCase()
         );
@@ -406,7 +405,6 @@
       }
     }
 
-    // Funciones para Escáner con Cámara (QuaggaJS)
     function abrirScannerCamara() {
       document.getElementById('modalScanner').classList.remove('hidden');
       scannerActivo = true;
@@ -417,7 +415,7 @@
           type : "LiveStream",
           target: document.querySelector('#interactive'),
           constraints: {
-            facingMode: "environment" // Cámara trasera preferentemente
+            facingMode: "environment"
           },
         },
         decoder : {
@@ -436,7 +434,6 @@
         if (!scannerActivo) return;
         const codigoLeido = result.codeResult.code;
         
-        // Buscar el producto con el código leído
         const productoEncontrado = todosLosProductos.find(p => 
           p.codigo && String(p.codigo).trim() === String(codigoLeido).trim()
         );
@@ -734,169 +731,4 @@
             subtotal: item.precio * item.cantidad
           }));
 
-          await _supabase.from('detalle_ventas').insert(detallesInserts);
-          alert('¡Venta registrada con éxito!');
-          imprimirTicketGenerico(carrito, total, fechaActualStr, `Ticket #${ventaId}`);
-        } catch (err) {
-          guardarVentaOffline(ventaLocal);
-          imprimirTicketGenerico(carrito, total, fechaActualStr, 'Ticket (Pendiente Sync)');
-        }
-      } else {
-        guardarVentaOffline(ventaLocal);
-        alert('⚡ Sin internet: Venta guardada localmente.');
-        imprimirTicketGenerico(carrito, total, fechaActualStr, 'Ticket (Offline)');
-      }
-
-      carrito = [];
-      actualizarCarritoVisual();
-    }
-
-    function guardarVentaOffline(venta) {
-      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
-      pendientes.push(venta);
-      localStorage.setItem('ventas_pendientes', JSON.stringify(pendientes));
-    }
-
-    async function sincronizarVentasPendientes() {
-      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
-      if (pendientes.length === 0) return;
-
-      for (let i = 0; i < pendientes.length; i++) {
-        let v = pendientes[i];
-        try {
-          const { data: vData, error: vErr } = await _supabase
-            .from('ventas')
-            .insert([{ total: v.total, creado_en: v.creado_en }])
-            .select();
-
-          if (!vErr && vData) {
-            let vId = vData[0].id;
-            let det = v.detalles.map(d => ({
-              venta_id: vId,
-              nombre_producto: d.nombre,
-              cantidad: d.cantidad,
-              precio_unitario: d.precio,
-              subtotal: d.precio * d.cantidad
-            }));
-            await _supabase.from('detalle_ventas').insert(det);
-          }
-        } catch (e) { return; }
-      }
-      localStorage.removeItem('ventas_pendientes');
-    }
-
-    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
-      document.getElementById('ticketFecha').textContent = fechaStr;
-      document.getElementById('ticketIdVenta').textContent = tituloTicket;
-      document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
-      
-      const ticketItemsContainer = document.getElementById('ticketItems');
-      ticketItemsContainer.innerHTML = '';
-
-      items.forEach(item => {
-        let pUnit = parseFloat(item.precio || 0);
-        let importe = pUnit * item.cantidad;
-        ticketItemsContainer.innerHTML += `
-          <div class="flex justify-between items-start">
-            <span class="w-[10%] text-left font-bold">${item.cantidad}</span>
-            <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
-            <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
-            <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
-          </div>
-        `;
-      });
-      document.getElementById('ticketTotal').textContent = '$' + parseFloat(total).toFixed(2);
-
-      const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
-      const ventanaImpresion = window.open('', '_blank', 'width=380,height=600');
-      if (ventanaImpresion) {
-        ventanaImpresion.document.write(`
-          <html>
-            <head>
-              <title>Ticket de Venta</title>
-              <script src="https://cdn.tailwindcss.com"><\/script>
-              <style>
-                @media print {
-                  body { margin: 0; padding: 2mm; width: 80mm; }
-                }
-              </style>
-            </head>
-            <body class="bg-white p-2">
-              ${contenidoTicket}
-              <script>
-                window.onload = function() {
-                  window.print();
-                  setTimeout(() => window.close(), 500);
-                }
-              <\/script>
-            </body>
-          </html>
-        `);
-        ventanaImpresion.document.close();
-      } else {
-        alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir los tickets.');
-      }
-    }
-
-    async function descargarReporteCSV() {
-      if (!navigator.onLine) {
-        alert('Debe tener internet para descargar el reporte detallado.');
-        return;
-      }
-      
-      try {
-        const { data, error } = await _supabase
-          .from('detalle_ventas')
-          .select('id, venta_id, nombre_producto, cantidad, precio_unitario, subtotal, ventas(creado_en)')
-          .order('id', { ascending: false });
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-          alert('No hay detalles de ventas registrados para descargar.');
-          return;
-        }
-
-        let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
-        
-        data.forEach(d => {
-          let fechaPart = '';
-          let horaPart = '';
-
-          if (d.ventas && d.ventas.creado_en) {
-            let fechaObj = new Date(d.ventas.creado_en);
-            fechaPart = fechaObj.toLocaleDateString();
-            horaPart = fechaObj.toLocaleTimeString();
-          } else {
-            fechaPart = 'N/A';
-            horaPart = 'N/A';
-          }
-
-          let operador = 'E.J';
-          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
-
-          csvContent += `${d.venta_id},${fechaPart},${horaPart},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Error al generar el reporte detallado CSV: ' + (err.message || err));
-      }
-    }
-
-    function cerrarSesion() {
-      _supabase.auth.signOut();
-      document.getElementById('posSection').classList.add('hidden');
-      document.getElementById('loginSection').classList.remove('hidden');
-    }
-  </script>
-</body>
-</html>
+          await _supabase.from('detalle
