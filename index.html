@@ -127,22 +127,22 @@
     </div>
   </div>
 
-  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y TOMAR FOTO -->
+  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y TOMAR/SELECCIONAR FOTO -->
   <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
       <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
       <input type="hidden" id="editProductoId">
       
       <div class="space-y-3">
-        <!-- Vista previa de foto y botón de cámara -->
+        <!-- Vista previa de foto y botón de cámara/galería -->
         <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50">
           <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden">
           <div id="placeholderFoto" class="text-slate-400 text-xs text-center mb-2">
             📸 Sin foto asignada
           </div>
           <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow">
-            📷 Tomar Foto / Seleccionar Imagen
-            <input type="file" id="inputFotoCamara" accept="image/*" capture="environment" class="hidden" onchange="capturarFotoCamara(event)">
+            📷 Tomar o Seleccionar Imagen
+            <input type="file" id="inputFotoCamara" accept="image/*" class="hidden" onchange="capturarFotoCamara(event)">
           </label>
         </div>
 
