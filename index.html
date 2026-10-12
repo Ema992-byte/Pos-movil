@@ -400,14 +400,15 @@
 
       let htmlContent = '';
       productos.forEach((prod, idx) => {
-        const idUnico = prod.id || prod.codigo || idx;
+        const idUnico = prod.id || prod.codigo || prod.codigo_barras || idx;
+        const codigoMostrado = prod.codigo || prod.codigo_barras || 'S/C';
         const nombreEscapado = (prod.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
         htmlContent += `
           <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm text-sm">
             <div class="pr-2 flex-grow">
               <p class="font-semibold text-slate-800">${prod.nombre}</p>
-              <p class="text-xs text-slate-500">Cód: ${prod.codigo || 'S/C'} | Stock: ${prod.stock} | <strong>$${prod.precio}</strong></p>
+              <p class="text-xs text-slate-500">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0} | <strong>$${prod.precio}</strong></p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <input type="number" id="qty_input_${idUnico}" value="1" min="1" 
@@ -434,10 +435,12 @@
         mostrarProductos(todosLosProductos.slice(0, 40));
         return;
       }
-      const filtrados = todosLosProductos.filter(p => 
-        (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
-        (p.codigo && String(p.codigo).toLowerCase().includes(texto))
-      ).slice(0, 40);
+      const filtrados = todosLosProductos.filter(p => {
+        const nombre = (p.nombre || '').toLowerCase();
+        const cod1 = String(p.codigo || '').toLowerCase();
+        const cod2 = String(p.codigo_barras || '').toLowerCase();
+        return nombre.includes(texto) || cod1.includes(texto) || cod2.includes(texto);
+      }).slice(0, 40);
       mostrarProductos(filtrados);
     }
 
@@ -446,12 +449,15 @@
         const codigoEscaneado = document.getElementById('buscador').value.trim();
         if (!codigoEscaneado) return;
 
-        const productoEncontrado = todosLosProductos.find(p => 
-          p.codigo && String(p.codigo).trim().toLowerCase() === codigoEscaneado.toLowerCase()
-        );
+        const productoEncontrado = todosLosProductos.find(p => {
+          const c1 = String(p.codigo || '').trim().toLowerCase();
+          const c2 = String(p.codigo_barras || '').trim().toLowerCase();
+          const busqueda = codigoEscaneado.toLowerCase();
+          return c1 === busqueda || c2 === busqueda;
+        });
 
         if (productoEncontrado) {
-          const idUnico = productoEncontrado.id || productoEncontrado.codigo;
+          const idUnico = productoEncontrado.id || productoEncontrado.codigo || productoEncontrado.codigo_barras;
           agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
           document.getElementById('buscador').value = '';
           mostrarProductos(todosLosProductos.slice(0, 40));
@@ -486,14 +492,16 @@
 
       Quagga.onDetected(function(result) {
         if (!scannerActivo) return;
-        const codigoLeido = result.codeResult.code;
+        const codigoLeido = String(result.codeResult.code).trim();
         
-        const productoEncontrado = todosLosProductos.find(p => 
-          p.codigo && String(p.codigo).trim() === String(codigoLeido).trim()
-        );
+        const productoEncontrado = todosLosProductos.find(p => {
+          const c1 = String(p.codigo || '').trim();
+          const c2 = String(p.codigo_barras || '').trim();
+          return c1 === codigoLeido || c2 === codigoLeido;
+        });
 
         if (productoEncontrado) {
-          const idUnico = productoEncontrado.id || productoEncontrado.codigo;
+          const idUnico = productoEncontrado.id || productoEncontrado.codigo || productoEncontrado.codigo_barras;
           agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
           cerrarScannerCamara();
           alert(`¡Producto agregado con éxito: ${productoEncontrado.nombre}!`);
@@ -543,11 +551,13 @@
         return;
       }
 
+      // Se guardan ambos campos (codigo y codigo_barras) para garantizar compatibilidad total
       const { data, error } = await _supabase
         .from('productos')
         .insert([
           { 
             codigo: codigo, 
+            codigo_barras: codigo, 
             nombre: nombre, 
             "Precio Costo": costo, 
             precio: venta,
@@ -673,10 +683,12 @@
         return;
       }
 
-      const encontrados = todosLosProductos.filter(p => 
-        (p.nombre && p.nombre.toLowerCase().includes(texto)) || 
-        (p.codigo && String(p.codigo).includes(texto))
-      ).slice(0, 15);
+      const encontrados = todosLosProductos.filter(p => {
+        const n = (p.nombre || '').toLowerCase();
+        const c1 = String(p.codigo || '').toLowerCase();
+        const c2 = String(p.codigo_barras || '').toLowerCase();
+        return n.includes(texto) || c1.includes(texto) || c2.includes(texto);
+      }).slice(0, 15);
 
       if (encontrados.length === 0) {
         contenedor.innerHTML = '<p class="text-slate-400 text-center py-2">No se encontró el producto</p>';
@@ -952,44 +964,4 @@
           .select('*')
           .order('id', { ascending: false });
 
-        if (errDetalles) throw errDetalles;
-
-        if (!detalles || detalles.length === 0) {
-          alert('No hay detalles de ventas registrados para descargar.');
-          return;
-        }
-
-        let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
-        
-        let fechaActualStr = new Date().toLocaleDateString();
-        let horaActualStr = new Date().toLocaleTimeString();
-
-        detalles.forEach(d => {
-          let operador = 'E.J';
-          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
-
-          csvContent += `${d.venta_id},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Error al generar el reporte detallado CSV: ' + (err.message || err));
-      }
-    }
-
-    function cerrarSesion() {
-      _supabase.auth.signOut();
-      document.getElementById('posSection').classList.add('hidden');
-      document.getElementById('loginSection').classList.remove('hidden');
-    }
-  </script>
-</body>
-</html>
+        if (errDet
