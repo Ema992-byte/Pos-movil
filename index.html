@@ -11,6 +11,11 @@
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
+  <!-- INDICADOR DE ESTADO DE RED -->
+  <div id="estadoRed" class="w-full max-w-5xl mb-2 text-center text-xs font-bold py-1 rounded hidden">
+    <!-- Se muestra dinámicamente si hay o no internet -->
+  </div>
+
   <!-- PANTALLA DE INICIO DE SESIÓN -->
   <div id="loginSection" class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
     <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">La Nueva 🛒</h2>
@@ -54,14 +59,14 @@
           <span id="cantProductos" class="text-xs text-slate-500 font-medium"></span>
         </div>
         
-        <!-- Buscador en tiempo real optimizado -->
+        <!-- Buscador en tiempo real -->
         <div class="mb-3">
           <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarProductosDebounced()"
             class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
         </div>
 
         <div id="productosList" class="space-y-2 overflow-y-auto pr-2 flex-grow border border-slate-100 rounded-lg p-2">
-          <p class="text-slate-400 text-sm text-center py-4">Cargando catálogo completo...</p>
+          <p class="text-slate-400 text-sm text-center py-4">Cargando catálogo...</p>
         </div>
       </div>
 
@@ -94,9 +99,7 @@
     <div class="text-center text-xs mb-3">Punto de Venta Móvil</div>
     <div class="text-xs mb-2" id="ticketFecha">Fecha: --/--/---- --:--</div>
     <div class="border-t border-dashed border-black my-2"></div>
-    <div id="ticketItems" class="space-y-1 text-xs">
-      <!-- Items del ticket -->
-    </div>
+    <div id="ticketItems" class="space-y-1 text-xs"></div>
     <div class="border-t border-dashed border-black my-2"></div>
     <div class="flex justify-between font-bold text-base">
       <span>TOTAL:</span>
@@ -105,7 +108,7 @@
     <div class="text-center text-xs mt-4">¡Gracias por su compra!</div>
   </div>
 
-  <!-- SCRIPT DE LÓGICA Y CONEXIÓN -->
+  <!-- SCRIPT DE LÓGICA Y MODO OFFLINE -->
   <script>
     const SUPABASE_URL = 'https://xjvhzfdgdivumluuegmm.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_lPJ95RgDRb5Vi4lLGrFULg_HI8_57RP';
@@ -115,11 +118,49 @@
     let carrito = [];
     let timerBusqueda = null;
 
-    // Manejo del Login
+    // Control de Estado de Conexión en vivo
+    window.addEventListener('online', actualizarEstadoRed);
+    window.addEventListener('offline', actualizarEstadoRed);
+
+    function actualizarEstadoRed() {
+      const banner = document.getElementById('estadoRed');
+      if (navigator.onLine) {
+        banner.className = 'w-full max-w-5xl mb-2 text-center text-xs font-bold py-1 rounded bg-emerald-100 text-emerald-800';
+        banner.textContent = '🟢 Conectado a Internet (Sincronizado)';
+        banner.classList.remove('hidden');
+        sincronizarVentasPendientes();
+      } else {
+        banner.className = 'w-full max-w-5xl mb-2 text-center text-xs font-bold py-1 rounded bg-amber-100 text-amber-800';
+        banner.textContent = '⚡ Modo Offline Activo (Operando sin internet)';
+        banner.classList.remove('hidden');
+      }
+    }
+
+    // Inicializar estado de red al cargar
+    setTimeout(actualizarEstadoRed, 500);
+
+    // Manejo del Login (permite offline si ya guardó sesión o usa caché)
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+
+      if (!navigator.onLine) {
+        // Modo offline directo si hay datos locales
+        const cachedProductos = localStorage.getItem('la_nueva_productos');
+        if (cachedProductos) {
+          document.getElementById('loginSection').classList.add('hidden');
+          document.getElementById('posSection').classList.remove('hidden');
+          todosLosProductos = JSON.parse(cachedProductos);
+          document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos (Offline)`;
+          mostrarProductos(todosLosProductos.slice(0, 40));
+          alert('Ingresando en modo offline con el catálogo guardado.');
+          return;
+        } else {
+          alert('No hay internet y no se encontró catálogo guardado en este dispositivo.');
+          return;
+        }
+      }
 
       const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
 
@@ -132,21 +173,44 @@
       }
     });
 
-    // Cargar catálogo completo
+    // Cargar catálogo (desde Supabase si hay red, o desde LocalStorage si está offline)
     async function cargarProductos() {
       const contenedor = document.getElementById('productosList');
-      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Cargando catálogo completo de Supabase...</p>';
+      
+      if (!navigator.onLine) {
+        cargarProductosOffline();
+        return;
+      }
+
+      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">Actualizando catálogo desde Supabase...</p>';
 
       const { data, error } = await _supabase.from('productos').select('*').range(0, 1999);
 
       if (error) {
-        contenedor.innerHTML = '<p class="text-red-500 text-sm text-center">Error al cargar productos</p>';
+        console.warn('Error de red, cargando desde caché local...');
+        cargarProductosOffline();
         return;
       }
 
       todosLosProductos = data;
+      // Guardar copia en el navegador para uso offline
+      localStorage.setItem('la_nueva_productos', JSON.stringify(data));
+
       document.getElementById('cantProductos').textContent = `${data.length} productos`;
       mostrarProductos(todosLosProductos.slice(0, 40));
+    }
+
+    function cargarProductosOffline() {
+      const cached = localStorage.getItem('la_nueva_productos');
+      const contenedor = document.getElementById('productosList');
+
+      if (cached) {
+        todosLosProductos = JSON.parse(cached);
+        document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos (Offline)`;
+        mostrarProductos(todosLosProductos.slice(0, 40));
+      } else {
+        contenedor.innerHTML = '<p class="text-red-500 text-sm text-center">Sin internet y sin catálogo guardado previamente.</p>';
+      }
     }
 
     function mostrarProductos(productos) {
@@ -280,6 +344,7 @@
       actualizarCarritoVisual();
     }
 
+    // Cobrar venta (funciona online y offline guardando en cola si no hay red)
     async function cobrarVenta() {
       if (carrito.length === 0) {
         alert('El carrito está vacío');
@@ -287,37 +352,86 @@
       }
 
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+      const ventaLocal = {
+        total: total,
+        detalles: [...carrito],
+        creado_en: new Date().toISOString()
+      };
 
-      // 1. Guardar la venta principal en Supabase
-      const { data: ventaData, error: ventaError } = await _supabase
-        .from('ventas')
-        .insert([{ total: total }])
-        .select();
+      if (navigator.onLine) {
+        try {
+          const { data: ventaData, error: ventaError } = await _supabase
+            .from('ventas')
+            .insert([{ total: total }])
+            .select();
 
-      if (ventaError) {
-        alert('Error al registrar la venta: ' + ventaError.message);
-        return;
+          if (ventaError) throw ventaError;
+
+          const ventaId = ventaData[0].id;
+          const detallesInserts = carrito.map(item => ({
+            venta_id: ventaId,
+            nombre_producto: item.nombre,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio,
+            subtotal: item.precio * item.cantidad
+          }));
+
+          await _supabase.from('detalle_ventas').insert(detallesInserts);
+          alert('¡Venta registrada en la nube con éxito!');
+        } catch (err) {
+          console.warn('Error al subir a Supabase, guardando localmente...', err);
+          guardarVentaOffline(ventaLocal);
+        }
+      } else {
+        guardarVentaOffline(ventaLocal);
+        alert('⚡ Sin conexión: Venta guardada localmente. Se sincronizará al volver el internet.');
       }
 
-      // 2. Guardar el detalle de los productos vendidos
-      const ventaId = ventaData[0].id;
-      const detallesInserts = carrito.map(item => ({
-        venta_id: ventaId,
-        nombre_producto: item.nombre,
-        cantidad: item.cantidad,
-        precio_unitario: item.precio,
-        subtotal: item.precio * item.cantidad
-      }));
-
-      await _supabase.from('detalle_ventas').insert(detallesInserts);
-
-      // 3. Preparar e imprimir el ticket
+      // Imprimir ticket siempre
       generarEImprimirTicket(total);
 
-      // 4. Limpiar carrito
-      alert('¡Venta registrada y guardada con éxito!');
       carrito = [];
       actualizarCarritoVisual();
+    }
+
+    function guardarVentaOffline(venta) {
+      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      pendientes.push(venta);
+      localStorage.setItem('ventas_pendientes', JSON.stringify(pendientes));
+    }
+
+    async function sincronizarVentasPendientes() {
+      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      if (pendientes.length === 0) return;
+
+      console.log('Sincronizando ventas pendientes...', pendientes.length);
+      for (let i = 0; i < pendientes.length; i++) {
+        let v = pendientes[i];
+        try {
+          const { data: vData, error: vErr } = await _supabase
+            .from('ventas')
+            .insert([{ total: v.total, creado_en: v.creado_en }])
+            .select();
+
+          if (!vErr && vData) {
+            let vId = vData[0].id;
+            let det = v.detalles.map(d => ({
+              venta_id: vId,
+              nombre_producto: d.nombre,
+              cantidad: d.cantidad,
+              precio_unitario: d.precio,
+              subtotal: d.precio * d.cantidad
+            }));
+            await _supabase.from('detalle_ventas').insert(det);
+          }
+        } catch (e) {
+          console.error('Error sincronizando venta pendiente', e);
+          return;
+        }
+      }
+      // Limpiar cola si se subieron todas con éxito
+      localStorage.removeItem('ventas_pendientes');
+      console.log('¡Sincronización completa!');
     }
 
     function generarEImprimirTicket(total) {
@@ -339,7 +453,6 @@
 
       document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
 
-      // Imprimir mediante ventana flotante del navegador
       const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
       const ventanaImpresion = window.open('', '_blank', 'width=350,height=600');
       ventanaImpresion.document.write(`
@@ -363,28 +476,32 @@
     }
 
     async function descargarReporteCSV() {
-      const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
+      let ventasLocal = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      
+      if (!navigator.onLine) {
+        // Descargar reporte local si no hay internet
+        let csvContent = "data:text/csv;charset=utf-8,Total,Fecha (Pendiente Sync)\n";
+        ventasLocal.forEach(v => { csvContent += `${v.total},${v.creado_en}\n`; });
+        descargarCSVFile(csvContent, "reporte_ventas_offline.csv");
+        return;
+      }
 
+      const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
       if (error) {
         alert('Error al obtener reporte: ' + error.message);
         return;
       }
 
-      if (!data || data.length === 0) {
-        alert('No hay ventas registradas todavía.');
-        return;
-      }
-
-      // Crear formato CSV
       let csvContent = "data:text/csv;charset=utf-8,ID Venta,Total,Fecha y Hora\n";
-      data.forEach(v => {
-        csvContent += `${v.id},${v.total},${v.creado_en || ''}\n`;
-      });
+      data.forEach(v => { csvContent += `${v.id},${v.total},${v.creado_en || ''}\n`; });
+      descargarCSVFile(csvContent, "reporte_ventas_la_nueva.csv");
+    }
 
-      const encodedUri = encodeURI(csvContent);
+    function descargarCSVFile(content, filename) {
+      const encodedUri = encodeURI(content);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "reporte_ventas_la_nueva.csv");
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
