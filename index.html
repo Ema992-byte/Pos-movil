@@ -37,12 +37,16 @@
 
   <!-- PANTALLA PRINCIPAL DEL POS -->
   <div id="posSection" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-5xl">
-    <div class="flex justify-between items-center mb-6 border-b pb-4">
+    <div class="flex justify-between items-center mb-6 border-b pb-4 flex-wrap gap-2">
       <div>
         <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
         <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 flex-wrap">
+        <!-- Historial y Reimpresión -->
+        <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
+          📜 Historial
+        </button>
         <!-- Botón exclusivo de Administrador para Precios -->
         <button id="btnAdminPrecios" onclick="abrirModalPrecios()" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           ⚙️ Modificar Precios
@@ -98,6 +102,24 @@
     </div>
   </div>
 
+  <!-- MODAL DE HISTORIAL Y REIMPRESIÓN -->
+  <div id="modalHistorial" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg">
+      <div class="flex justify-between items-center mb-4 border-b pb-2">
+        <h3 class="text-xl font-bold text-slate-800">Historial de Ventas 📜</h3>
+        <button onclick="cerrarModalHistorial()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <div id="listaHistorialVentas" class="max-h-80 overflow-y-auto space-y-2 pr-1 text-sm">
+        <p class="text-slate-400 text-center py-4">Cargando ventas recientes...</p>
+      </div>
+      <div class="mt-4 pt-3 border-t text-right">
+        <button onclick="cerrarModalHistorial()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL DE ADMINISTRACIÓN DE PRECIOS -->
   <div id="modalPrecios" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
@@ -108,9 +130,7 @@
           <input type="text" id="buscadorAdmin" placeholder="Escriba nombre o código..." oninput="filtrarProductosAdmin()"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
         </div>
-        <div id="listaAdminPrecios" class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1 text-xs">
-          <!-- Opciones de productos -->
-        </div>
+        <div id="listaAdminPrecios" class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1 text-xs"></div>
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">Producto Seleccionado</label>
           <input type="text" id="prodSeleccionadoNombre" readonly 
@@ -149,7 +169,7 @@
     <div class="text-center text-xs mt-4">¡Gracias por su compra!</div>
   </div>
 
-  <!-- SCRIPT DE LÓGICA Y ROLES -->
+  <!-- SCRIPT DE LÓGICA -->
   <script>
     const SUPABASE_URL = 'https://xjvhzfdgdivumluuegmm.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_lPJ95RgDRb5Vi4lLGrFULg_HI8_57RP';
@@ -178,7 +198,7 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
-    // Manejo del Login y Roles
+    // Login y Roles
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim();
@@ -213,7 +233,6 @@
       todosLosProductos = productosData;
       document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
 
-      // Definir Rol: Administrador si el correo contiene "admi" o "admin" (puedes cambiar esta regla)
       const esAdmin = email.toLowerCase().includes('admi');
       if (esAdmin) {
         document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (Acceso Total)';
@@ -305,7 +324,95 @@
       mostrarProductos(filtrados);
     }
 
-    // Funciones del Administrador para Modificar Precios
+    // Modal de Historial de Ventas
+    async function abrirModalHistorial() {
+      document.getElementById('modalHistorial').classList.remove('hidden');
+      const contenedor = document.getElementById('listaHistorialVentas');
+      contenedor.innerHTML = '<p class="text-slate-400 text-center py-4">Cargando ventas...</p>';
+
+      if (!navigator.onLine) {
+        const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+        if (pendientes.length === 0) {
+          contenedor.innerHTML = '<p class="text-slate-400 text-center py-4">Sin conexión. No hay ventas locales pendientes.</p>';
+          return;
+        }
+        let htmlOffline = '<p class="text-xs text-amber-600 font-bold mb-2">Ventas pendientes de sincronizar (Offline):</p>';
+        pendientes.forEach((v, idx) => {
+          htmlOffline += `
+            <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded border text-xs">
+              <div>
+                <p class="font-bold text-slate-700">Venta Local #${idx + 1}</p>
+                <p class="text-slate-500">${new Date(v.creado_en).toLocaleString()}</p>
+              </div>
+              <div class="text-right">
+                <p class="font-bold text-emerald-600">$${v.total.toFixed(2)}</p>
+              </div>
+            </div>
+          `;
+        });
+        contenedor.innerHTML = htmlOffline;
+        return;
+      }
+
+      const { data, error } = await _supabase
+        .from('ventas')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(30);
+
+      if (error || !data || data.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-4">No se encontraron ventas registradas.</p>';
+        return;
+      }
+
+      let html = '';
+      data.forEach(v => {
+        const fechaFormatted = v.creado_en ? new Date(v.creado_en).toLocaleString() : 'Fecha no disponible';
+        html += `
+          <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div>
+              <p class="font-bold text-slate-800 text-sm">Ticket #${v.id}</p>
+              <p class="text-xs text-slate-500">${fechaFormatted}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-bold text-slate-800 text-sm">$${parseFloat(v.total).toFixed(2)}</span>
+              <button onclick="reimprimirTicketAnterior(${v.id}, '${fechaFormatted}', ${v.total})" 
+                class="bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 rounded text-xs font-medium">
+                🖨️ Reimprimir
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      contenedor.innerHTML = html;
+    }
+
+    function cerrarModalHistorial() {
+      document.getElementById('modalHistorial').classList.add('hidden');
+    }
+
+    async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
+      const { data: detalles, error } = await _supabase
+        .from('detalle_ventas')
+        .select('*')
+        .eq('venta_id', ventaId);
+
+      if (error || !detalles) {
+        alert('No se pudo recuperar el detalle de este ticket.');
+        return;
+      }
+
+      // Preparar estructura para reimprimir
+      const itemsParaTicket = detalles.map(d => ({
+        nombre: d.nombre_producto,
+        cantidad: d.cantidad,
+        precio: d.precio_unitario
+      }));
+
+      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId} (REIMPRESIÓN)`);
+    }
+
+    // Modal Precios
     function abrirModalPrecios() {
       document.getElementById('modalPrecios').classList.remove('hidden');
       document.getElementById('buscadorAdmin').value = '';
@@ -384,7 +491,7 @@
       } else {
         alert('¡Precio actualizado con éxito en la base de datos!');
         cerrarModalPrecios();
-        cargarProductos(); // Recargar catálogo actualizado
+        cargarProductos();
       }
     }
 
@@ -466,6 +573,8 @@
       }
 
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+      const fechaActualStr = new Date().toLocaleString();
+
       const ventaLocal = {
         total: total,
         detalles: [...carrito],
@@ -500,7 +609,7 @@
         alert('⚡ Sin internet: Venta guardada localmente.');
       }
 
-      generarEImprimirTicket(total);
+      imprimirTicketGenerico(carrito, total, fechaActualStr, 'Punto de Venta Móvil');
       carrito = [];
       actualizarCarritoVisual();
     }
@@ -539,13 +648,12 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
-    function generarEImprimirTicket(total) {
-      const fechaActual = new Date().toLocaleString();
-      document.getElementById('ticketFecha').textContent = `Fecha: ${fechaActual}`;
+    function imprimirTicketGenerico(items, total, fechaStr, subtitulo) {
+      document.getElementById('ticketFecha').textContent = `Fecha: ${fechaStr}`;
       const ticketItemsContainer = document.getElementById('ticketItems');
       ticketItemsContainer.innerHTML = '';
 
-      carrito.forEach(item => {
+      items.forEach(item => {
         let sub = item.precio * item.cantidad;
         ticketItemsContainer.innerHTML += `
           <div class="flex justify-between">
@@ -554,7 +662,7 @@
           </div>
         `;
       });
-      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
+      document.getElementById('ticketTotal').textContent = '$' + parseFloat(total).toFixed(2);
 
       const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
       const ventanaImpresion = window.open('', '_blank', 'width=350,height=600');
