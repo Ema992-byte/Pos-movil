@@ -127,23 +127,26 @@
     </div>
   </div>
 
-  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y TOMAR/SELECCIONAR FOTO -->
+  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y SELECCIONAR FOTO DE GALERÍA O CÁMARA -->
   <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
       <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
       <input type="hidden" id="editProductoId">
       
       <div class="space-y-3">
-        <!-- Vista previa de foto y botón de cámara/galería -->
+        <!-- Vista previa de foto y botones de carga -->
         <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50">
           <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden">
           <div id="placeholderFoto" class="text-slate-400 text-xs text-center mb-2">
             📸 Sin foto asignada
           </div>
-          <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow">
-            📷 Tomar o Seleccionar Imagen
-            <input type="file" id="inputFotoCamara" accept="image/*" class="hidden" onchange="capturarFotoCamara(event)">
-          </label>
+          
+          <input type="file" id="inputFotoCamara" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="capturarFotoCamara(event)">
+          
+          <button type="button" onclick="document.getElementById('inputFotoCamara').click()" 
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow flex items-center gap-2">
+            🖼️ Elegir de Galería o Tomar Foto
+          </button>
         </div>
 
         <div>
@@ -175,10 +178,10 @@
         </div>
 
         <div class="flex gap-2 pt-2">
-          <button onclick="guardarProducto()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold shadow">
+          <button type="button" onclick="guardarProducto()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold shadow">
             Guardar Cambios
           </button>
-          <button onclick="cerrarModalProducto()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium">
+          <button type="button" onclick="cerrarModalProducto()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium">
             Cancelar
           </button>
         </div>
@@ -501,6 +504,7 @@
       document.getElementById('nuevoStock').value = '0';
       document.getElementById('nuevoCosto').value = '';
       document.getElementById('nuevoVenta').value = '';
+      document.getElementById('inputFotoCamara').value = '';
       fotoBase64Actual = '';
       
       document.getElementById('previewFoto').classList.add('hidden');
@@ -520,6 +524,7 @@
       document.getElementById('nuevoStock').value = prod.stock || 0;
       document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
       document.getElementById('nuevoVenta').value = prod.precio || '';
+      document.getElementById('inputFotoCamara').value = '';
       
       fotoBase64Actual = prod.foto || prod.imagen_url || '';
 
