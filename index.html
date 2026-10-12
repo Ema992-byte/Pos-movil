@@ -749,7 +749,6 @@
       }
       
       try {
-        // Consultar la tabla de detalle de ventas unida con las ventas generales
         const { data, error } = await _supabase
           .from('detalle_ventas')
           .select('id, venta_id, nombre_producto, cantidad, precio_unitario, subtotal, ventas(creado_en)')
@@ -762,14 +761,26 @@
           return;
         }
 
-        // Estructura CSV detallada por producto/ítem
-        let csvContent = "ID Venta,Fecha y Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
+        // Encabezados con Fecha y Hora separadas en columnas
+        let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
+        
         data.forEach(d => {
-          let fechaVenta = d.ventas && d.ventas.creado_en ? new Date(d.ventas.creado_en).toLocaleString().replace(/,/g, '') : 'Fecha no disponible';
-          let operador = 'E.J'; // Por defecto se asume admin u operador genérico
-          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' '); // Evitar romper columnas con comas
+          let fechaPart = '';
+          let horaPart = '';
 
-          csvContent += `${d.venta_id},${fechaVenta},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
+          if (d.ventas && d.ventas.creado_en) {
+            let fechaObj = new Date(d.ventas.creado_en);
+            fechaPart = fechaObj.toLocaleDateString(); // Ejemplo: 12/10/2026
+            horaPart = fechaObj.toLocaleTimeString();   // Ejemplo: 12:50:00
+          } else {
+            fechaPart = 'N/A';
+            horaPart = 'N/A';
+          }
+
+          let operador = 'E.J';
+          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
+
+          csvContent += `${d.venta_id},${fechaPart},${horaPart},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
