@@ -152,44 +152,45 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET PROFESIONAL (Estilo Modelo) -->
-  <div id="ticketImpresion" class="hidden p-4 font-mono text-xs max-w-[300px] mx-auto bg-white text-black">
-    <div class="text-center font-bold text-base tracking-wider mb-0.5">LA NUEVA</div>
-    <div class="text-center text-[10px] text-slate-600 mb-2">Punto de Venta Móvil</div>
+  <!-- PLANTILLA DE TICKET OPTIMIZADA PARA TÉRMICA 80MM -->
+  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
+    <div class="text-center font-bold text-sm tracking-wider mb-0.5">LA NUEVA</div>
+    <div class="text-center text-[9px] text-slate-700 mb-1.5">Punto de Venta Móvil</div>
     
-    <div class="border-t border-b border-black py-1 my-2 text-center font-bold tracking-widest text-[11px]">
+    <div class="border-t border-b border-black py-0.5 my-1.5 text-center font-bold tracking-widest text-[10px]">
       TICKET DE COMPRA
     </div>
     
-    <div class="flex justify-between text-[10px] mb-3">
-      <span id="ticketFecha">Fecha: --/--/---- --:--</span>
+    <div class="flex justify-between text-[9px] mb-2">
+      <span id="ticketFecha">--/--/---- --:--</span>
       <span id="ticketIdVenta">Ticket #---</span>
     </div>
 
-    <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[10px] border-dashed">
-      <span class="w-8">Ud.</span>
-      <span class="flex-grow px-1">Descripción</span>
-      <span class="w-12 text-right">P.U.</span>
-      <span class="w-14 text-right">Importe</span>
+    <!-- Cabecera de tabla adaptada a 80mm -->
+    <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
+      <span class="w-[10%] text-left">Ud.</span>
+      <span class="w-[46%] text-left px-0.5">Descripción</span>
+      <span class="w-[20%] text-right">P.U.</span>
+      <span class="w-[24%] text-right">Importe</span>
     </div>
-    <div class="border-b border-black mb-2"></div>
+    <div class="border-b border-black mb-1.5"></div>
 
-    <!-- Items del Ticket -->
-    <div id="ticketItems" class="space-y-1.5 text-[11px]">
+    <!-- Items del Ticket con ajuste de línea -->
+    <div id="ticketItems" class="space-y-1 text-[10px]">
       <!-- Se inyecta dinámicamente -->
     </div>
 
-    <div class="border-t border-dashed border-black my-3"></div>
+    <div class="border-t border-dashed border-black my-2"></div>
 
-    <div class="flex justify-between font-bold text-sm">
+    <div class="flex justify-between font-bold text-xs">
       <span>TOTAL</span>
       <span id="ticketTotal">$0.00</span>
     </div>
 
-    <div class="border-t border-dashed border-black my-3"></div>
+    <div class="border-t border-dashed border-black my-2"></div>
 
-    <div class="text-center text-[11px] font-semibold mt-3">¡GRACIAS POR SU VISITA!</div>
-    <div class="text-center text-[9px] text-slate-500 mt-1">Conserve este ticket para cambios o devoluciones.</div>
+    <div class="text-center text-[10px] font-semibold mt-2">¡GRACIAS POR SU VISITA!</div>
+    <div class="text-center text-[8px] text-slate-600 mt-0.5">Conserve este ticket para cambios o devoluciones.</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA -->
@@ -673,7 +674,7 @@
     }
 
     function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
-      document.getElementById('ticketFecha').textContent = `Fecha: ${fechaStr}`;
+      document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
       
       const ticketItemsContainer = document.getElementById('ticketItems');
@@ -683,25 +684,30 @@
         let pUnit = parseFloat(item.precio || 0);
         let importe = pUnit * item.cantidad;
         ticketItemsContainer.innerHTML += `
-          <div class="flex justify-between items-start gap-1">
-            <span class="w-8 text-center">${item.cantidad}</span>
-            <span class="flex-grow px-1">${item.nombre}</span>
-            <span class="w-12 text-right">$${pUnit.toFixed(2)}</span>
-            <span class="w-14 text-right font-bold">$${importe.toFixed(2)}</span>
+          <div class="flex justify-between items-start">
+            <span class="w-[10%] text-left font-bold">${item.cantidad}</span>
+            <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
+            <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
+            <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
           </div>
         `;
       });
       document.getElementById('ticketTotal').textContent = '$' + parseFloat(total).toFixed(2);
 
       const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
-      const ventanaImpresion = window.open('', '_blank', 'width=350,height=600');
+      const ventanaImpresion = window.open('', '_blank', 'width=380,height=600');
       ventanaImpresion.document.write(`
         <html>
           <head>
             <title>Ticket de Venta</title>
             <script src="https://cdn.tailwindcss.com"><\/script>
+            <style>
+              @media print {
+                body { margin: 0; padding: 2mm; width: 80mm; }
+              }
+            </style>
           </head>
-          <body class="bg-white p-4">
+          <body class="bg-white p-2">
             ${contenidoTicket}
             <script>
               window.onload = function() {
@@ -722,25 +728,4 @@
       }
       const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
       if (error) {
-        alert('Error: ' + error.message);
-        return;
-      }
-      let csvContent = "data:text/csv;charset=utf-8,ID Venta,Total,Fecha y Hora\n";
-      data.forEach(v => { csvContent += `${v.id},${v.total},${v.creado_en || ''}\n`; });
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "reporte_ventas_la_nueva.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function cerrarSesion() {
-      _supabase.auth.signOut();
-      document.getElementById('posSection').classList.add('hidden');
-      document.getElementById('loginSection').classList.remove('hidden');
-    }
-  </script>
-</body>
-</html>
+        alert('Error
