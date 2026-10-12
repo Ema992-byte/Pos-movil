@@ -47,8 +47,8 @@
         <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
       </div>
       <div class="flex gap-2 flex-wrap items-center">
-        <!-- BOTÓN NUEVO PRODUCTO -->
-        <button onclick="abrirModalProducto()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow">
+        <!-- BOTÓN NUEVO PRODUCTO (Solo Administrador) -->
+        <button id="btnAdminNuevoProd" onclick="abrirModalProducto()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow">
           + Nuevo Producto
         </button>
         <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
@@ -126,7 +126,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE NUEVO PRODUCTO -->
+  <!-- MODAL DE NUEVO PRODUCTO (Solo Administrador) -->
   <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
       <h3 class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
@@ -333,10 +333,12 @@
       const esAdmin = email.toLowerCase().includes('admi');
       if (esAdmin) {
         document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (E.J)';
+        document.getElementById('btnAdminNuevoProd').classList.remove('hidden');
         document.getElementById('btnAdminPrecios').classList.remove('hidden');
         document.getElementById('btnAdminReporte').classList.remove('hidden');
       } else {
         document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
+        document.getElementById('btnAdminNuevoProd').classList.add('hidden');
         document.getElementById('btnAdminPrecios').classList.add('hidden');
         document.getElementById('btnAdminReporte').classList.add('hidden');
       }
@@ -505,7 +507,7 @@
       document.getElementById('modalScanner').classList.add('hidden');
     }
 
-    // Funciones del Modal de Nuevo Producto
+    // Funciones del Modal de Nuevo Producto (Solo Administrador)
     function abrirModalProducto() {
       document.getElementById('modalProducto').classList.remove('hidden');
       document.getElementById('nuevoCodigo').value = '';
@@ -551,7 +553,7 @@
         console.error("Error al guardar:", error);
         alert("Hubo un error al guardar el producto: " + error.message);
       } else {
-        alert("¡Producto guardado con éxito en Supabase!");
+        alert("¡Producto guardado con éxito! Ya está disponible para todos los dispositivos.");
         cerrarModalProducto();
         await cargarProductos();
       }
