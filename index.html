@@ -564,7 +564,6 @@
         return;
       }
 
-      // Validar si el código de barras ya existe en otro producto distinto
       if (codigo !== "") {
         const codigoDuplicado = todosLosProductos.find(p => 
           String(p.codigo_barras || '').trim() === codigo && String(p.id) !== String(editId)
@@ -1096,12 +1095,28 @@
           if (!errDetalles && detalles && detalles.length > 0) {
             detalles.forEach(d => {
               let operador = 'E.J';
-              let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
-              csvContent += `${d.venta_id || 'N/A'},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
+              let nombreProdClean = (d.nombre_producto || 'Producto').replace(/,/g, ' ');
+              csvContent += `${d.venta_id || 'N/A'},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad || 1},${d.precio_unitario || 0},${d.subtotal || 0}\n`;
               filasAgregadas++;
             });
+          } else {
+            const { data: ventasGen, error: errVentas } = await _supabase
+              .from('ventas')
+              .select('*')
+              .order('id', { ascending: false });
+
+            if (!errVentas && ventasGen && ventasGen.length > 0) {
+              ventasGen.forEach(v => {
+                let fechaVenta = v.creado_en ? new Date(v.creado_en).toLocaleDateString() : fechaActualStr;
+                let horaVenta = v.creado_en ? new Date(v.creado_en).toLocaleTimeString() : horaActualStr;
+                csvContent += `${v.id},${fechaVenta},${horaVenta},E.J,Venta General #${v.id},1,${v.total},${v.total}\n`;
+                filasAgregadas++;
+              });
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("Error consultando Supabase:", e);
+        }
       }
 
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
@@ -1114,6 +1129,9 @@
               csvContent += `Local-${index + 1},${fechaActualStr},${horaActualStr},E.J,${nombreProdClean},${d.cantidad},${d.precio},${subtotal}\n`;
               filasAgregadas++;
             });
+          } else {
+            csvContent += `Local-${index + 1},${fechaActualStr},${horaActualStr},E.J,Venta Local,1,${v.total},${v.total}\n`;
+            filasAgregadas++;
           }
         });
       }
