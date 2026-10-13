@@ -417,7 +417,7 @@
         const idUnico = prod.id || prod.codigo_barras || idx;
         const codigoMostrado = prod.codigo_barras || 'S/C';
         const nombreEscapado = (prod.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        const fotoUrl = prod.foto || prod.imagen_url || '';
+        const fotoUrl = prod.imagen_url || prod.foto || '';
         
         const imagenTag = fotoUrl 
           ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white p-1">`
@@ -526,7 +526,7 @@
       document.getElementById('nuevoVenta').value = prod.precio || '';
       document.getElementById('inputFotoCamara').value = '';
       
-      fotoBase64Actual = prod.foto || prod.imagen_url || '';
+      fotoBase64Actual = prod.imagen_url || prod.foto || '';
 
       const imgPreview = document.getElementById('previewFoto');
       if (fotoBase64Actual) {
@@ -567,7 +567,7 @@
       const datosProducto = {
         codigo_barras: codigo,
         nombre: nombre,
-        foto: fotoBase64Actual,
+        imagen_url: fotoBase64Actual,
         stock: stock,
         "Precio Costo": costo,
         precio: venta
