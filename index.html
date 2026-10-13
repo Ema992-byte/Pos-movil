@@ -150,7 +150,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Código de Barras</label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Código de Barras (Opcional - Único si se completa)</label>
           <input type="text" id="nuevoCodigo" placeholder="Ej. 779000000000"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
@@ -564,8 +564,21 @@
         return;
       }
 
+      // Validar si el código de barras ya existe en otro producto distinto
+      if (codigo !== "") {
+        const codigoDuplicado = todosLosProductos.find(p => 
+          String(p.codigo_barras || '').trim() === codigo && String(p.id) !== String(editId)
+        );
+        if (codigoDuplicado) {
+          alert(`⚠️ El código de barras "${codigo}" ya está asignado al producto "${codigoDuplicado.nombre}". Debe ser único.`);
+          return;
+        }
+      }
+
+      const codigoFinal = codigo !== "" ? codigo : null;
+
       const datosProducto = {
-        codigo_barras: codigo,
+        codigo_barras: codigoFinal,
         nombre: nombre,
         imagen_url: fotoBase64Actual,
         stock: stock,
@@ -585,7 +598,11 @@
 
       if (error) {
         console.error("Error al guardar:", error);
-        alert("Hubo un error al guardar el producto: " + error.message);
+        if (error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
+          alert("Error: El código de barras ingresado ya pertenece a otro producto. Debe ser único.");
+        } else {
+          alert("Hubo un error al guardar el producto: " + error.message);
+        }
       } else {
         alert("¡Producto y foto guardados con éxito en Supabase!");
         cerrarModalProducto();
