@@ -1091,13 +1091,13 @@
     }
 
     async function descargarReporteCSV() {
-      let csvContent = "ID Venta,Fecha,Hora,Atendido por,Cod de Producto,Producto,Cantidad,Precio Unitario,Subtotal\n";
+      // Usamos punto y coma (;) como separador universal para columnas en Excel y comillas dobles para blindar textos
+      let csvContent = "ID Venta;Fecha;Hora;Atendido por;Cod de Producto;Producto;Cantidad;Precio Unitario;Subtotal\n";
       let filasAgregadas = 0;
       let operadorActual = obtenerAtendidoPor(usuarioActualEmail);
 
       if (navigator.onLine) {
         try {
-          // 1. Intentar obtener el detalle renglón por renglón
           const { data: detalles, error: errDetalles } = await _supabase
             .from('detalle_ventas')
             .select('*')
@@ -1108,33 +1108,17 @@
               let fechaVenta = d.creado_en ? new Date(d.creado_en).toLocaleDateString() : new Date().toLocaleDateString();
               let horaVenta = d.creado_en ? new Date(d.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString();
               let codProd = d.codigo_barras || d.cod_producto || 'S/C';
-              let nombreProdClean = (d.nombre_producto || 'Producto').replace(/,/g, ' ');
+              let nombreProdClean = (d.nombre_producto || 'Producto').replace(/"/g, '""');
 
-              csvContent += `${d.venta_id || 'N/A'},${fechaVenta},${horaVenta},${operadorActual},${codProd},${nombreProdClean},${d.cantidad || 1},${d.precio_unitario || 0},${d.subtotal || 0}\n`;
+              csvContent += `"${d.venta_id || 'N/A'}";"${fechaVenta}";"${horaVenta}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad || 1}";"${d.precio_unitario || 0}";"${d.subtotal || 0}"\n`;
               filasAgregadas++;
             });
-          } else {
-            // 2. Si detalle_ventas está vacía, rescatar ventas de la tabla general 'ventas'
-            const { data: ventasGen, error: errVentas } = await _supabase
-              .from('ventas')
-              .select('*')
-              .order('id', { ascending: false });
-
-            if (!errVentas && ventasGen && ventasGen.length > 0) {
-              ventasGen.forEach(v => {
-                let fechaVenta = v.creado_en ? new Date(v.creado_en).toLocaleDateString() : new Date().toLocaleDateString();
-                let horaVenta = v.creado_en ? new Date(v.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString();
-                csvContent += `${v.id},${fechaVenta},${horaVenta},${operadorActual},S/C,Venta General #${v.id},1,${v.total},${v.total}\n`;
-                filasAgregadas++;
-              });
-            }
           }
         } catch (e) {
           console.error("Error consultando Supabase:", e);
         }
       }
 
-      // 3. Revisar si existen ventas pendientes offline guardadas localmente
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length > 0) {
         pendientes.forEach((v, index) => {
@@ -1144,9 +1128,9 @@
           if (v.detalles && Array.isArray(v.detalles)) {
             v.detalles.forEach(d => {
               let subtotal = (d.precio || 0) * (d.cantidad || 1);
-              let nombreProdClean = (d.nombre || '').replace(/,/g, ' ');
+              let nombreProdClean = (d.nombre || '').replace(/"/g, '""');
               let codProd = d.codigo_barras || 'S/C';
-              csvContent += `Local-${index + 1},${fechaVenta},${horaVenta},${operadorActual},${codProd},${nombreProdClean},${d.cantidad},${d.precio},${subtotal}\n`;
+              csvContent += `"Local-${index + 1}";"${fechaVenta}";"${horaVenta}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad}";"${d.precio}";"${subtotal}"\n`;
               filasAgregadas++;
             });
           }
@@ -1158,7 +1142,8 @@
         return;
       }
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      // Agregamos BOM (\uFEFF) para que Excel detecte correctamente los caracteres especiales (acentos, ñ) en español
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
