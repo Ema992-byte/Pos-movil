@@ -127,14 +127,14 @@
     </div>
   </div>
 
-  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y SELECCIONAR FOTO DE GALERÍA O CÁMARA -->
+  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y SELECCIONAR FOTO -->
   <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
       <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
       <input type="hidden" id="editProductoId">
       
       <div class="space-y-3">
-        <!-- Vista previa de foto y botones de carga -->
+        <!-- Vista previa de foto y botones de carga de galería/cámara -->
         <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50">
           <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden">
           <div id="placeholderFoto" class="text-slate-400 text-xs text-center mb-2">
@@ -1064,48 +1064,57 @@
     }
 
     async function descargarReporteCSV() {
-      if (!navigator.onLine) {
-        alert('Debe tener internet para descargar el reporte detallado.');
+      let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
+      let fechaActualStr = new Date().toLocaleDateString();
+      let horaActualStr = new Date().toLocaleTimeString();
+      let filasAgregadas = 0;
+
+      if (navigator.onLine) {
+        try {
+          const { data: detalles, error: errDetalles } = await _supabase
+            .from('detalle_ventas')
+            .select('*')
+            .order('id', { ascending: false });
+
+          if (!errDetalles && detalles && detalles.length > 0) {
+            detalles.forEach(d => {
+              let operador = 'E.J';
+              let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
+              csvContent += `${d.venta_id || 'N/A'},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
+              filasAgregadas++;
+            });
+          }
+        } catch (e) {}
+      }
+
+      const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      if (pendientes.length > 0) {
+        pendientes.forEach((v, index) => {
+          if (v.detalles && Array.isArray(v.detalles)) {
+            v.detalles.forEach(d => {
+              let subtotal = (d.precio || 0) * (d.cantidad || 1);
+              let nombreProdClean = (d.nombre || '').replace(/,/g, ' ');
+              csvContent += `Local-${index + 1},${fechaActualStr},${horaActualStr},E.J,${nombreProdClean},${d.cantidad},${d.precio},${subtotal}\n`;
+              filasAgregadas++;
+            });
+          }
+        });
+      }
+
+      if (filasAgregadas === 0) {
+        alert('No hay registros de ventas ni en la nube ni localmente para descargar.');
         return;
       }
-      
-      try {
-        const { data: detalles, error: errDetalles } = await _supabase
-          .from('detalle_ventas')
-          .select('*')
-          .order('id', { ascending: false });
 
-        if (errDetalles) throw errDetalles;
-
-        if (!detalles || detalles.length === 0) {
-          alert('No hay detalles de ventas registrados para descargar.');
-          return;
-        }
-
-        let csvContent = "ID Venta,Fecha,Hora,Atendido por,Producto,Cantidad,Precio Unitario,Subtotal\n";
-        
-        let fechaActualStr = new Date().toLocaleDateString();
-        let horaActualStr = new Date().toLocaleTimeString();
-
-        detalles.forEach(d => {
-          let operador = 'E.J';
-          let nombreProdClean = (d.nombre_producto || '').replace(/,/g, ' ');
-
-          csvContent += `${d.venta_id},${fechaActualStr},${horaActualStr},${operador},${nombreProdClean},${d.cantidad},${d.precio_unitario},${d.subtotal}\n`;
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Error al generar el reporte detallado CSV: ' + (err.message || err));
-      }
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
 
     function cerrarSesion() {
