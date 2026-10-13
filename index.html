@@ -968,7 +968,6 @@
 
           const ventaId = ventaData[0].id;
           const detallesInserts = carrito.map(item => {
-            // Buscamos el código de barras del producto si está disponible en el catálogo cargado
             const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.codigo_barras) === String(item.idUnico));
             const codigoBarrasProd = prodRef ? (prodRef.codigo_barras || '') : '';
 
@@ -1092,13 +1091,13 @@
     }
 
     async function descargarReporteCSV() {
-      // Cabecera exacta solicitada con columnas separadas
       let csvContent = "ID Venta,Fecha,Hora,Atendido por,Cod de Producto,Producto,Cantidad,Precio Unitario,Subtotal\n";
       let filasAgregadas = 0;
       let operadorActual = obtenerAtendidoPor(usuarioActualEmail);
 
       if (navigator.onLine) {
         try {
+          // 1. Intentar obtener el detalle renglón por renglón
           const { data: detalles, error: errDetalles } = await _supabase
             .from('detalle_ventas')
             .select('*')
@@ -1114,13 +1113,28 @@
               csvContent += `${d.venta_id || 'N/A'},${fechaVenta},${horaVenta},${operadorActual},${codProd},${nombreProdClean},${d.cantidad || 1},${d.precio_unitario || 0},${d.subtotal || 0}\n`;
               filasAgregadas++;
             });
+          } else {
+            // 2. Si detalle_ventas está vacía, rescatar ventas de la tabla general 'ventas'
+            const { data: ventasGen, error: errVentas } = await _supabase
+              .from('ventas')
+              .select('*')
+              .order('id', { ascending: false });
+
+            if (!errVentas && ventasGen && ventasGen.length > 0) {
+              ventasGen.forEach(v => {
+                let fechaVenta = v.creado_en ? new Date(v.creado_en).toLocaleDateString() : new Date().toLocaleDateString();
+                let horaVenta = v.creado_en ? new Date(v.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString();
+                csvContent += `${v.id},${fechaVenta},${horaVenta},${operadorActual},S/C,Venta General #${v.id},1,${v.total},${v.total}\n`;
+                filasAgregadas++;
+              });
+            }
           }
         } catch (e) {
-          console.error("Error consultando detalle_ventas en Supabase:", e);
+          console.error("Error consultando Supabase:", e);
         }
       }
 
-      // Si no hay detalles online o para asegurar las pendientes locales
+      // 3. Revisar si existen ventas pendientes offline guardadas localmente
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length > 0) {
         pendientes.forEach((v, index) => {
