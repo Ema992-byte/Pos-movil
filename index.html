@@ -951,8 +951,8 @@
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
       
       const ahora = new Date();
-      const fechaStr = ahora.toLocaleDateString();
-      const horaStr = ahora.toLocaleTimeString();
+      const fechaStr = ahora.toLocaleDateString('es-AR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const horaStr = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       const ventaLocal = {
         total: total,
@@ -1106,7 +1106,7 @@
 
       if (navigator.onLine) {
         try {
-          // 1. Intentar consultar la tabla detalle_ventas
+          // 1. Consultar directamente los ítems en detalle_ventas
           const { data: detallesVenta, error: errDetalles } = await _supabase
             .from('detalle_ventas')
             .select('*')
@@ -1114,8 +1114,8 @@
 
           if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
             detallesVenta.forEach(d => {
-              let fechaVenta = d.fecha || (d.creado_en ? new Date(d.creado_en).toLocaleDateString() : new Date().toLocaleDateString());
-              let horaVenta = d.hora || (d.creado_en ? new Date(d.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString());
+              let fechaVenta = d.fecha || (d.creado_en ? new Date(d.creado_en).toLocaleDateString('es-AR') : '');
+              let horaVenta = d.hora || (d.creado_en ? new Date(d.creado_en).toLocaleTimeString('es-AR') : '');
               let codProd = d.codigo_barras || d.cod_producto || 'S/C';
               let nombreProdClean = (d.nombre_producto || 'Producto').replace(/"/g, '""');
 
@@ -1123,7 +1123,7 @@
               filasAgregadas++;
             });
           } else {
-            // 2. Respaldo directo en la tabla ventas por si detalle_ventas estuviera vacía
+            // 2. Respaldo en tabla ventas si detalle_ventas estuviera vacío
             const { data: ventasData, error: errVentas } = await _supabase
               .from('ventas')
               .select('*')
@@ -1131,8 +1131,8 @@
 
             if (!errVentas && ventasData && ventasData.length > 0) {
               ventasData.forEach(v => {
-                let fechaVenta = v.fecha || (v.creado_en ? new Date(v.creado_en).toLocaleDateString() : new Date().toLocaleDateString());
-                let horaVenta = v.hora || (v.creado_en ? new Date(v.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString());
+                let fechaVenta = v.fecha || (v.creado_en ? new Date(v.creado_en).toLocaleDateString('es-AR') : '');
+                let horaVenta = v.hora || (v.creado_en ? new Date(v.creado_en).toLocaleTimeString('es-AR') : '');
 
                 if (v.detalles && Array.isArray(v.detalles) && v.detalles.length > 0) {
                   v.detalles.forEach(d => {
@@ -1158,8 +1158,8 @@
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length > 0) {
         pendientes.forEach((v, index) => {
-          let fechaVenta = v.fecha_str || new Date().toLocaleDateString();
-          let horaVenta = v.hora_str || new Date().toLocaleTimeString();
+          let fechaVenta = v.fecha_str || '';
+          let horaVenta = v.hora_str || '';
           
           if (v.detalles && Array.isArray(v.detalles)) {
             v.detalles.forEach(d => {
