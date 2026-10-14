@@ -775,7 +775,7 @@
         .select('*')
         .eq('venta_id', ventaId);
 
-      if (error || !detalles) {
+      if (error || !detalles || detalles.length === 0) {
         alert('No se pudo recuperar el detalle de este ticket.');
         return;
       }
@@ -966,7 +966,7 @@
         try {
           const { data: ventaData, error: ventaError } = await _supabase
             .from('ventas')
-            .insert([{ total: total, fecha: fechaStr, hora: horaStr, creado_en: ahora.toISOString() }])
+            .insert([{ total: total, fecha: fechaStr, hora: horaStr, creado_en: ahora.toISOString(), detalles: carrito }])
             .select();
 
           if (ventaError) throw ventaError;
@@ -1020,7 +1020,7 @@
         try {
           const { data: vData, error: vErr } = await _supabase
             .from('ventas')
-            .insert([{ total: v.total, fecha: v.fecha_str, hora: v.hora_str, creado_en: v.creado_en }])
+            .insert([{ total: v.total, fecha: v.fecha_str, hora: v.hora_str, creado_en: v.creado_en, detalles: v.detalles }])
             .select();
 
           if (!vErr && vData) {
@@ -1106,6 +1106,7 @@
 
       if (navigator.onLine) {
         try {
+          // 1. Intentar consultar la tabla detalle_ventas
           const { data: detallesVenta, error: errDetalles } = await _supabase
             .from('detalle_ventas')
             .select('*')
@@ -1113,20 +1114,47 @@
 
           if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
             detallesVenta.forEach(d => {
-              let fechaVenta = d.fecha || (d.creado_en ? new Date(d.creado_en).toLocaleDateString() : 'S/F');
-              let horaVenta = d.hora || (d.creado_en ? new Date(d.creado_en).toLocaleTimeString() : 'S/H');
+              let fechaVenta = d.fecha || (d.creado_en ? new Date(d.creado_en).toLocaleDateString() : new Date().toLocaleDateString());
+              let horaVenta = d.hora || (d.creado_en ? new Date(d.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString());
               let codProd = d.codigo_barras || d.cod_producto || 'S/C';
               let nombreProdClean = (d.nombre_producto || 'Producto').replace(/"/g, '""');
 
               csvContent += `"${d.venta_id || 'N/A'}";"${fechaVenta}";"${horaVenta}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad || 1}";"${d.precio_unitario || 0}";"${d.subtotal || 0}"\n`;
               filasAgregadas++;
             });
+          } else {
+            // 2. Respaldo directo en la tabla ventas por si detalle_ventas estuviera vacía
+            const { data: ventasData, error: errVentas } = await _supabase
+              .from('ventas')
+              .select('*')
+              .order('id', { ascending: false });
+
+            if (!errVentas && ventasData && ventasData.length > 0) {
+              ventasData.forEach(v => {
+                let fechaVenta = v.fecha || (v.creado_en ? new Date(v.creado_en).toLocaleDateString() : new Date().toLocaleDateString());
+                let horaVenta = v.hora || (v.creado_en ? new Date(v.creado_en).toLocaleTimeString() : new Date().toLocaleTimeString());
+
+                if (v.detalles && Array.isArray(v.detalles) && v.detalles.length > 0) {
+                  v.detalles.forEach(d => {
+                    let subtotal = (d.precio || 0) * (d.cantidad || 1);
+                    let nombreProdClean = (d.nombre || '').replace(/"/g, '""');
+                    let codProd = d.codigo_barras || 'S/C';
+                    csvContent += `"${v.id}";"${fechaVenta}";"${horaVenta}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad}";"${d.precio}";"${subtotal}"\n`;
+                    filasAgregadas++;
+                  });
+                } else {
+                  csvContent += `"${v.id}";"${fechaVenta}";"${horaVenta}";"${operadorActual}";"S/C";"Ticket #${v.id}";"1";"${v.total}";"${v.total}"\n`;
+                  filasAgregadas++;
+                }
+              });
+            }
           }
         } catch (e) {
           console.error("Error consultando Supabase:", e);
         }
       }
 
+      // 3. Incluir ventas pendientes locales (Offline)
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length > 0) {
         pendientes.forEach((v, index) => {
@@ -1146,7 +1174,7 @@
       }
 
       if (filasAgregadas === 0) {
-        alert('No hay registros de ventas en la base de datos para generar el reporte.');
+        alert('No hay registros de ventas ni en la nube ni localmente para generar el reporte.');
         return;
       }
 
