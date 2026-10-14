@@ -716,14 +716,16 @@
         }
         let htmlOffline = '<p class="text-xs text-amber-600 font-bold mb-2">Ventas pendientes de sincronizar (Offline):</p>';
         pendientes.forEach((v, idx) => {
+          let f_h = formatearFechaYHoraEstricta(v.fecha_str, v.hora_str, v.creado_en);
           htmlOffline += `
             <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded border text-xs">
               <div>
                 <p class="font-bold text-slate-700">Venta Local #${idx + 1}</p>
-                <p class="text-slate-500">${v.fecha_str} ${v.hora_str}</p>
+                <p class="text-slate-500">${f_h.fecha} ${f_h.hora}</p>
               </div>
               <div class="text-right">
                 <p class="font-bold text-emerald-600">$${v.total.toFixed(2)}</p>
+                <button onclick="reimprimirTicketLocal(${idx})" class="mt-1 bg-sky-600 text-white px-2 py-0.5 rounded text-[10px]">🖨️ Reimprimir</button>
               </div>
             </div>
           `;
@@ -745,16 +747,17 @@
 
       let html = '';
       data.forEach(v => {
-        const fechaFormatted = (v.fecha && v.hora) ? `${v.fecha} ${v.hora}` : (v.creado_en ? new Date(v.creado_en).toLocaleString() : 'Fecha no disponible');
+        let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
+        let fechaHoraStr = `${f_h.fecha} ${f_h.hora}`;
         html += `
           <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <p class="font-bold text-slate-800 text-sm">Ticket #${v.id}</p>
-              <p class="text-xs text-slate-500">${fechaFormatted}</p>
+              <p class="text-xs text-slate-500">${fechaHoraStr}</p>
             </div>
             <div class="flex items-center gap-3">
               <span class="font-bold text-slate-800 text-sm">$${parseFloat(v.total).toFixed(2)}</span>
-              <button onclick="reimprimirTicketAnterior(${v.id}, '${fechaFormatted}', ${v.total})" 
+              <button onclick="reimprimirTicketAnterior(${v.id}, '${fechaHoraStr}', ${v.total})" 
                 class="bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 rounded text-xs font-medium">
                 🖨️ Reimprimir
               </button>
@@ -769,24 +772,64 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
+    // Función definitiva para reimprimir buscando en detalle_ventas o en el JSON de la venta
     async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
-      const { data: detalles, error } = await _supabase
-        .from('detalle_ventas')
-        .select('*')
-        .eq('venta_id', ventaId);
+      let itemsParaTicket = [];
 
-      if (error || !detalles || detalles.length === 0) {
+      try {
+        // 1. Intentar buscar en la tabla detalle_ventas
+        const { data: detalles, error } = await _supabase
+          .from('detalle_ventas')
+          .select('*')
+          .eq('venta_id', ventaId);
+
+        if (!error && detalles && detalles.length > 0) {
+          itemsParaTicket = detalles.map(d => ({
+            nombre: d.nombre_producto,
+            cantidad: d.cantidad,
+            precio: d.precio_unitario
+          }));
+        } else {
+          // 2. Si no hay registros ahí, consultar el JSON de la tabla ventas
+          const { data: ventaData, error: ventaErr } = await _supabase
+            .from('ventas')
+            .select('detalles')
+            .eq('id', ventaId)
+            .single();
+
+          if (!ventaErr && ventaData && ventaData.detalles && Array.isArray(ventaData.detalles)) {
+            itemsParaTicket = ventaData.detalles.map(d => ({
+              nombre: d.nombre || d.nombre_producto,
+              cantidad: d.cantidad,
+              precio: d.precio || d.precio_unitario
+            }));
+          }
+        }
+      } catch (e) {
+        console.error("Error recuperando detalles:", e);
+      }
+
+      if (itemsParaTicket.length === 0) {
         alert('No se pudo recuperar el detalle de este ticket.');
         return;
       }
 
-      const itemsParaTicket = detalles.map(d => ({
-        nombre: d.nombre_producto,
+      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`);
+    }
+
+    function reimprimirTicketLocal(index) {
+      const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      const v = pendientes[index];
+      if (!v) return;
+
+      let f_h = formatearFechaYHoraEstricta(v.fecha_str, v.hora_str, v.creado_en);
+      const items = v.detalles.map(d => ({
+        nombre: d.nombre,
         cantidad: d.cantidad,
-        precio: d.precio_unitario
+        precio: d.precio
       }));
 
-      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`);
+      imprimirTicketGenerico(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)');
     }
 
     function abrirModalPrecios() {
@@ -951,9 +994,7 @@
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
       
       const ahora = new Date();
-      // Guardar fecha en formato YYYY-MM-DD
       const fechaStr = ahora.toISOString().split('T')[0];
-      // Guardar hora en formato HH:MM (ej. 18:50)
       const horaStr = ahora.toTimeString().substring(0, 5);
 
       const ventaLocal = {
@@ -1101,7 +1142,6 @@
       }
     }
 
-    // Función que formatea y corta estrictamente la fecha (YYYY-MM-DD) y la hora (HH:MM)
     function formatearFechaYHoraEstricta(valorFecha, valorHora, valorCreadoEn) {
       let fechaLimpia = '';
       let horaLimpia = '';
@@ -1109,12 +1149,11 @@
       let fuenteFecha = valorFecha || valorCreadoEn || '';
 
       if (fuenteFecha) {
-        // Si viene con 'T' (ej. 2026-10-13T18:50:49...), se divide en fecha y hora automáticamente
         if (fuenteFecha.includes('T')) {
           let partesIso = fuenteFecha.split('T');
-          fechaLimpia = partesIso[0]; // "2026-10-13"
+          fechaLimpia = partesIso[0];
           if (partesIso[1]) {
-            horaLimpia = partesIso[1].substring(0, 5); // "18:50"
+            horaLimpia = partesIso[1].substring(0, 5);
           }
         } else if (fuenteFecha.includes(' ')) {
           let partesEspacio = fuenteFecha.split(' ');
@@ -1127,12 +1166,10 @@
         }
       }
 
-      // Si la hora dedicada viene en su propia columna o variable
       if (valorHora && !horaLimpia) {
         horaLimpia = String(valorHora).trim().substring(0, 5);
       }
 
-      // Si por alguna razón quedó vacía, se toma la hora actual local
       if (!fechaLimpia) {
         fechaLimpia = new Date().toISOString().split('T')[0];
       }
