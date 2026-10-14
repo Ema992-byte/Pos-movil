@@ -772,46 +772,58 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
-    // Función definitiva para reimprimir buscando en detalle_ventas o en el JSON de la venta
+    // reimprimirTicketAnterior resiliente con parseo automático y fallback
     async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
       let itemsParaTicket = [];
 
       try {
-        // 1. Intentar buscar en la tabla detalle_ventas
-        const { data: detalles, error } = await _supabase
+        // 1. Probar en detalle_ventas
+        const { data: detalles, error: errDetalles } = await _supabase
           .from('detalle_ventas')
           .select('*')
           .eq('venta_id', ventaId);
 
-        if (!error && detalles && detalles.length > 0) {
+        if (!errDetalles && detalles && detalles.length > 0) {
           itemsParaTicket = detalles.map(d => ({
-            nombre: d.nombre_producto,
-            cantidad: d.cantidad,
-            precio: d.precio_unitario
+            nombre: d.nombre_producto || d.nombre || 'Producto',
+            cantidad: d.cantidad || 1,
+            precio: d.precio_unitario || d.precio || 0
           }));
         } else {
-          // 2. Si no hay registros ahí, consultar el JSON de la tabla ventas
-          const { data: ventaData, error: ventaErr } = await _supabase
+          // 2. Si no hay registros en detalle_ventas, buscar en la columna 'detalles' de 'ventas'
+          const { data: ventaData, error: errVenta } = await _supabase
             .from('ventas')
-            .select('detalles')
+            .select('detalles, total')
             .eq('id', ventaId)
             .single();
 
-          if (!ventaErr && ventaData && ventaData.detalles && Array.isArray(ventaData.detalles)) {
-            itemsParaTicket = ventaData.detalles.map(d => ({
-              nombre: d.nombre || d.nombre_producto,
-              cantidad: d.cantidad,
-              precio: d.precio || d.precio_unitario
-            }));
+          if (!errVenta && ventaData && ventaData.detalles) {
+            let arregloDetalles = ventaData.detalles;
+            // Si viene en formato String JSON, parsear
+            if (typeof arregloDetalles === 'string') {
+              try { arregloDetalles = JSON.parse(arregloDetalles); } catch(e) {}
+            }
+
+            if (Array.isArray(arregloDetalles) && arregloDetalles.length > 0) {
+              itemsParaTicket = arregloDetalles.map(d => ({
+                nombre: d.nombre || d.nombre_producto || 'Producto',
+                cantidad: d.cantidad || 1,
+                precio: d.precio || d.precio_unitario || 0
+              }));
+            }
           }
         }
       } catch (e) {
-        console.error("Error recuperando detalles:", e);
+        console.error("Error al intentar recuperar detalles del ticket:", e);
       }
 
+      // 3. Fallback de seguridad: Si aun así no trae productos, genera el renglón con el total
       if (itemsParaTicket.length === 0) {
-        alert('No se pudo recuperar el detalle de este ticket.');
-        return;
+        itemsParaTicket = [{
+          nombre: `Venta / Ticket #${ventaId}`,
+          cantidad: 1,
+          precio: parseFloat(total) || 0
+        }];
       }
 
       imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`);
@@ -823,11 +835,9 @@
       if (!v) return;
 
       let f_h = formatearFechaYHoraEstricta(v.fecha_str, v.hora_str, v.creado_en);
-      const items = v.detalles.map(d => ({
-        nombre: d.nombre,
-        cantidad: d.cantidad,
-        precio: d.precio
-      }));
+      const items = (v.detalles && v.detalles.length > 0) 
+        ? v.detalles.map(d => ({ nombre: d.nombre, cantidad: d.cantidad, precio: d.precio }))
+        : [{ nombre: `Venta Local #${index + 1}`, cantidad: 1, precio: v.total }];
 
       imprimirTicketGenerico(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)');
     }
@@ -1099,10 +1109,10 @@
 
       items.forEach(item => {
         let pUnit = parseFloat(item.precio || 0);
-        let importe = pUnit * item.cantidad;
+        let importe = pUnit * (item.cantidad || 1);
         ticketItemsContainer.innerHTML += `
           <div class="flex justify-between items-start">
-            <span class="w-[10%] text-left font-bold">${item.cantidad}</span>
+            <span class="w-[10%] text-left font-bold">${item.cantidad || 1}</span>
             <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
             <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
             <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
@@ -1211,12 +1221,19 @@
               ventasData.forEach(v => {
                 let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
 
-                if (v.detalles && Array.isArray(v.detalles) && v.detalles.length > 0) {
-                  v.detalles.forEach(d => {
-                    let subtotal = (d.precio || 0) * (d.cantidad || 1);
-                    let nombreProdClean = (d.nombre || '').replace(/"/g, '""');
+                let arregloDetalles = v.detalles;
+                if (typeof arregloDetalles === 'string') {
+                  try { arregloDetalles = JSON.parse(arregloDetalles); } catch(e) {}
+                }
+
+                if (Array.isArray(arregloDetalles) && arregloDetalles.length > 0) {
+                  arregloDetalles.forEach(d => {
+                    let cant = d.cantidad || 1;
+                    let prec = d.precio || d.precio_unitario || 0;
+                    let subtotal = prec * cant;
+                    let nombreProdClean = (d.nombre || d.nombre_producto || 'Producto').replace(/"/g, '""');
                     let codProd = d.codigo_barras || 'S/C';
-                    csvContent += `"${v.id}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad}";"${d.precio}";"${subtotal}"\n`;
+                    csvContent += `"${v.id}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${cant}";"${prec}";"${subtotal}"\n`;
                     filasAgregadas++;
                   });
                 } else {
