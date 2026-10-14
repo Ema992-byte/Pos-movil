@@ -1100,13 +1100,13 @@
     }
 
     async function descargarReporteCSV() {
+      // Cabecera con Fecha y Hora separadas
       let csvContent = "ID Venta;Fecha;Hora;Atendido por;Cod de Producto;Producto;Cantidad;Precio Unitario;Subtotal\n";
       let filasAgregadas = 0;
       let operadorActual = obtenerAtendidoPor(usuarioActualEmail);
 
       if (navigator.onLine) {
         try {
-          // 1. Consultar directamente los ítems en detalle_ventas
           const { data: detallesVenta, error: errDetalles } = await _supabase
             .from('detalle_ventas')
             .select('*')
@@ -1123,7 +1123,6 @@
               filasAgregadas++;
             });
           } else {
-            // 2. Respaldo en tabla ventas si detalle_ventas estuviera vacío
             const { data: ventasData, error: errVentas } = await _supabase
               .from('ventas')
               .select('*')
@@ -1154,7 +1153,6 @@
         }
       }
 
-      // 3. Incluir ventas pendientes locales (Offline)
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length > 0) {
         pendientes.forEach((v, index) => {
