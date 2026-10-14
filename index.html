@@ -951,8 +951,10 @@
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
       
       const ahora = new Date();
-      const fechaStr = ahora.toLocaleDateString('es-AR', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const horaStr = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      // Guardar fecha en formato YYYY-MM-DD
+      const fechaStr = ahora.toISOString().split('T')[0];
+      // Guardar hora en formato HH:MM (ej. 18:50)
+      const horaStr = ahora.toTimeString().substring(0, 5);
 
       const ventaLocal = {
         total: total,
@@ -1099,33 +1101,46 @@
       }
     }
 
-    // Función auxiliar estricta para separar la fecha y la hora si vienen juntas
-    function separarFechaYHora(valorFecha, valorHora, valorCreadoEn) {
+    // Función que formatea y corta estrictamente la fecha (YYYY-MM-DD) y la hora (HH:MM)
+    function formatearFechaYHoraEstricta(valorFecha, valorHora, valorCreadoEn) {
       let fechaLimpia = '';
       let horaLimpia = '';
 
-      // 1. Extraer o limpiar Fecha
-      if (valorFecha && typeof valorFecha === 'string') {
-        // Si la fecha contiene espacio (ej. "14/10/2026 14:30:00"), nos quedamos solo con la primera parte
-        fechaLimpia = valorFecha.split(' ')[0].trim();
-      } else if (valorCreadoEn) {
-        fechaLimpia = new Date(valorCreadoEn).toLocaleDateString('es-AR');
+      let fuenteFecha = valorFecha || valorCreadoEn || '';
+
+      if (fuenteFecha) {
+        // Si viene con 'T' (ej. 2026-10-13T18:50:49...), se divide en fecha y hora automáticamente
+        if (fuenteFecha.includes('T')) {
+          let partesIso = fuenteFecha.split('T');
+          fechaLimpia = partesIso[0]; // "2026-10-13"
+          if (partesIso[1]) {
+            horaLimpia = partesIso[1].substring(0, 5); // "18:50"
+          }
+        } else if (fuenteFecha.includes(' ')) {
+          let partesEspacio = fuenteFecha.split(' ');
+          fechaLimpia = partesEspacio[0];
+          if (partesEspacio[1]) {
+            horaLimpia = partesEspacio[1].substring(0, 5);
+          }
+        } else {
+          fechaLimpia = fuenteFecha.substring(0, 10);
+        }
       }
 
-      // 2. Extraer o limpiar Hora
-      if (valorHora && typeof valorHora === 'string') {
-        // Si la hora contiene espacio o viene pegada, extraemos la parte horaria
-        let partes = valorHora.trim().split(' ');
-        horaLimpia = partes.length > 1 ? partes[1] : partes[0];
-      } else if (valorFecha && typeof valorFecha === 'string' && valorFecha.includes(' ')) {
-        // Si la fecha original traía la hora dentro
-        let partes = valorFecha.trim().split(' ');
-        if (partes[1]) horaLimpia = partes[1];
-      } else if (valorCreadoEn) {
-        horaLimpia = new Date(valorCreadoEn).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      // Si la hora dedicada viene en su propia columna o variable
+      if (valorHora && !horaLimpia) {
+        horaLimpia = String(valorHora).trim().substring(0, 5);
       }
 
-      return { fecha: fechaLimpia || 'S/F', hora: horaLimpia || 'S/H' };
+      // Si por alguna razón quedó vacía, se toma la hora actual local
+      if (!fechaLimpia) {
+        fechaLimpia = new Date().toISOString().split('T')[0];
+      }
+      if (!horaLimpia) {
+        horaLimpia = new Date().toTimeString().substring(0, 5);
+      }
+
+      return { fecha: fechaLimpia, hora: horaLimpia };
     }
 
     async function descargarReporteCSV() {
@@ -1142,7 +1157,7 @@
 
           if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
             detallesVenta.forEach(d => {
-              let f_h = separarFechaYHora(d.fecha, d.hora, d.creado_en);
+              let f_h = formatearFechaYHoraEstricta(d.fecha, d.hora, d.creado_en);
               let codProd = d.codigo_barras || d.cod_producto || 'S/C';
               let nombreProdClean = (d.nombre_producto || 'Producto').replace(/"/g, '""');
 
@@ -1157,7 +1172,7 @@
 
             if (!errVentas && ventasData && ventasData.length > 0) {
               ventasData.forEach(v => {
-                let f_h = separarFechaYHora(v.fecha, v.hora, v.creado_en);
+                let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
 
                 if (v.detalles && Array.isArray(v.detalles) && v.detalles.length > 0) {
                   v.detalles.forEach(d => {
@@ -1182,7 +1197,7 @@
       const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
       if (pendientes.length > 0) {
         pendientes.forEach((v, index) => {
-          let f_h = separarFechaYHora(v.fecha_str, v.hora_str, v.creado_en);
+          let f_h = formatearFechaYHoraEstricta(v.fecha_str, v.hora_str, v.creado_en);
           
           if (v.detalles && Array.isArray(v.detalles)) {
             v.detalles.forEach(d => {
