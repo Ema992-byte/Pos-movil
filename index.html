@@ -777,12 +777,10 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
-    // Reimpresión inteligente y robusta
     async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
       let itemsParaTicket = [];
 
       try {
-        // 1. Buscar en detalle_ventas
         const { data: detalles, error: errDetalles } = await _supabase
           .from('detalle_ventas')
           .select('*')
@@ -795,7 +793,6 @@
             precio: d.precio_unitario || d.precio || 0
           }));
         } else {
-          // 2. Buscar en el JSON de la tabla ventas
           const { data: ventaData, error: errVenta } = await _supabase
             .from('ventas')
             .select('detalles, total')
@@ -821,7 +818,6 @@
         console.error("Error al recuperar detalles:", e);
       }
 
-      // 3. Fallback de emergencia
       if (itemsParaTicket.length === 0) {
         itemsParaTicket = [{
           nombre: `Venta General (Ticket #${ventaId})`,
@@ -999,6 +995,7 @@
       actualizarCarritoVisual();
     }
 
+    // Cobro ultra resiliente (Inserta sólo total y detalles si las columnas secundarias no existen)
     async function cobrarVenta() {
       if (carrito.length === 0) {
         alert('El carrito está vacío');
@@ -1028,23 +1025,36 @@
 
       if (navigator.onLine) {
         try {
-          // 1. Insertar cabecera de la venta en la tabla 'ventas'
-          const { data: ventaData, error: ventaError } = await _supabase
+          // Intentar insertar con todas las columnas estándar
+          let objetoVentaInsert = { 
+            total: total, 
+            fecha: fechaStr, 
+            hora: horaStr, 
+            detalles: detallesJson 
+          };
+
+          let { data: ventaData, error: ventaError } = await _supabase
             .from('ventas')
-            .insert([{ 
-              total: total, 
-              fecha: fechaStr, 
-              hora: horaStr, 
-              creado_en: ahora.toISOString(), 
-              detalles: detallesJson 
-            }])
+            .insert([objetoVentaInsert])
             .select();
+
+          // Si falla por falta de alguna columna como 'hora' o 'fecha', reintentar insertando sólo 'total' y 'detalles'
+          if (ventaError && (ventaError.message.includes('column') || ventaError.code === 'PGRST204')) {
+            console.warn("Reintentando inserción simplificada en ventas...");
+            const resSimplificado = await _supabase
+              .from('ventas')
+              .insert([{ total: total, detalles: detallesJson }])
+              .select();
+            
+            ventaData = resSimplificado.data;
+            ventaError = resSimplificado.error;
+          }
 
           if (ventaError) throw ventaError;
 
           const ventaId = ventaData[0].id;
 
-          // 2. Insertar cada producto en la tabla 'detalle_ventas'
+          // Insertar desglose en 'detalle_ventas'
           const detallesInserts = carrito.map(item => {
             const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.codigo_barras) === String(item.idUnico));
             const codigoBarrasProd = prodRef ? (prodRef.codigo_barras || '') : '';
@@ -1061,8 +1071,12 @@
             };
           });
 
-          const { error: errorDetalle } = await _supabase.from('detalle_ventas').insert(detallesInserts);
-          if (errorDetalle) throw errorDetalle;
+          // Intentar guardar detalle_ventas (si falla no interrumpe el éxito de la venta principal)
+          try {
+            await _supabase.from('detalle_ventas').insert(detallesInserts);
+          } catch(e) {
+            console.warn("No se pudo insertar en detalle_ventas, respaldado en ventas.detalles:", e);
+          }
 
           alert('¡Venta registrada y guardada con éxito en la nube!');
           imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`);
@@ -1097,7 +1111,7 @@
         try {
           const { data: vData, error: vErr } = await _supabase
             .from('ventas')
-            .insert([{ total: v.total, fecha: v.fecha_str, hora: v.hora_str, creado_en: v.creado_en, detalles: v.detalles }])
+            .insert([{ total: v.total, detalles: v.detalles }])
             .select();
 
           if (!vErr && vData) {
@@ -1111,9 +1125,7 @@
                 nombre_producto: d.nombre,
                 cantidad: d.cantidad,
                 precio_unitario: d.precio,
-                subtotal: d.precio * d.cantidad,
-                fecha: v.fecha_str,
-                hora: v.hora_str
+                subtotal: d.precio * d.cantidad
               };
             });
             await _supabase.from('detalle_ventas').insert(det);
