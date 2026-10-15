@@ -772,12 +772,12 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
-    // Reimpresión resiliente buscando en detalle_ventas, en ventas.detalles, o usando fallback
+    // Reimpresión con búsqueda en 3 capas
     async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
       let itemsParaTicket = [];
 
       try {
-        // 1. Probar en detalle_ventas
+        // 1. Buscar en la tabla de detalle_ventas
         const { data: detalles, error: errDetalles } = await _supabase
           .from('detalle_ventas')
           .select('*')
@@ -790,7 +790,7 @@
             precio: d.precio_unitario || d.precio || 0
           }));
         } else {
-          // 2. Si no hay registros en detalle_ventas, buscar en la columna 'detalles' de 'ventas'
+          // 2. Si no encontró en detalle_ventas, buscar en la columna 'detalles' de 'ventas'
           const { data: ventaData, error: errVenta } = await _supabase
             .from('ventas')
             .select('detalles, total')
@@ -813,13 +813,13 @@
           }
         }
       } catch (e) {
-        console.error("Error al intentar recuperar detalles del ticket:", e);
+        console.error("Error al recuperar detalles:", e);
       }
 
-      // 3. Fallback: Si no hay items en las tablas, genera el ticket con el total
+      // 3. Respaldo extremo si fue una venta muy antigua sin desglose
       if (itemsParaTicket.length === 0) {
         itemsParaTicket = [{
-          nombre: `Venta / Ticket #${ventaId}`,
+          nombre: `Venta General (Ticket #${ventaId})`,
           cantidad: 1,
           precio: parseFloat(total) || 0
         }];
@@ -1006,9 +1006,16 @@
       const fechaStr = ahora.toISOString().split('T')[0];
       const horaStr = ahora.toTimeString().substring(0, 5);
 
+      const detallesJson = carrito.map(i => ({
+        idUnico: i.idUnico,
+        nombre: i.nombre,
+        precio: i.precio,
+        cantidad: i.cantidad
+      }));
+
       const ventaLocal = {
         total: total,
-        detalles: [...carrito],
+        detalles: detallesJson,
         fecha_str: fechaStr,
         hora_str: horaStr,
         creado_en: ahora.toISOString()
@@ -1016,9 +1023,16 @@
 
       if (navigator.onLine) {
         try {
+          // Guardar en la tabla 'ventas' incluyendo la columna 'detalles' en formato JSON
           const { data: ventaData, error: ventaError } = await _supabase
             .from('ventas')
-            .insert([{ total: total, fecha: fechaStr, hora: horaStr, creado_en: ahora.toISOString(), detalles: carrito }])
+            .insert([{ 
+              total: total, 
+              fecha: fechaStr, 
+              hora: horaStr, 
+              creado_en: ahora.toISOString(), 
+              detalles: detallesJson 
+            }])
             .select();
 
           if (ventaError) throw ventaError;
