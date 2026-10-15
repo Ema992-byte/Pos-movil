@@ -740,7 +740,12 @@
         .order('id', { ascending: false })
         .limit(30);
 
-      if (error || !data || data.length === 0) {
+      if (error) {
+        contenedor.innerHTML = `<p class="text-red-500 text-center py-4 text-xs">Error al cargar historial: ${error.message}</p>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
         contenedor.innerHTML = '<p class="text-slate-400 text-center py-4">No se encontraron ventas registradas.</p>';
         return;
       }
@@ -772,12 +777,12 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
-    // Reimpresión con búsqueda en 3 capas
+    // Reimpresión inteligente y robusta
     async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
       let itemsParaTicket = [];
 
       try {
-        // 1. Buscar en la tabla de detalle_ventas
+        // 1. Buscar en detalle_ventas
         const { data: detalles, error: errDetalles } = await _supabase
           .from('detalle_ventas')
           .select('*')
@@ -790,7 +795,7 @@
             precio: d.precio_unitario || d.precio || 0
           }));
         } else {
-          // 2. Si no encontró en detalle_ventas, buscar en la columna 'detalles' de 'ventas'
+          // 2. Buscar en el JSON de la tabla ventas
           const { data: ventaData, error: errVenta } = await _supabase
             .from('ventas')
             .select('detalles, total')
@@ -816,7 +821,7 @@
         console.error("Error al recuperar detalles:", e);
       }
 
-      // 3. Respaldo extremo si fue una venta muy antigua sin desglose
+      // 3. Fallback de emergencia
       if (itemsParaTicket.length === 0) {
         itemsParaTicket = [{
           nombre: `Venta General (Ticket #${ventaId})`,
@@ -1023,7 +1028,7 @@
 
       if (navigator.onLine) {
         try {
-          // Guardar en la tabla 'ventas' incluyendo la columna 'detalles' en formato JSON
+          // 1. Insertar cabecera de la venta en la tabla 'ventas'
           const { data: ventaData, error: ventaError } = await _supabase
             .from('ventas')
             .insert([{ 
@@ -1038,6 +1043,8 @@
           if (ventaError) throw ventaError;
 
           const ventaId = ventaData[0].id;
+
+          // 2. Insertar cada producto en la tabla 'detalle_ventas'
           const detallesInserts = carrito.map(item => {
             const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.codigo_barras) === String(item.idUnico));
             const codigoBarrasProd = prodRef ? (prodRef.codigo_barras || '') : '';
@@ -1054,10 +1061,14 @@
             };
           });
 
-          await _supabase.from('detalle_ventas').insert(detallesInserts);
-          alert('¡Venta registrada con éxito!');
+          const { error: errorDetalle } = await _supabase.from('detalle_ventas').insert(detallesInserts);
+          if (errorDetalle) throw errorDetalle;
+
+          alert('¡Venta registrada y guardada con éxito en la nube!');
           imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`);
         } catch (err) {
+          console.error("Error al registrar venta en Supabase:", err);
+          alert('Hubo un problema al registrar en la nube. Se guardará localmente. Detalle: ' + (err.message || err));
           guardarVentaOffline(ventaLocal);
           imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)');
         }
