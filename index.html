@@ -772,7 +772,7 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
-    // reimprimirTicketAnterior resiliente con parseo automático y fallback
+    // Reimpresión resiliente buscando en detalle_ventas, en ventas.detalles, o usando fallback
     async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
       let itemsParaTicket = [];
 
@@ -799,7 +799,6 @@
 
           if (!errVenta && ventaData && ventaData.detalles) {
             let arregloDetalles = ventaData.detalles;
-            // Si viene en formato String JSON, parsear
             if (typeof arregloDetalles === 'string') {
               try { arregloDetalles = JSON.parse(arregloDetalles); } catch(e) {}
             }
@@ -817,7 +816,7 @@
         console.error("Error al intentar recuperar detalles del ticket:", e);
       }
 
-      // 3. Fallback de seguridad: Si aun así no trae productos, genera el renglón con el total
+      // 3. Fallback: Si no hay items en las tablas, genera el ticket con el total
       if (itemsParaTicket.length === 0) {
         itemsParaTicket = [{
           nombre: `Venta / Ticket #${ventaId}`,
