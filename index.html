@@ -995,7 +995,23 @@
       actualizarCarritoVisual();
     }
 
-    // Cobro ultra resiliente (Inserta sólo total y detalles si las columnas secundarias no existen)
+    // Función auxiliar para obtener fecha y hora LOCAL exacta (Argentina)
+    function obtenerFechaHoraLocal() {
+      const ahora = new Date();
+      // Formato YYYY-MM-DD usando hora local
+      const anio = ahora.getFullYear();
+      const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+      const dia = String(ahora.getDate()).padStart(2, '0');
+      const fechaStr = `${anio}-${mes}-${dia}`;
+
+      // Formato HH:MM usando hora local
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      const horaStr = `${horas}:${minutos}`;
+
+      return { fechaStr, horaStr };
+    }
+
     async function cobrarVenta() {
       if (carrito.length === 0) {
         alert('El carrito está vacío');
@@ -1004,9 +1020,7 @@
 
       let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
       
-      const ahora = new Date();
-      const fechaStr = ahora.toISOString().split('T')[0];
-      const horaStr = ahora.toTimeString().substring(0, 5);
+      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
 
       const detallesJson = carrito.map(i => ({
         idUnico: i.idUnico,
@@ -1020,12 +1034,11 @@
         detalles: detallesJson,
         fecha_str: fechaStr,
         hora_str: horaStr,
-        creado_en: ahora.toISOString()
+        creado_en: new Date().toISOString()
       };
 
       if (navigator.onLine) {
         try {
-          // Intentar insertar con todas las columnas estándar
           let objetoVentaInsert = { 
             total: total, 
             fecha: fechaStr, 
@@ -1038,9 +1051,7 @@
             .insert([objetoVentaInsert])
             .select();
 
-          // Si falla por falta de alguna columna como 'hora' o 'fecha', reintentar insertando sólo 'total' y 'detalles'
           if (ventaError && (ventaError.message.includes('column') || ventaError.code === 'PGRST204')) {
-            console.warn("Reintentando inserción simplificada en ventas...");
             const resSimplificado = await _supabase
               .from('ventas')
               .insert([{ total: total, detalles: detallesJson }])
@@ -1054,7 +1065,6 @@
 
           const ventaId = ventaData[0].id;
 
-          // Insertar desglose en 'detalle_ventas'
           const detallesInserts = carrito.map(item => {
             const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.codigo_barras) === String(item.idUnico));
             const codigoBarrasProd = prodRef ? (prodRef.codigo_barras || '') : '';
@@ -1071,12 +1081,9 @@
             };
           });
 
-          // Intentar guardar detalle_ventas (si falla no interrumpe el éxito de la venta principal)
           try {
             await _supabase.from('detalle_ventas').insert(detallesInserts);
-          } catch(e) {
-            console.warn("No se pudo insertar en detalle_ventas, respaldado en ventas.detalles:", e);
-          }
+          } catch(e) {}
 
           alert('¡Venta registrada y guardada con éxito en la nube!');
           imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`);
@@ -1217,10 +1224,12 @@
       }
 
       if (!fechaLimpia) {
-        fechaLimpia = new Date().toISOString().split('T')[0];
+        const d = new Date();
+        fechaLimpia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
       if (!horaLimpia) {
-        horaLimpia = new Date().toTimeString().substring(0, 5);
+        const d = new Date();
+        horaLimpia = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
       }
 
       return { fecha: fechaLimpia, hora: horaLimpia };
