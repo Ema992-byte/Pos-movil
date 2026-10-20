@@ -127,14 +127,13 @@
     </div>
   </div>
 
-  <!-- MODAL DE CREAR / EDITAR PRODUCTO Y SELECCIONAR FOTO -->
+  <!-- MODAL DE CREAR / EDITAR PRODUCTO -->
   <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
       <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
       <input type="hidden" id="editProductoId">
       
       <div class="space-y-3">
-        <!-- Vista previa de foto y botones de carga de galería/cámara -->
         <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50">
           <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden">
           <div id="placeholderFoto" class="text-slate-400 text-xs text-center mb-2">
@@ -150,7 +149,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Código de Barras (Opcional - Único si se completa)</label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Código de Barras</label>
           <input type="text" id="nuevoCodigo" placeholder="Ej. 779000000000"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
@@ -171,9 +170,21 @@
               class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
         </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Precio Minorista ($) *</label>
+            <input type="number" id="nuevoVenta" step="0.01" placeholder="0.00"
+              class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Precio Mayorista ($)</label>
+            <input type="number" id="nuevoMayorista" step="0.01" placeholder="0.00"
+              class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Precio Venta ($) *</label>
-          <input type="number" id="nuevoVenta" step="0.01" placeholder="0.00"
+          <label class="block text-xs font-medium text-slate-600 mb-1">Cant. Mínima Mayorista</label>
+          <input type="number" id="nuevoCantMayor" placeholder="6"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
@@ -224,10 +235,17 @@
             class="w-full px-3 py-2 bg-slate-100 border rounded-lg text-sm text-slate-600">
           <input type="hidden" id="prodSeleccionadoId">
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Nuevo Precio de Venta ($)</label>
-          <input type="number" id="nuevoPrecioInput" step="0.01" placeholder="Ej: 3500"
-            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Precio Minorista ($)</label>
+            <input type="number" id="nuevoPrecioInput" step="0.01" placeholder="Ej: 3500"
+              class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Precio Mayorista ($)</label>
+            <input type="number" id="nuevoPrecioMayoristaInput" step="0.01" placeholder="Ej: 3000"
+              class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
         </div>
         <div class="flex gap-2 pt-2">
           <button onclick="guardarNuevoPrecio()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium">
@@ -349,6 +367,18 @@
       }
     }
 
+    function obtenerCodigoBarras(prod) {
+      return prod.codigo_barras || prod.codigo_barra || '';
+    }
+
+    function obtenerPrecioMayorista(prod) {
+      return parseFloat(prod.precio_mayorista || prod.precio_mayorist || 0);
+    }
+
+    function obtenerCantMayorista(prod) {
+      return parseInt(prod.cantidad_mayorista || prod.cantidad_mayor || 6);
+    }
+
     function iniciarSesionExitosa(email, productosData) {
       usuarioActualEmail = email;
       document.getElementById('loginSection').classList.add('hidden');
@@ -414,17 +444,25 @@
 
       let htmlContent = '';
       productos.forEach((prod, idx) => {
-        const idUnico = prod.id || prod.codigo_barras || idx;
-        const codigoMostrado = prod.codigo_barras || 'S/C';
+        const codBarras = obtenerCodigoBarras(prod);
+        const idUnico = prod.id || codBarras || idx;
+        const codigoMostrado = codBarras || 'S/C';
         const nombreEscapado = (prod.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const fotoUrl = prod.imagen_url || prod.foto || '';
+
+        const pMayor = obtenerPrecioMayorista(prod);
+        const cMayor = obtenerCantMayorista(prod);
+
+        const mayoristaTag = pMayor > 0 
+          ? `<p class="text-emerald-600 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` 
+          : '';
         
         const imagenTag = fotoUrl 
           ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white p-1">`
           : `<div class="w-full h-24 bg-slate-200 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
 
         const btnEditarHtml = esAdmin 
-          ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto y Foto" class="absolute top-1 right-1 bg-white/80 hover:bg-white text-slate-700 p-1 rounded-full shadow text-xs">✏️</button>` 
+          ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 hover:bg-white text-slate-700 p-1 rounded-full shadow text-xs">✏️</button>` 
           : '';
 
         htmlContent += `
@@ -436,14 +474,15 @@
               <div class="text-[11px] text-slate-500 mt-1 space-y-0.5">
                 <p>Cód: <span class="font-medium text-slate-700">${codigoMostrado}</span></p>
                 <p>Stock: <span class="font-medium text-slate-700">${prod.stock || 0}</span></p>
-                <p class="text-indigo-600 font-bold text-sm">$${prod.precio}</p>
+                <p class="text-indigo-600 font-bold text-sm">Min: $${prod.precio}</p>
+                ${mayoristaTag}
               </div>
             </div>
             
             <div class="mt-3 pt-2 border-t border-slate-100 flex items-center gap-1">
               <input type="number" id="qty_input_${idUnico}" value="1" min="1" 
                 class="w-12 px-1 py-1 text-center border rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
-              <button onclick="agregarAlCarrito('${idUnico}', '${nombreEscapado}', ${prod.precio})"
+              <button onclick="agregarAlCarrito('${idUnico}')"
                 class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1 rounded text-xs font-medium text-center">
                 Agregar
               </button>
@@ -504,6 +543,8 @@
       document.getElementById('nuevoStock').value = '0';
       document.getElementById('nuevoCosto').value = '';
       document.getElementById('nuevoVenta').value = '';
+      document.getElementById('nuevoMayorista').value = '';
+      document.getElementById('nuevoCantMayor').value = '6';
       document.getElementById('inputFotoCamara').value = '';
       fotoBase64Actual = '';
       
@@ -514,16 +555,18 @@
     }
 
     function abrirModalEditarProducto(id) {
-      const prod = todosLosProductos.find(p => String(p.id) === String(id) || String(p.codigo_barras) === String(id));
+      const prod = todosLosProductos.find(p => String(p.id) === String(id) || String(obtenerCodigoBarras(p)) === String(id));
       if (!prod) return;
 
-      document.getElementById('modalProductoTitulo').textContent = 'Editar Producto y Foto ✏️';
+      document.getElementById('modalProductoTitulo').textContent = 'Editar Producto ✏️';
       document.getElementById('editProductoId').value = prod.id;
-      document.getElementById('nuevoCodigo').value = prod.codigo_barras || '';
+      document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
       document.getElementById('nuevoStock').value = prod.stock || 0;
       document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
       document.getElementById('nuevoVenta').value = prod.precio || '';
+      document.getElementById('nuevoMayorista').value = obtenerPrecioMayorista(prod) || '';
+      document.getElementById('nuevoCantMayor').value = obtenerCantMayorista(prod);
       document.getElementById('inputFotoCamara').value = '';
       
       fotoBase64Actual = prod.imagen_url || prod.foto || '';
@@ -553,6 +596,8 @@
       const stock = parseInt(document.getElementById('nuevoStock').value) || 0;
       const costo = parseFloat(document.getElementById('nuevoCosto').value) || 0;
       const venta = parseFloat(document.getElementById('nuevoVenta').value) || 0;
+      const pMayor = parseFloat(document.getElementById('nuevoMayorista').value) || null;
+      const cMayor = parseInt(document.getElementById('nuevoCantMayor').value) || 6;
 
       if (!nombre || !venta) {
         alert("El nombre y el precio de venta son obligatorios.");
@@ -564,16 +609,6 @@
         return;
       }
 
-      if (codigo !== "") {
-        const codigoDuplicado = todosLosProductos.find(p => 
-          String(p.codigo_barras || '').trim() === codigo && String(p.id) !== String(editId)
-        );
-        if (codigoDuplicado) {
-          alert(`⚠️ El código de barras "${codigo}" ya está asignado al producto "${codigoDuplicado.nombre}". Debe ser único.`);
-          return;
-        }
-      }
-
       const codigoFinal = codigo !== "" ? codigo : null;
 
       const datosProducto = {
@@ -582,7 +617,9 @@
         imagen_url: fotoBase64Actual,
         stock: stock,
         "Precio Costo": costo,
-        precio: venta
+        precio: venta,
+        precio_mayorista: pMayor,
+        cantidad_mayorista: cMayor
       };
 
       let error = null;
@@ -596,14 +633,9 @@
       }
 
       if (error) {
-        console.error("Error al guardar:", error);
-        if (error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
-          alert("Error: El código de barras ingresado ya pertenece a otro producto. Debe ser único.");
-        } else {
-          alert("Hubo un error al guardar el producto: " + error.message);
-        }
+        alert("Hubo un error al guardar el producto: " + error.message);
       } else {
-        alert("¡Producto y foto guardados con éxito en Supabase!");
+        alert("¡Producto guardado con éxito en Supabase!");
         cerrarModalProducto();
         await cargarProductos();
       }
@@ -622,7 +654,7 @@
       }
       const filtrados = todosLosProductos.filter(p => {
         const nombre = (p.nombre || '').toLowerCase();
-        const cod = String(p.codigo_barras || '').toLowerCase();
+        const cod = String(obtenerCodigoBarras(p)).toLowerCase();
         return nombre.includes(texto) || cod.includes(texto);
       }).slice(0, 40);
       mostrarProductos(filtrados);
@@ -634,13 +666,13 @@
         if (!codigoEscaneado) return;
 
         const productoEncontrado = todosLosProductos.find(p => {
-          const c = String(p.codigo_barras || '').trim().toLowerCase();
+          const c = String(obtenerCodigoBarras(p)).trim().toLowerCase();
           return c === codigoEscaneado.toLowerCase();
         });
 
         if (productoEncontrado) {
-          const idUnico = productoEncontrado.id || productoEncontrado.codigo_barras;
-          agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
+          const idUnico = productoEncontrado.id || obtenerCodigoBarras(productoEncontrado);
+          agregarAlCarrito(idUnico);
           document.getElementById('buscador').value = '';
           mostrarProductos(todosLosProductos.slice(0, 40));
         }
@@ -677,20 +709,20 @@
         const codigoLeido = String(result.codeResult.code).trim();
         
         const productoEncontrado = todosLosProductos.find(p => {
-          const c = String(p.codigo_barras || '').trim();
+          const c = String(obtenerCodigoBarras(p)).trim();
           return c === codigoLeido;
         });
 
         if (productoEncontrado) {
-          const idUnico = productoEncontrado.id || productoEncontrado.codigo_barras;
-          agregarAlCarrito(idUnico, productoEncontrado.nombre, productoEncontrado.precio);
+          const idUnico = productoEncontrado.id || obtenerCodigoBarras(productoEncontrado);
+          agregarAlCarrito(idUnico);
           cerrarScannerCamara();
           alert(`¡Producto agregado con éxito: ${productoEncontrado.nombre}!`);
         } else {
           document.getElementById('buscador').value = codigoLeido;
           cerrarScannerCamara();
           filtrarProductos();
-          alert(`Código escaneado (${codigoLeido}) no encontrado exacto en base de datos. Se filtró en pantalla.`);
+          alert(`Código escaneado (${codigoLeido}) no encontrado exacto. Se filtró en pantalla.`);
         }
       });
     }
@@ -701,6 +733,342 @@
         Quagga.stop();
       } catch (e) {}
       document.getElementById('modalScanner').classList.add('hidden');
+    }
+
+    function agregarAlCarrito(idUnico) {
+      const prodRef = todosLosProductos.find(p => String(p.id) === String(idUnico) || String(obtenerCodigoBarras(p)) === String(idUnico));
+      if (!prodRef) return;
+
+      const inputQty = document.getElementById(`qty_input_${idUnico}`);
+      const cantidadAAgregar = parseInt(inputQty ? inputQty.value : 1) || 1;
+      const itemExistente = carrito.find(item => item.idUnico === idUnico);
+      
+      if (itemExistente) {
+        itemExistente.cantidad += cantidadAAgregar;
+      } else {
+        carrito.push({ 
+          idUnico: idUnico, 
+          nombre: prodRef.nombre, 
+          precioMinorista: parseFloat(prodRef.precio) || 0,
+          precioMayorista: obtenerPrecioMayorista(prodRef),
+          cantMayorista: obtenerCantMayorista(prodRef),
+          cantidad: cantidadAAgregar 
+        });
+      }
+      if (inputQty) inputQty.value = 1;
+      actualizarCarritoVisual();
+    }
+
+    function actualizarCarritoVisual() {
+      const contenedor = document.getElementById('carritoList');
+      const totalSpan = document.getElementById('totalVenta');
+
+      if (carrito.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>';
+        totalSpan.textContent = '$0.00';
+        return;
+      }
+
+      contenedor.innerHTML = '';
+      let total = 0;
+
+      carrito.forEach((item, index) => {
+        let precioAplicado = item.precioMinorista;
+        let esMayorista = false;
+
+        if (item.precioMayorista > 0 && item.cantidad >= item.cantMayorista) {
+          precioAplicado = item.precioMayorista;
+          esMayorista = true;
+        }
+
+        let subtotal = precioAplicado * item.cantidad;
+        total += subtotal;
+
+        const badgeMayorista = esMayorista 
+          ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded ml-1">MAYORISTA</span>` 
+          : '';
+
+        contenedor.innerHTML += `
+          <div class="flex justify-between items-center bg-white p-2.5 rounded border text-sm shadow-sm gap-2">
+            <div class="flex-grow">
+              <p class="font-medium text-slate-800">${item.nombre} ${badgeMayorista}</p>
+              <p class="text-xs text-slate-500">$${precioAplicado.toFixed(2)} c/u</p>
+            </div>
+            
+            <div class="flex items-center gap-1">
+              <span class="text-xs text-slate-400">Cant:</span>
+              <input type="number" min="1" value="${item.cantidad}" 
+                onchange="modificarCantidadDirecta(${index}, this.value)"
+                class="w-16 px-2 py-1 text-center font-semibold border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div class="text-right min-w-[65px]">
+              <span class="font-semibold text-slate-700 text-xs">$${subtotal.toFixed(2)}</span>
+            </div>
+
+            <button onclick="removerDelCarrito(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-1 ml-1">✕</button>
+          </div>
+        `;
+      });
+      totalSpan.textContent = '$' + total.toFixed(2);
+    }
+
+    function modificarCantidadDirecta(index, nuevaCantidad) {
+      const cant = parseInt(nuevaCantidad);
+      if (isNaN(cant) || cant <= 0) {
+        removerDelCarrito(index);
+      } else {
+        carrito[index].cantidad = cant;
+        actualizarCarritoVisual();
+      }
+    }
+
+    function removerDelCarrito(index) {
+      carrito.splice(index, 1);
+      actualizarCarritoVisual();
+    }
+
+    function obtenerFechaHoraLocal() {
+      const ahora = new Date();
+      const anio = ahora.getFullYear();
+      const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+      const dia = String(ahora.getDate()).padStart(2, '0');
+      const fechaStr = `${anio}-${mes}-${dia}`;
+
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      const horaStr = `${horas}:${minutos}`;
+
+      return { fechaStr, horaStr };
+    }
+
+    async function cobrarVenta() {
+      if (carrito.length === 0) {
+        alert('El carrito está vacío');
+        return;
+      }
+
+      let total = 0;
+      const detallesJson = carrito.map(i => {
+        let precioAplicado = i.precioMinorista;
+        if (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista) {
+          precioAplicado = i.precioMayorista;
+        }
+        total += precioAplicado * i.cantidad;
+        return {
+          idUnico: i.idUnico,
+          nombre: i.nombre,
+          precio: precioAplicado,
+          cantidad: i.cantidad
+        };
+      });
+
+      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
+
+      const ventaLocal = {
+        total: total,
+        detalles: detallesJson,
+        fecha_str: fechaStr,
+        hora_str: horaStr,
+        creado_en: new Date().toISOString()
+      };
+
+      if (navigator.onLine) {
+        try {
+          let objetoVentaInsert = { 
+            total: total, 
+            fecha: fechaStr, 
+            hora: horaStr, 
+            detalles: detallesJson 
+          };
+
+          let { data: ventaData, error: ventaError } = await _supabase
+            .from('ventas')
+            .insert([objetoVentaInsert])
+            .select();
+
+          if (ventaError && (ventaError.message.includes('column') || ventaError.code === 'PGRST204')) {
+            const resSimplificado = await _supabase
+              .from('ventas')
+              .insert([{ total: total, detalles: detallesJson }])
+              .select();
+            
+            ventaData = resSimplificado.data;
+            ventaError = resSimplificado.error;
+          }
+
+          if (ventaError) throw ventaError;
+
+          const ventaId = ventaData[0].id;
+
+          const detallesInserts = detallesJson.map(item => {
+            const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(obtenerCodigoBarras(p)) === String(item.idUnico));
+            const codigoBarrasProd = prodRef ? obtenerCodigoBarras(prodRef) : '';
+
+            return {
+              venta_id: ventaId,
+              codigo_barras: codigoBarrasProd,
+              nombre_producto: item.nombre,
+              cantidad: item.cantidad,
+              precio_unitario: item.precio,
+              subtotal: item.precio * item.cantidad,
+              fecha: fechaStr,
+              hora: horaStr
+            };
+          });
+
+          try {
+            await _supabase.from('detalle_ventas').insert(detallesInserts);
+          } catch(e) {}
+
+          alert('¡Venta registrada con éxito!');
+          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`);
+        } catch (err) {
+          console.error("Error al registrar venta en Supabase:", err);
+          alert('Hubo un problema al registrar en la nube. Se guardará localmente. Detalle: ' + (err.message || err));
+          guardarVentaOffline(ventaLocal);
+          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)');
+        }
+      } else {
+        guardarVentaOffline(ventaLocal);
+        alert('⚡ Sin internet: Venta guardada localmente.');
+        imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)');
+      }
+
+      carrito = [];
+      actualizarCarritoVisual();
+    }
+
+    function guardarVentaOffline(venta) {
+      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      pendientes.push(venta);
+      localStorage.setItem('ventas_pendientes', JSON.stringify(pendientes));
+    }
+
+    async function sincronizarVentasPendientes() {
+      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
+      if (pendientes.length === 0) return;
+
+      for (let i = 0; i < pendientes.length; i++) {
+        let v = pendientes[i];
+        try {
+          const { data: vData, error: vErr } = await _supabase
+            .from('ventas')
+            .insert([{ total: v.total, detalles: v.detalles }])
+            .select();
+
+          if (!vErr && vData) {
+            let vId = vData[0].id;
+            let det = v.detalles.map(d => {
+              const prodRef = todosLosProductos.find(p => String(p.id) === String(d.idUnico) || String(obtenerCodigoBarras(p)) === String(d.idUnico));
+              const codigoBarrasProd = prodRef ? obtenerCodigoBarras(prodRef) : '';
+              return {
+                venta_id: vId,
+                codigo_barras: codigoBarrasProd,
+                nombre_producto: d.nombre,
+                cantidad: d.cantidad,
+                precio_unitario: d.precio,
+                subtotal: d.precio * d.cantidad
+              };
+            });
+            await _supabase.from('detalle_ventas').insert(det);
+          }
+        } catch (e) { return; }
+      }
+      localStorage.removeItem('ventas_pendientes');
+    }
+
+    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
+      document.getElementById('ticketFecha').textContent = fechaStr;
+      document.getElementById('ticketIdVenta').textContent = tituloTicket;
+      document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
+      
+      const ticketItemsContainer = document.getElementById('ticketItems');
+      ticketItemsContainer.innerHTML = '';
+
+      items.forEach(item => {
+        let pUnit = parseFloat(item.precio || 0);
+        let importe = pUnit * (item.cantidad || 1);
+        ticketItemsContainer.innerHTML += `
+          <div class="flex justify-between items-start">
+            <span class="w-[10%] text-left font-bold">${item.cantidad || 1}</span>
+            <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
+            <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
+            <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
+          </div>
+        `;
+      });
+      document.getElementById('ticketTotal').textContent = '$' + parseFloat(total).toFixed(2);
+
+      const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
+      const ventanaImpresion = window.open('', '_blank', 'width=380,height=600');
+      if (ventanaImpresion) {
+        ventanaImpresion.document.write(`
+          <html>
+            <head>
+              <title>Ticket de Venta</title>
+              <script src="https://cdn.tailwindcss.com"><\/script>
+              <style>
+                @media print {
+                  body { margin: 0; padding: 2mm; width: 80mm; }
+                }
+              </style>
+            </head>
+            <body class="bg-white p-2">
+              ${contenidoTicket}
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                }
+              <\/script>
+            </body>
+          </html>
+        `);
+        ventanaImpresion.document.close();
+      } else {
+        alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir los tickets.');
+      }
+    }
+
+    function formatearFechaYHoraEstricta(valorFecha, valorHora, valorCreadoEn) {
+      let fechaLimpia = '';
+      let horaLimpia = '';
+
+      let fuenteFecha = valorFecha || valorCreadoEn || '';
+
+      if (fuenteFecha) {
+        if (fuenteFecha.includes('T')) {
+          let partesIso = fuenteFecha.split('T');
+          fechaLimpia = partesIso[0];
+          if (partesIso[1]) {
+            horaLimpia = partesIso[1].substring(0, 5);
+          }
+        } else if (fuenteFecha.includes(' ')) {
+          let partesEspacio = fuenteFecha.split(' ');
+          fechaLimpia = partesEspacio[0];
+          if (partesEspacio[1]) {
+            horaLimpia = partesEspacio[1].substring(0, 5);
+          }
+        } else {
+          fechaLimpia = fuenteFecha.substring(0, 10);
+        }
+      }
+
+      if (valorHora && !horaLimpia) {
+        horaLimpia = String(valorHora).trim().substring(0, 5);
+      }
+
+      if (!fechaLimpia) {
+        const d = new Date();
+        fechaLimpia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      if (!horaLimpia) {
+        const d = new Date();
+        horaLimpia = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+
+      return { fecha: fechaLimpia, hora: horaLimpia };
     }
 
     async function abrirModalHistorial() {
@@ -849,6 +1217,7 @@
       document.getElementById('prodSeleccionadoNombre').value = '';
       document.getElementById('prodSeleccionadoId').value = '';
       document.getElementById('nuevoPrecioInput').value = '';
+      document.getElementById('nuevoPrecioMayoristaInput').value = '';
     }
 
     function cerrarModalPrecios() {
@@ -866,7 +1235,7 @@
 
       const encontrados = todosLosProductos.filter(p => {
         const n = (p.nombre || '').toLowerCase();
-        const c = String(p.codigo_barras || '').toLowerCase();
+        const c = String(obtenerCodigoBarras(p)).toLowerCase();
         return n.includes(texto) || c.includes(texto);
       }).slice(0, 15);
 
@@ -879,27 +1248,33 @@
       encontrados.forEach(p => {
         const idVal = p.id;
         const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
+        const pMayor = obtenerPrecioMayorista(p);
         html += `
-          <div onclick="seleccionarParaPrecio('${idVal}', '${nombreSeguro}', ${p.precio})" 
+          <div onclick="seleccionarParaPrecio('${idVal}', '${nombreSeguro}', ${p.precio}, ${pMayor})" 
             class="p-2 hover:bg-purple-50 cursor-pointer rounded border-b flex justify-between items-center">
             <span>${p.nombre}</span>
-            <span class="font-semibold text-purple-700">$${p.precio}</span>
+            <div class="text-right">
+              <span class="font-semibold text-purple-700">$${p.precio}</span>
+              ${pMayor > 0 ? `<span class="text-[10px] text-emerald-600 block">May: $${pMayor}</span>` : ''}
+            </div>
           </div>
         `;
       });
       contenedor.innerHTML = html;
     }
 
-    function seleccionarParaPrecio(id, nombre, precioActual) {
+    function seleccionarParaPrecio(id, nombre, precioActual, mayoristaActual) {
       document.getElementById('prodSeleccionadoId').value = id;
       document.getElementById('prodSeleccionadoNombre').value = nombre;
       document.getElementById('nuevoPrecioInput').value = precioActual;
+      document.getElementById('nuevoPrecioMayoristaInput').value = mayoristaActual > 0 ? mayoristaActual : '';
       document.getElementById('listaAdminPrecios').innerHTML = `<p class="text-emerald-600 text-center font-medium py-1">✓ Producto seleccionado</p>`;
     }
 
     async function guardarNuevoPrecio() {
       const id = document.getElementById('prodSeleccionadoId').value;
       const nuevoPrecio = parseFloat(document.getElementById('nuevoPrecioInput').value);
+      const nuevoMayorista = parseFloat(document.getElementById('nuevoPrecioMayoristaInput').value) || null;
 
       if (!id || isNaN(nuevoPrecio) || nuevoPrecio < 0) {
         alert('Seleccione un producto y escriba un precio válido.');
@@ -913,326 +1288,16 @@
 
       const { error } = await _supabase
         .from('productos')
-        .update({ precio: nuevoPrecio })
+        .update({ precio: nuevoPrecio, precio_mayorista: nuevoMayorista })
         .eq('id', id);
 
       if (error) {
         alert('Error al actualizar precio: ' + error.message);
       } else {
-        alert('¡Precio actualizado con éxito en la base de datos!');
+        alert('¡Precios actualizados con éxito en la base de datos!');
         cerrarModalPrecios();
         cargarProductos();
       }
-    }
-
-    function agregarAlCarrito(idUnico, nombre, precio) {
-      const inputQty = document.getElementById(`qty_input_${idUnico}`);
-      const cantidadAAgregar = parseInt(inputQty ? inputQty.value : 1) || 1;
-      const itemExistente = carrito.find(item => item.idUnico === idUnico);
-      
-      if (itemExistente) {
-        itemExistente.cantidad += cantidadAAgregar;
-      } else {
-        carrito.push({ idUnico, nombre, precio, cantidad: cantidadAAgregar });
-      }
-      if (inputQty) inputQty.value = 1;
-      actualizarCarritoVisual();
-    }
-
-    function actualizarCarritoVisual() {
-      const contenedor = document.getElementById('carritoList');
-      const totalSpan = document.getElementById('totalVenta');
-
-      if (carrito.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>';
-        totalSpan.textContent = '$0.00';
-        return;
-      }
-
-      contenedor.innerHTML = '';
-      let total = 0;
-
-      carrito.forEach((item, index) => {
-        let subtotal = item.precio * item.cantidad;
-        total += subtotal;
-        contenedor.innerHTML += `
-          <div class="flex justify-between items-center bg-white p-2.5 rounded border text-sm shadow-sm gap-2">
-            <div class="flex-grow">
-              <p class="font-medium text-slate-800">${item.nombre}</p>
-              <p class="text-xs text-slate-500">$${item.precio} c/u</p>
-            </div>
-            
-            <div class="flex items-center gap-1">
-              <span class="text-xs text-slate-400">Cant:</span>
-              <input type="number" min="1" value="${item.cantidad}" 
-                onchange="modificarCantidadDirecta(${index}, this.value)"
-                class="w-16 px-2 py-1 text-center font-semibold border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-            </div>
-
-            <div class="text-right min-w-[65px]">
-              <span class="font-semibold text-slate-700 text-xs">$${subtotal.toFixed(2)}</span>
-            </div>
-
-            <button onclick="removerDelCarrito(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-1 ml-1">✕</button>
-          </div>
-        `;
-      });
-      totalSpan.textContent = '$' + total.toFixed(2);
-    }
-
-    function modificarCantidadDirecta(index, nuevaCantidad) {
-      const cant = parseInt(nuevaCantidad);
-      if (isNaN(cant) || cant <= 0) {
-        removerDelCarrito(index);
-      } else {
-        carrito[index].cantidad = cant;
-        actualizarCarritoVisual();
-      }
-    }
-
-    function removerDelCarrito(index) {
-      carrito.splice(index, 1);
-      actualizarCarritoVisual();
-    }
-
-    // Función auxiliar para obtener fecha y hora LOCAL exacta (Argentina)
-    function obtenerFechaHoraLocal() {
-      const ahora = new Date();
-      // Formato YYYY-MM-DD usando hora local
-      const anio = ahora.getFullYear();
-      const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-      const dia = String(ahora.getDate()).padStart(2, '0');
-      const fechaStr = `${anio}-${mes}-${dia}`;
-
-      // Formato HH:MM usando hora local
-      const horas = String(ahora.getHours()).padStart(2, '0');
-      const minutos = String(ahora.getMinutes()).padStart(2, '0');
-      const horaStr = `${horas}:${minutos}`;
-
-      return { fechaStr, horaStr };
-    }
-
-    async function cobrarVenta() {
-      if (carrito.length === 0) {
-        alert('El carrito está vacío');
-        return;
-      }
-
-      let total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
-      
-      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
-
-      const detallesJson = carrito.map(i => ({
-        idUnico: i.idUnico,
-        nombre: i.nombre,
-        precio: i.precio,
-        cantidad: i.cantidad
-      }));
-
-      const ventaLocal = {
-        total: total,
-        detalles: detallesJson,
-        fecha_str: fechaStr,
-        hora_str: horaStr,
-        creado_en: new Date().toISOString()
-      };
-
-      if (navigator.onLine) {
-        try {
-          let objetoVentaInsert = { 
-            total: total, 
-            fecha: fechaStr, 
-            hora: horaStr, 
-            detalles: detallesJson 
-          };
-
-          let { data: ventaData, error: ventaError } = await _supabase
-            .from('ventas')
-            .insert([objetoVentaInsert])
-            .select();
-
-          if (ventaError && (ventaError.message.includes('column') || ventaError.code === 'PGRST204')) {
-            const resSimplificado = await _supabase
-              .from('ventas')
-              .insert([{ total: total, detalles: detallesJson }])
-              .select();
-            
-            ventaData = resSimplificado.data;
-            ventaError = resSimplificado.error;
-          }
-
-          if (ventaError) throw ventaError;
-
-          const ventaId = ventaData[0].id;
-
-          const detallesInserts = carrito.map(item => {
-            const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.codigo_barras) === String(item.idUnico));
-            const codigoBarrasProd = prodRef ? (prodRef.codigo_barras || '') : '';
-
-            return {
-              venta_id: ventaId,
-              codigo_barras: codigoBarrasProd,
-              nombre_producto: item.nombre,
-              cantidad: item.cantidad,
-              precio_unitario: item.precio,
-              subtotal: item.precio * item.cantidad,
-              fecha: fechaStr,
-              hora: horaStr
-            };
-          });
-
-          try {
-            await _supabase.from('detalle_ventas').insert(detallesInserts);
-          } catch(e) {}
-
-          alert('¡Venta registrada y guardada con éxito en la nube!');
-          imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`);
-        } catch (err) {
-          console.error("Error al registrar venta en Supabase:", err);
-          alert('Hubo un problema al registrar en la nube. Se guardará localmente. Detalle: ' + (err.message || err));
-          guardarVentaOffline(ventaLocal);
-          imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)');
-        }
-      } else {
-        guardarVentaOffline(ventaLocal);
-        alert('⚡ Sin internet: Venta guardada localmente.');
-        imprimirTicketGenerico(carrito, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)');
-      }
-
-      carrito = [];
-      actualizarCarritoVisual();
-    }
-
-    function guardarVentaOffline(venta) {
-      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
-      pendientes.push(venta);
-      localStorage.setItem('ventas_pendientes', JSON.stringify(pendientes));
-    }
-
-    async function sincronizarVentasPendientes() {
-      let pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
-      if (pendientes.length === 0) return;
-
-      for (let i = 0; i < pendientes.length; i++) {
-        let v = pendientes[i];
-        try {
-          const { data: vData, error: vErr } = await _supabase
-            .from('ventas')
-            .insert([{ total: v.total, detalles: v.detalles }])
-            .select();
-
-          if (!vErr && vData) {
-            let vId = vData[0].id;
-            let det = v.detalles.map(d => {
-              const prodRef = todosLosProductos.find(p => String(p.id) === String(d.idUnico) || String(p.codigo_barras) === String(d.idUnico));
-              const codigoBarrasProd = prodRef ? (prodRef.codigo_barras || '') : '';
-              return {
-                venta_id: vId,
-                codigo_barras: codigoBarrasProd,
-                nombre_producto: d.nombre,
-                cantidad: d.cantidad,
-                precio_unitario: d.precio,
-                subtotal: d.precio * d.cantidad
-              };
-            });
-            await _supabase.from('detalle_ventas').insert(det);
-          }
-        } catch (e) { return; }
-      }
-      localStorage.removeItem('ventas_pendientes');
-    }
-
-    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
-      document.getElementById('ticketFecha').textContent = fechaStr;
-      document.getElementById('ticketIdVenta').textContent = tituloTicket;
-      document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
-      
-      const ticketItemsContainer = document.getElementById('ticketItems');
-      ticketItemsContainer.innerHTML = '';
-
-      items.forEach(item => {
-        let pUnit = parseFloat(item.precio || 0);
-        let importe = pUnit * (item.cantidad || 1);
-        ticketItemsContainer.innerHTML += `
-          <div class="flex justify-between items-start">
-            <span class="w-[10%] text-left font-bold">${item.cantidad || 1}</span>
-            <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
-            <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
-            <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
-          </div>
-        `;
-      });
-      document.getElementById('ticketTotal').textContent = '$' + parseFloat(total).toFixed(2);
-
-      const contenidoTicket = document.getElementById('ticketImpresion').innerHTML;
-      const ventanaImpresion = window.open('', '_blank', 'width=380,height=600');
-      if (ventanaImpresion) {
-        ventanaImpresion.document.write(`
-          <html>
-            <head>
-              <title>Ticket de Venta</title>
-              <script src="https://cdn.tailwindcss.com"><\/script>
-              <style>
-                @media print {
-                  body { margin: 0; padding: 2mm; width: 80mm; }
-                }
-              </style>
-            </head>
-            <body class="bg-white p-2">
-              ${contenidoTicket}
-              <script>
-                window.onload = function() {
-                  window.print();
-                  setTimeout(() => window.close(), 500);
-                }
-              <\/script>
-            </body>
-          </html>
-        `);
-        ventanaImpresion.document.close();
-      } else {
-        alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir los tickets.');
-      }
-    }
-
-    function formatearFechaYHoraEstricta(valorFecha, valorHora, valorCreadoEn) {
-      let fechaLimpia = '';
-      let horaLimpia = '';
-
-      let fuenteFecha = valorFecha || valorCreadoEn || '';
-
-      if (fuenteFecha) {
-        if (fuenteFecha.includes('T')) {
-          let partesIso = fuenteFecha.split('T');
-          fechaLimpia = partesIso[0];
-          if (partesIso[1]) {
-            horaLimpia = partesIso[1].substring(0, 5);
-          }
-        } else if (fuenteFecha.includes(' ')) {
-          let partesEspacio = fuenteFecha.split(' ');
-          fechaLimpia = partesEspacio[0];
-          if (partesEspacio[1]) {
-            horaLimpia = partesEspacio[1].substring(0, 5);
-          }
-        } else {
-          fechaLimpia = fuenteFecha.substring(0, 10);
-        }
-      }
-
-      if (valorHora && !horaLimpia) {
-        horaLimpia = String(valorHora).trim().substring(0, 5);
-      }
-
-      if (!fechaLimpia) {
-        const d = new Date();
-        fechaLimpia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }
-      if (!horaLimpia) {
-        const d = new Date();
-        horaLimpia = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      }
-
-      return { fecha: fechaLimpia, hora: horaLimpia };
     }
 
     async function descargarReporteCSV() {
@@ -1250,68 +1315,20 @@
           if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
             detallesVenta.forEach(d => {
               let f_h = formatearFechaYHoraEstricta(d.fecha, d.hora, d.creado_en);
-              let codProd = d.codigo_barras || d.cod_producto || 'S/C';
+              let codProd = d.codigo_barras || 'S/C';
               let nombreProdClean = (d.nombre_producto || 'Producto').replace(/"/g, '""');
 
               csvContent += `"${d.venta_id || 'N/A'}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad || 1}";"${d.precio_unitario || 0}";"${d.subtotal || 0}"\n`;
               filasAgregadas++;
             });
-          } else {
-            const { data: ventasData, error: errVentas } = await _supabase
-              .from('ventas')
-              .select('*')
-              .order('id', { ascending: false });
-
-            if (!errVentas && ventasData && ventasData.length > 0) {
-              ventasData.forEach(v => {
-                let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
-
-                let arregloDetalles = v.detalles;
-                if (typeof arregloDetalles === 'string') {
-                  try { arregloDetalles = JSON.parse(arregloDetalles); } catch(e) {}
-                }
-
-                if (Array.isArray(arregloDetalles) && arregloDetalles.length > 0) {
-                  arregloDetalles.forEach(d => {
-                    let cant = d.cantidad || 1;
-                    let prec = d.precio || d.precio_unitario || 0;
-                    let subtotal = prec * cant;
-                    let nombreProdClean = (d.nombre || d.nombre_producto || 'Producto').replace(/"/g, '""');
-                    let codProd = d.codigo_barras || 'S/C';
-                    csvContent += `"${v.id}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${cant}";"${prec}";"${subtotal}"\n`;
-                    filasAgregadas++;
-                  });
-                } else {
-                  csvContent += `"${v.id}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"S/C";"Ticket #${v.id}";"1";"${v.total}";"${v.total}"\n`;
-                  filasAgregadas++;
-                }
-              });
-            }
           }
         } catch (e) {
           console.error("Error consultando Supabase:", e);
         }
       }
 
-      const pendientes = JSON.parse(localStorage.getItem('ventas_pendientes') || '[]');
-      if (pendientes.length > 0) {
-        pendientes.forEach((v, index) => {
-          let f_h = formatearFechaYHoraEstricta(v.fecha_str, v.hora_str, v.creado_en);
-          
-          if (v.detalles && Array.isArray(v.detalles)) {
-            v.detalles.forEach(d => {
-              let subtotal = (d.precio || 0) * (d.cantidad || 1);
-              let nombreProdClean = (d.nombre || '').replace(/"/g, '""');
-              let codProd = d.codigo_barras || 'S/C';
-              csvContent += `"Local-${index + 1}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad}";"${d.precio}";"${subtotal}"\n`;
-              filasAgregadas++;
-            });
-          }
-        });
-      }
-
       if (filasAgregadas === 0) {
-        alert('No hay registros de ventas ni en la nube ni localmente para generar el reporte.');
+        alert('No hay registros de ventas para generar el reporte.');
         return;
       }
 
