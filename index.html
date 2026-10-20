@@ -412,7 +412,11 @@
 
       contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4 col-span-full">Actualizando catálogo...</p>';
 
-      const { data, error } = await _supabase.from('productos').select('*').range(0, 1999);
+      const { data, error } = await _supabase
+        .from('productos')
+        .select('*')
+        .eq('activo', true)
+        .range(0, 1999);
 
       if (error || !data) {
         cargarProductosOffline();
@@ -619,7 +623,8 @@
         "Precio Costo": costo,
         precio: venta,
         precio_mayorista: pMayor,
-        cantidad_mayorista: cMayor
+        cantidad_mayorista: cMayor,
+        activo: true
       };
 
       let error = null;
@@ -828,6 +833,7 @@
       actualizarCarritoVisual();
     }
 
+    // Obtener la fecha y hora local del dispositivo exacta (formato estándar)
     function obtenerFechaHoraLocal() {
       const ahora = new Date();
       const anio = ahora.getFullYear();
@@ -1031,41 +1037,51 @@
       }
     }
 
+    // Formateador estricto para que al leer del historial respete la hora local
     function formatearFechaYHoraEstricta(valorFecha, valorHora, valorCreadoEn) {
       let fechaLimpia = '';
       let horaLimpia = '';
 
-      let fuenteFecha = valorFecha || valorCreadoEn || '';
-
-      if (fuenteFecha) {
-        if (fuenteFecha.includes('T')) {
-          let partesIso = fuenteFecha.split('T');
-          fechaLimpia = partesIso[0];
-          if (partesIso[1]) {
-            horaLimpia = partesIso[1].substring(0, 5);
-          }
-        } else if (fuenteFecha.includes(' ')) {
-          let partesEspacio = fuenteFecha.split(' ');
-          fechaLimpia = partesEspacio[0];
-          if (partesEspacio[1]) {
-            horaLimpia = partesEspacio[1].substring(0, 5);
-          }
-        } else {
-          fechaLimpia = fuenteFecha.substring(0, 10);
-        }
-      }
-
-      if (valorHora && !horaLimpia) {
+      // Si existe valorHora directo en la columna (ej: "16:53"), usarlo directamente
+      if (valorHora) {
         horaLimpia = String(valorHora).trim().substring(0, 5);
       }
 
-      if (!fechaLimpia) {
-        const d = new Date();
-        fechaLimpia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (valorFecha) {
+        if (valorFecha.includes('T')) {
+          let partesIso = valorFecha.split('T');
+          fechaLimpia = partesIso[0];
+          if (!horaLimpia && partesIso[1]) {
+            horaLimpia = partesIso[1].substring(0, 5);
+          }
+        } else if (valorFecha.includes(' ')) {
+          let partesEspacio = valorFecha.split(' ');
+          fechaLimpia = partesEspacio[0];
+          if (!horaLimpia && partesEspacio[1]) {
+            horaLimpia = partesEspacio[1].substring(0, 5);
+          }
+        } else {
+          fechaLimpia = valorFecha.substring(0, 10);
+        }
       }
-      if (!horaLimpia) {
-        const d = new Date();
-        horaLimpia = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+      // Si no había fecha/hora en columnas de texto y usamos creado_en (ISO/Timestamp)
+      if ((!fechaLimpia || !horaLimpia) && valorCreadoEn) {
+        const d = new Date(valorCreadoEn);
+        if (!isNaN(d.getTime())) {
+          // Extraer año, mes, día, hora y minutos usando hora local del dispositivo
+          const anio = d.getFullYear();
+          const mes = String(d.getMonth() + 1).padStart(2, '0');
+          const dia = String(d.getDate()).padStart(2, '0');
+          if (!fechaLimpia) fechaLimpia = `${anio}-${mes}-${dia}`;
+          if (!horaLimpia) horaLimpia = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+      }
+
+      if (!fechaLimpia || !horaLimpia) {
+        const local = obtenerFechaHoraLocal();
+        if (!fechaLimpia) fechaLimpia = local.fechaStr;
+        if (!horaLimpia) horaLimpia = local.horaStr;
       }
 
       return { fecha: fechaLimpia, hora: horaLimpia };
