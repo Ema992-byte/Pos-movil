@@ -246,7 +246,7 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Nombre del Producto *</label>
-          <input type="text" id="nuevoNombre" placeholder="Ej. Yerba Mate 1kg"
+          <input type="text" id="nuevoNombre" placeholder="Ej. Agua 1L ó Papel Higenol"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
         <div class="grid grid-cols-2 gap-2">
@@ -273,10 +273,17 @@
               class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Cant. Mínima Mayorista</label>
-          <input type="number" id="nuevoCantMayor" placeholder="6"
-            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Cant. Mínima Mayorista</label>
+            <input type="number" id="nuevoCantMayor" placeholder="6"
+              class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1" title="Unidades que trae una caja o bulto (Ej: 12 para agua, 10 para papel)">Unid. por Bulto/Caja</label>
+            <input type="number" id="nuevoUnidadesBulto" placeholder="Ej: 12 ó 10"
+              class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
         </div>
 
         <div class="flex gap-2 pt-2">
@@ -376,9 +383,10 @@
       <span id="ticketCliente">Consumidor Final</span>
     </div>
 
+    <!-- COLUMNA CANTIDAD RENOMBRADA A Cant. -->
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
-      <span class="w-[10%] text-left">Ud.</span>
-      <span class="w-[46%] text-left px-0.5 break-words">Descripción</span>
+      <span class="w-[15%] text-left">Cant.</span>
+      <span class="w-[41%] text-left px-0.5 break-words">Descripción</span>
       <span class="w-[20%] text-right">P.U.</span>
       <span class="w-[24%] text-right">Importe</span>
     </div>
@@ -497,6 +505,10 @@
 
     function obtenerCantMayorista(prod) {
       return parseInt(prod.cantidad_mayorista || prod.cantidad_mayor || 6);
+    }
+
+    function obtenerUnidadesPorBulto(prod) {
+      return parseInt(prod.unidades_por_bulto || prod.unidades_bulto || 0);
     }
 
     function iniciarSesionExitosa(email, productosData) {
@@ -629,6 +641,7 @@
           precioMinorista: parseFloat(prodRef.precio) || 0,
           precioMayorista: obtenerPrecioMayorista(prodRef),
           cantMayorista: obtenerCantMayorista(prodRef),
+          unidadesBulto: obtenerUnidadesPorBulto(prodRef),
           precioPersonalizado: null,
           cantidad: cantidadAAgregar 
         });
@@ -832,6 +845,7 @@
               precio: pr,
               precio_mayorista: parseFloat(obj['precio_mayorista'] || obj['precio_mayorist']) || null,
               cantidad_mayorista: parseInt(obj['cantidad_mayorista'] || obj['cantidad_mayor']) || 6,
+              unidades_por_bulto: parseInt(obj['unidades_por_bulto'] || obj['unidades_bulto']) || 0,
               stock: parseInt(obj['stock']) || 0,
               "Precio Costo": parseFloat(obj['Precio Costo']) || 0,
               imagen_url: obj['imagen_url'] || null,
@@ -889,7 +903,7 @@
         return;
       }
 
-      let csvContent = "codigo_barras;nombre;precio;precio_mayorista;cantidad_mayorista;stock;Precio Costo;imagen_url;Inv. Minimo;Departamento\n";
+      let csvContent = "codigo_barras;nombre;precio;precio_mayorista;cantidad_mayorista;unidades_por_bulto;stock;Precio Costo;imagen_url;Inv. Minimo;Departamento\n";
 
       todosLosProductos.forEach(p => {
         let cod = obtenerCodigoBarras(p);
@@ -897,13 +911,15 @@
         let pr = p.precio || 0;
         let pMay = obtenerPrecioMayorista(p);
         let cMay = obtenerCantMayorista(p);
+        let uBulto = obtenerUnidadesPorBulto(p);
         let st = p.stock || 0;
         let costo = p["Precio Costo"] || 0;
-        let img = p.imagen_url || '';
+        // Sanitizamos la imagen para que las comillas o caracteres largos no rompan el formato de columnas
+        let img = (p.imagen_url || '').replace(/"/g, '""');
         let invMin = p["Inv. Minimo"] || 0;
-        let depto = p["Departamento"] || '';
+        let depto = (p["Departamento"] || '').replace(/"/g, '""');
 
-        csvContent += `"${cod}";"${nom}";"${pr}";"${pMay}";"${cMay}";"${st}";"${costo}";"${img}";"${invMin}";"${depto}"\n`;
+        csvContent += `"${cod}";"${nom}";"${pr}";"${pMay}";"${cMay}";"${uBulto}";"${st}";"${costo}";"${img}";"${invMin}";"${depto}"\n`;
       });
 
       const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -970,6 +986,7 @@
       document.getElementById('nuevoVenta').value = '';
       document.getElementById('nuevoMayorista').value = '';
       document.getElementById('nuevoCantMayor').value = '6';
+      document.getElementById('nuevoUnidadesBulto').value = '';
       document.getElementById('inputFotoCamara').value = '';
       fotoBase64Actual = '';
       
@@ -993,6 +1010,7 @@
       document.getElementById('nuevoVenta').value = prod.precio || '';
       document.getElementById('nuevoMayorista').value = obtenerPrecioMayorista(prod) || '';
       document.getElementById('nuevoCantMayor').value = obtenerCantMayorista(prod);
+      document.getElementById('nuevoUnidadesBulto').value = obtenerUnidadesPorBulto(prod) || '';
       document.getElementById('inputFotoCamara').value = '';
       
       fotoBase64Actual = prod.imagen_url || prod.foto || '';
@@ -1024,6 +1042,7 @@
       const venta = parseFloat(document.getElementById('nuevoVenta').value) || 0;
       const pMayor = parseFloat(document.getElementById('nuevoMayorista').value) || null;
       const cMayor = parseInt(document.getElementById('nuevoCantMayor').value) || 6;
+      const uBulto = parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0;
 
       if (!nombre || !venta) {
         alert("El nombre y el precio de venta son obligatorios.");
@@ -1046,6 +1065,7 @@
         precio: venta,
         precio_mayorista: pMayor,
         cantidad_mayorista: cMayor,
+        unidades_por_bulto: uBulto,
         activo: true
       };
 
@@ -1225,7 +1245,8 @@
           idUnico: i.idUnico,
           nombre: i.nombre,
           precio: precioAplicado,
-          cantidad: i.cantidad
+          cantidad: i.cantidad,
+          unidadesBulto: i.unidadesBulto || 0
         };
       });
 
@@ -1346,6 +1367,20 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
+    // Función inteligente para formatear la cantidad según las unidades por bulto
+    function formatearCantidadTicket(cantidad, unidadesBulto, nombreProducto) {
+      const cant = parseInt(cantidad) || 1;
+      const bultoSize = parseInt(unidadesBulto) || 0;
+
+      if (bultoSize > 0 && cant >= bultoSize && cant % bultoSize === 0) {
+        const nroBultos = cant / bultoSize;
+        const nombreBulto = (nombreProducto || '').toLowerCase().includes('papel') ? 'Bulto' : 'Caja';
+        return nroBultos === 1 ? `1 ${nombreBulto}` : `${nroBultos} ${nombreBulto}s`;
+      }
+      
+      return `${cant} und.`;
+    }
+
     function imprimirTicketGenerico(items, total, fechaStr, tituloTicket, clienteNombre) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
@@ -1358,10 +1393,19 @@
       items.forEach(item => {
         let pUnit = parseFloat(item.precio || 0);
         let importe = pUnit * (item.cantidad || 1);
+        
+        let uBulto = item.unidadesBulto;
+        if (!uBulto) {
+          const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.nombre) === String(item.nombre));
+          uBulto = prodRef ? obtenerUnidadesPorBulto(prodRef) : 0;
+        }
+
+        let textoCantidad = formatearCantidadTicket(item.cantidad, uBulto, item.nombre);
+
         ticketItemsContainer.innerHTML += `
           <div class="flex justify-between items-start">
-            <span class="w-[10%] text-left font-bold">${item.cantidad || 1}</span>
-            <span class="w-[46%] text-left px-0.5 break-words">${item.nombre}</span>
+            <span class="w-[15%] text-left font-bold">${textoCantidad}</span>
+            <span class="w-[41%] text-left px-0.5 break-words">${item.nombre}</span>
             <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
             <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
           </div>
@@ -1553,7 +1597,8 @@
               itemsParaTicket = arregloDetalles.map(d => ({
                 nombre: d.nombre || d.nombre_producto || 'Producto',
                 cantidad: d.cantidad || 1,
-                precio: d.precio || d.precio_unitario || 0
+                precio: d.precio || d.precio_unitario || 0,
+                unidadesBulto: d.unidadesBulto || 0
               }));
             }
           }
@@ -1580,7 +1625,7 @@
 
       let f_h = formatearFechaYHoraEstricta(v.fecha_str, v.hora_str, v.creado_en);
       const items = (v.detalles && v.detalles.length > 0) 
-        ? v.detalles.map(d => ({ nombre: d.nombre, cantidad: d.cantidad, precio: d.precio }))
+        ? v.detalles.map(d => ({ nombre: d.nombre, cantidad: d.cantidad, precio: d.precio, unidadesBulto: d.unidadesBulto || 0 }))
         : [{ nombre: `Venta Local #${index + 1}`, cantidad: 1, precio: v.total }];
 
       imprimirTicketGenerico(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)', v.cliente || 'Consumidor Final');
