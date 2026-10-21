@@ -161,10 +161,17 @@
     </div>
   </div>
 
-  <!-- MODAL DE CREAR / EDITAR PRODUCTO -->
+  <!-- MODAL DE CREAR / EDITAR / ELIMINAR PRODUCTO -->
   <div id="modalProducto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
-      <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800 mb-4">Agregar Nuevo Producto 📦</h3>
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800">Agregar Nuevo Producto 📦</h3>
+        <!-- Botón de Eliminar producto (Solo visible al editar) -->
+        <button id="btnEliminarProductoModal" onclick="eliminarProductoActual()" class="hidden bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">
+          🗑️ Eliminar
+        </button>
+      </div>
+
       <input type="hidden" id="editProductoId">
       
       <div class="space-y-3">
@@ -536,6 +543,39 @@
       contenedor.innerHTML = htmlContent;
     }
 
+    // --- MÓDULO DE ELIMINACIÓN RÁPIDA DESDE EL MODAL DE EDICIÓN ---
+    async function eliminarProductoActual() {
+      const editId = document.getElementById('editProductoId').value;
+      const nombreProd = document.getElementById('nuevoNombre').value;
+
+      if (!editId) {
+        alert('No se puede eliminar un producto que aún no ha sido guardado.');
+        return;
+      }
+
+      const confirmar = confirm(`¿Estás seguro de que deseas eliminar el producto "${nombreProd}"? Ya no aparecerá en el catálogo.`);
+      if (!confirmar) return;
+
+      if (!navigator.onLine) {
+        alert('Debe tener conexión a internet para eliminar el producto.');
+        return;
+      }
+
+      // Borrado lógico (activo = false) para preservar las relaciones con ventas históricas
+      const { error } = await _supabase
+        .from('productos')
+        .update({ activo: false })
+        .eq('id', editId);
+
+      if (error) {
+        alert('Error al intentar eliminar el producto: ' + error.message);
+      } else {
+        alert('¡Producto eliminado con éxito!');
+        cerrarModalProducto();
+        await cargarProductos();
+      }
+    }
+
     // --- CARGA Y EXPORTACIÓN MASIVA DE PRODUCTOS ---
     function abrirModalCargaMasiva() {
       document.getElementById('modalCargaMasiva').classList.remove('hidden');
@@ -566,10 +606,8 @@
           return;
         }
 
-        // Detectar separador (coma o punto y coma)
         const primeraLinea = lineas[0];
         const separador = primeraLinea.includes(';') ? ';' : ',';
-
         const cabeceras = primeraLinea.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
         
         productosParaCargarMasiva = [];
@@ -725,6 +763,7 @@
 
     function abrirModalProducto() {
       document.getElementById('modalProductoTitulo').textContent = 'Agregar Nuevo Producto 📦';
+      document.getElementById('btnEliminarProductoModal').classList.add('hidden'); // Ocultar botón eliminar al crear nuevo
       document.getElementById('editProductoId').value = '';
       document.getElementById('nuevoCodigo').value = '';
       document.getElementById('nuevoNombre').value = '';
@@ -747,6 +786,7 @@
       if (!prod) return;
 
       document.getElementById('modalProductoTitulo').textContent = 'Editar Producto ✏️';
+      document.getElementById('btnEliminarProductoModal').classList.remove('hidden'); // Mostrar botón eliminar al editar
       document.getElementById('editProductoId').value = prod.id;
       document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
