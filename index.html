@@ -122,11 +122,32 @@
             <span>Total:</span>
             <span id="totalVenta">$0.00</span>
           </div>
-          <button onclick="cobrarVenta()"
+          <button onclick="iniciarProcesoCobro()"
             class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors shadow">
             Cobrar, Imprimir y Registrar
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NOMBRE DE CLIENTE AL COBRAR -->
+  <div id="modalClienteCobro" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[70]">
+    <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+      <div class="text-emerald-600 text-4xl mb-2">👤</div>
+      <h3 class="text-lg font-bold text-slate-800 mb-1">Datos del Cliente</h3>
+      <p class="text-xs text-slate-500 mb-4">Ingrese el nombre del cliente para figurar en el ticket (opcional):</p>
+      
+      <input type="text" id="nombreClienteInput" placeholder="Ej: Juan Pérez / Consumidor Final" onkeypress="detectarEnterCliente(event)"
+        class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+
+      <div class="flex gap-2">
+        <button onclick="confirmarCobroVenta()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
+          Confirmar Venta
+        </button>
+        <button onclick="confirmarCobroVenta('Consumidor Final')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold">
+          Omitir
+        </button>
       </div>
     </div>
   </div>
@@ -346,9 +367,13 @@
       <span class="font-bold">Comprobante:</span>
       <span id="ticketIdVenta">Ticket #---</span>
     </div>
-    <div class="flex justify-between text-[9px] mb-2">
+    <div class="flex justify-between text-[9px] mb-1">
       <span class="font-bold">Atendido por:</span>
       <span id="ticketAtendidoPor">E.J</span>
+    </div>
+    <div class="flex justify-between text-[9px] mb-2">
+      <span class="font-bold">Cliente:</span>
+      <span id="ticketCliente">Consumidor Final</span>
     </div>
 
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
@@ -1056,17 +1081,13 @@
         return;
       }
 
-      // Separar el texto ingresado en palabras individuales usando espacio como delimitador
       const palabrasClave = texto.split(/\s+/).filter(p => p.length > 0);
 
       const filtrados = todosLosProductos.filter(p => {
         const nombreProd = (p.nombre || '').toLowerCase();
         const codProd = String(obtenerCodigoBarras(p)).toLowerCase();
-        
-        // Texto combinado donde buscar
         const textoCompletoProducto = `${nombreProd} ${codProd}`;
 
-        // Verificar que TODAS las palabras ingresadas coincidan en el texto del producto
         return palabrasClave.every(palabra => textoCompletoProducto.includes(palabra));
       }).slice(0, 40);
 
@@ -1162,12 +1183,35 @@
       return { fechaStr, horaStr };
     }
 
-    async function cobrarVenta() {
+    // --- MÓDULO DE COBRO CON NOMBRE DE CLIENTE ---
+    function iniciarProcesoCobro() {
       if (carrito.length === 0) {
         alert('El carrito está vacío');
         return;
       }
+      document.getElementById('nombreClienteInput').value = '';
+      document.getElementById('modalClienteCobro').classList.remove('hidden');
+      setTimeout(() => document.getElementById('nombreClienteInput').focus(), 100);
+    }
 
+    function detectarEnterCliente(event) {
+      if (event.key === 'Enter') {
+        confirmarCobroVenta();
+      }
+    }
+
+    async function confirmarCobroVenta(nombreOmitido) {
+      document.getElementById('modalClienteCobro').classList.add('hidden');
+
+      let nombreCliente = nombreOmitido || document.getElementById('nombreClienteInput').value.trim();
+      if (!nombreCliente) {
+        nombreCliente = 'Consumidor Final';
+      }
+
+      await cobrarVentaFinal(nombreCliente);
+    }
+
+    async function cobrarVentaFinal(clienteNombre) {
       let total = 0;
       const detallesJson = carrito.map(i => {
         let precioAplicado = i.precioMinorista;
@@ -1189,6 +1233,7 @@
 
       const ventaLocal = {
         total: total,
+        cliente: clienteNombre,
         detalles: detallesJson,
         fecha_str: fechaStr,
         hora_str: horaStr,
@@ -1199,6 +1244,7 @@
         try {
           let objetoVentaInsert = { 
             total: total, 
+            cliente: clienteNombre,
             fecha: fechaStr, 
             hora: horaStr, 
             detalles: detallesJson 
@@ -1244,17 +1290,17 @@
           } catch(e) {}
 
           alert('¡Venta registrada con éxito!');
-          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`);
+          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre);
         } catch (err) {
           console.error("Error al registrar venta en Supabase:", err);
           alert('Hubo un problema al registrar en la nube. Se guardará localmente. Detalle: ' + (err.message || err));
           guardarVentaOffline(ventaLocal);
-          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)');
+          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)', clienteNombre);
         }
       } else {
         guardarVentaOffline(ventaLocal);
         alert('⚡ Sin internet: Venta guardada localmente.');
-        imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)');
+        imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)', clienteNombre);
       }
 
       carrito = [];
@@ -1276,7 +1322,7 @@
         try {
           const { data: vData, error: vErr } = await _supabase
             .from('ventas')
-            .insert([{ total: v.total, detalles: v.detalles }])
+            .insert([{ total: v.total, cliente: v.cliente || 'Consumidor Final', detalles: v.detalles }])
             .select();
 
           if (!vErr && vData) {
@@ -1300,10 +1346,11 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
-    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket) {
+    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket, clienteNombre) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
       document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
+      document.getElementById('ticketCliente').textContent = clienteNombre || 'Consumidor Final';
       
       const ticketItemsContainer = document.getElementById('ticketItems');
       ticketItemsContainer.innerHTML = '';
@@ -1417,7 +1464,7 @@
             <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded border text-xs">
               <div>
                 <p class="font-bold text-slate-700">Venta Local #${idx + 1}</p>
-                <p class="text-slate-500">${f_h.fecha} ${f_h.hora}</p>
+                <p class="text-slate-500">${f_h.fecha} ${f_h.hora} - Cliente: ${v.cliente || 'Consumidor Final'}</p>
               </div>
               <div class="text-right">
                 <p class="font-bold text-emerald-600">$${v.total.toFixed(2)}</p>
@@ -1450,15 +1497,16 @@
       data.forEach(v => {
         let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
         let fechaHoraStr = `${f_h.fecha} ${f_h.hora}`;
+        let clienteNom = v.cliente || 'Consumidor Final';
         html += `
           <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <p class="font-bold text-slate-800 text-sm">Ticket #${v.id}</p>
-              <p class="text-xs text-slate-500">${fechaHoraStr}</p>
+              <p class="text-xs text-slate-500">${fechaHoraStr} • ${clienteNom}</p>
             </div>
             <div class="flex items-center gap-3">
               <span class="font-bold text-slate-800 text-sm">$${parseFloat(v.total).toFixed(2)}</span>
-              <button onclick="reimprimirTicketAnterior(${v.id}, '${fechaHoraStr}', ${v.total})" 
+              <button onclick="reimprimirTicketAnterior(${v.id}, '${fechaHoraStr}', ${v.total}, '${clienteNom.replace(/'/g, "\\'")}')" 
                 class="bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 rounded text-xs font-medium">
                 🖨️ Reimprimir
               </button>
@@ -1473,7 +1521,7 @@
       document.getElementById('modalHistorial').classList.add('hidden');
     }
 
-    async function reimprimirTicketAnterior(ventaId, fechaStr, total) {
+    async function reimprimirTicketAnterior(ventaId, fechaStr, total, clienteNom) {
       let itemsParaTicket = [];
 
       try {
@@ -1522,7 +1570,7 @@
         }];
       }
 
-      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`);
+      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`, clienteNom || 'Consumidor Final');
     }
 
     function reimprimirTicketLocal(index) {
@@ -1535,7 +1583,7 @@
         ? v.detalles.map(d => ({ nombre: d.nombre, cantidad: d.cantidad, precio: d.precio }))
         : [{ nombre: `Venta Local #${index + 1}`, cantidad: 1, precio: v.total }];
 
-      imprimirTicketGenerico(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)');
+      imprimirTicketGenerico(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)', v.cliente || 'Consumidor Final');
     }
 
     function abrirModalPrecios() {
