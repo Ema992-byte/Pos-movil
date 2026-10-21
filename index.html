@@ -131,6 +131,24 @@
     </div>
   </div>
 
+  <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+  <div id="modalConfirmarEliminar" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[60]">
+    <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+      <div class="text-rose-500 text-4xl mb-2">⚠️</div>
+      <h3 class="text-lg font-bold text-slate-800 mb-1">Confirmar Eliminación</h3>
+      <p id="textoConfirmacionEliminar" class="text-xs text-slate-600 mb-6">¿Desea confirmar la eliminación de este producto?</p>
+      
+      <div class="flex gap-2">
+        <button onclick="confirmarEliminacionFinal()" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg text-xs font-bold shadow">
+          Sí, Eliminar
+        </button>
+        <button onclick="cerrarModalConfirmacion()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-xs font-semibold">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL DE CARGA MASIVA DE PRODUCTOS (CSV) -->
   <div id="modalCargaMasiva" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
@@ -178,7 +196,7 @@
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4">
         <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800">Agregar Nuevo Producto 📦</h3>
-        <button id="btnEliminarProductoModal" onclick="eliminarProductoActual()" class="hidden bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">
+        <button id="btnEliminarProductoModal" onclick="solicitarConfirmacionEliminar()" class="hidden bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">
           🗑️ Eliminar
         </button>
       </div>
@@ -586,7 +604,7 @@
           precioMinorista: parseFloat(prodRef.precio) || 0,
           precioMayorista: obtenerPrecioMayorista(prodRef),
           cantMayorista: obtenerCantMayorista(prodRef),
-          precioPersonalizado: null, // Campo para descuento manual del Admin
+          precioPersonalizado: null,
           cantidad: cantidadAAgregar 
         });
       }
@@ -612,10 +630,6 @@
         let precioAplicado = item.precioMinorista;
         let esMayorista = false;
 
-        // Lógica de cálculo de precio:
-        // 1. Si hay un precio personalizado (descuento del admin), se prioriza.
-        // 2. Si no, se evalúa si alcanza el mínimo para precio mayorista.
-        // 3. De lo contrario, se usa el precio minorista estándar.
         if (item.precioPersonalizado !== null && !isNaN(item.precioPersonalizado)) {
           precioAplicado = item.precioPersonalizado;
         } else if (item.precioMayorista > 0 && item.cantidad >= item.cantMayorista) {
@@ -634,7 +648,6 @@
           ? `<span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded ml-1">EDITADO</span>` 
           : '';
 
-        // Si es Admin, renderizamos el campo editable de precio
         const campoPrecioHtml = esAdmin
           ? `<div class="flex items-center gap-0.5">
                <span class="text-xs text-slate-400">$</span>
@@ -695,7 +708,8 @@
       actualizarCarritoVisual();
     }
 
-    async function eliminarProductoActual() {
+    // --- MÓDULO DE ELIMINACIÓN CON CARTEL POP-UP DE CONFIRMACIÓN ---
+    function solicitarConfirmacionEliminar() {
       const editId = document.getElementById('editProductoId').value;
       const nombreProd = document.getElementById('nuevoNombre').value;
 
@@ -704,13 +718,24 @@
         return;
       }
 
-      const confirmar = confirm(`¿Estás seguro de que deseas eliminar el producto "${nombreProd}"? Ya no aparecerá en el catálogo.`);
-      if (!confirmar) return;
+      document.getElementById('textoConfirmacionEliminar').textContent = `¿Desea confirmar la eliminación del producto "${nombreProd}"? Ya no aparecerá en el catálogo.`;
+      document.getElementById('modalConfirmarEliminar').classList.remove('hidden');
+    }
+
+    function cerrarModalConfirmacion() {
+      document.getElementById('modalConfirmarEliminar').classList.add('hidden');
+    }
+
+    async function confirmarEliminacionFinal() {
+      const editId = document.getElementById('editProductoId').value;
+      if (!editId) return;
 
       if (!navigator.onLine) {
         alert('Debe tener conexión a internet para eliminar el producto.');
         return;
       }
+
+      cerrarModalConfirmacion();
 
       const { error } = await _supabase
         .from('productos')
