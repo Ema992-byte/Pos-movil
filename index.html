@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>POS Móvil - La Nueva</title>
+  <title>POS Móvil - GO!</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS -->
@@ -20,7 +20,7 @@
 
   <!-- PANTALLA DE INICIO DE SESIÓN -->
   <div id="loginSection" class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-    <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">La Nueva 🛒</h2>
+    <h2 class="text-3xl font-extrabold text-center text-slate-800 mb-6 tracking-tight">GO! 🛒</h2>
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-slate-600 mb-1">Correo Electrónico</label>
@@ -33,8 +33,8 @@
           class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
       </div>
       <button type="submit" id="btnLogin"
-        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors">
-        Ingresar al POS
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow">
+        Ingresar al POS GO!
       </button>
     </form>
   </div>
@@ -43,7 +43,7 @@
   <div id="posSection" class="hidden bg-white p-6 rounded-2xl shadow-lg w-full max-w-6xl">
     <div class="flex justify-between items-center mb-6 border-b pb-4 flex-wrap gap-2">
       <div>
-        <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
+        <h1 class="text-2xl font-black text-slate-800 tracking-wide">GO! POS 📱</h1>
         <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
       </div>
 
@@ -352,7 +352,7 @@
 
   <!-- PLANTILLA DE TICKET TÉRMICA 80MM -->
   <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
-    <div class="text-center font-bold text-sm tracking-wider mb-0.5">LA NUEVA</div>
+    <div class="text-center font-black text-lg tracking-widest mb-0.5">GO!</div>
     <div class="text-center text-[9px] text-slate-700 mb-1.5">Punto de Venta Móvil</div>
     
     <div class="border-t border-b border-black py-0.5 my-1.5 text-center font-bold tracking-widest text-[10px]">
@@ -468,7 +468,7 @@
       } catch (err) {
         alert('Error al intentar ingresar: ' + (err.message || err));
       } finally {
-        btnLogin.textContent = 'Ingresar al POS';
+        btnLogin.textContent = 'Ingresar al POS GO!';
         btnLogin.disabled = false;
       }
     });
@@ -539,12 +539,12 @@
         return;
       }
 
-      localStorage.setItem('la_nueva_productos', JSON.stringify(data));
+      localStorage.setItem('go_pos_productos', JSON.stringify(data));
       iniciarSesionExitosa(usuarioActualEmail, data);
     }
 
     function cargarProductosOffline() {
-      const cached = localStorage.getItem('la_nueva_productos');
+      const cached = localStorage.getItem('go_pos_productos');
       if (cached) {
         iniciarSesionExitosa(usuarioActualEmail, JSON.parse(cached));
       } else {
@@ -910,7 +910,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", "catalogo_productos_la_nueva.csv");
+      link.setAttribute("download", "catalogo_productos_GO.csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1375,7 +1375,7 @@
         ventanaImpresion.document.write(`
           <html>
             <head>
-              <title>Ticket de Venta</title>
+              <title>Ticket de Venta GO!</title>
               <script src="https://cdn.tailwindcss.com"><\/script>
               <style>
                 @media print {
@@ -1715,7 +1715,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", "reporte_detallado_ventas_la_nueva.csv");
+      link.setAttribute("download", "reporte_detallado_ventas_GO.csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
