@@ -46,23 +46,35 @@
         <h1 class="text-2xl font-bold text-slate-800">Punto de Venta 📱</h1>
         <p id="usuarioRol" class="text-xs font-medium text-indigo-600 mt-0.5"></p>
       </div>
+
       <div class="flex gap-2 flex-wrap items-center">
-        <!-- Módulos exclusivos de Administrador -->
-        <button id="btnAdminNuevoProd" onclick="abrirModalProducto()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow">
-          + Nuevo Producto
-        </button>
-        <button id="btnAdminCargaMasiva" onclick="abrirModalCargaMasiva()" class="hidden bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow">
-          📥 Carga Masiva (CSV)
-        </button>
-        <button id="btnAdminExportarProds" onclick="descargarReporteProductosCSV()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow">
-          📦 Exportar Productos
-        </button>
-        <button id="btnAdminPrecios" onclick="abrirModalPrecios()" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
-          ⚙️ Modificar Precios
-        </button>
-        <button id="btnAdminReporte" onclick="descargarReporteCSV()" class="hidden bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
-          📊 Reporte Ventas
-        </button>
+        <!-- BOTÓN DESPLEGABLE MÓDULOS DE ADMINISTRADOR -->
+        <div id="contenedorMenuAdmin" class="relative hidden">
+          <button onclick="toggleMenuAdmin(event)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
+            <span>⚙️ Módulos Admin</span>
+            <span class="text-xs">▼</span>
+          </button>
+
+          <!-- Menú Flotante / Desplegable -->
+          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden text-xs py-1">
+            <button onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2 border-b">
+              <span>➕</span> Nuevo Producto
+            </button>
+            <button onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-teal-700 font-medium flex items-center gap-2 border-b">
+              <span>📥</span> Carga Masiva (CSV)
+            </button>
+            <button onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-indigo-700 font-medium flex items-center gap-2 border-b">
+              <span>📦</span> Exportar Productos
+            </button>
+            <button onclick="ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-purple-700 font-medium flex items-center gap-2 border-b">
+              <span>✏️</span> Modificar Precios
+            </button>
+            <button onclick="ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-amber-700 font-medium flex items-center gap-2">
+              <span>📊</span> Reporte de Ventas
+            </button>
+          </div>
+        </div>
+
         <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
           📜 Historial
         </button>
@@ -166,7 +178,6 @@
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4">
         <h3 id="modalProductoTitulo" class="text-xl font-bold text-slate-800">Agregar Nuevo Producto 📦</h3>
-        <!-- Botón de Eliminar producto (Solo visible al editar) -->
         <button id="btnEliminarProductoModal" onclick="eliminarProductoActual()" class="hidden bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">
           🗑️ Eliminar
         </button>
@@ -361,6 +372,31 @@
     window.addEventListener('online', actualizarEstadoRed);
     window.addEventListener('offline', actualizarEstadoRed);
 
+    // Cerrar menú desplegable de Admin si hace clic afuera
+    document.addEventListener('click', function(event) {
+      const contenedor = document.getElementById('contenedorMenuAdmin');
+      const dropdown = document.getElementById('dropdownMenuAdmin');
+      if (contenedor && !contenedor.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    function toggleMenuAdmin(event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById('dropdownMenuAdmin');
+      dropdown.classList.toggle('hidden');
+    }
+
+    function ejecutarAccionModulo(accion) {
+      document.getElementById('dropdownMenuAdmin').classList.add('hidden');
+
+      if (accion === 'nuevoProducto') abrirModalProducto();
+      else if (accion === 'cargaMasiva') abrirModalCargaMasiva();
+      else if (accion === 'exportarProductos') descargarReporteProductosCSV();
+      else if (accion === 'modificarPrecios') abrirModalPrecios();
+      else if (accion === 'reporteVentas') descargarReporteCSV();
+    }
+
     function actualizarEstadoRed() {
       const banner = document.getElementById('estadoRed');
       if (navigator.onLine) {
@@ -432,18 +468,10 @@
       const esAdmin = email.toLowerCase().includes('admi');
       if (esAdmin) {
         document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (E.J)';
-        document.getElementById('btnAdminNuevoProd').classList.remove('hidden');
-        document.getElementById('btnAdminCargaMasiva').classList.remove('hidden');
-        document.getElementById('btnAdminExportarProds').classList.remove('hidden');
-        document.getElementById('btnAdminPrecios').classList.remove('hidden');
-        document.getElementById('btnAdminReporte').classList.remove('hidden');
+        document.getElementById('contenedorMenuAdmin').classList.remove('hidden');
       } else {
         document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
-        document.getElementById('btnAdminNuevoProd').classList.add('hidden');
-        document.getElementById('btnAdminCargaMasiva').classList.add('hidden');
-        document.getElementById('btnAdminExportarProds').classList.add('hidden');
-        document.getElementById('btnAdminPrecios').classList.add('hidden');
-        document.getElementById('btnAdminReporte').classList.add('hidden');
+        document.getElementById('contenedorMenuAdmin').classList.add('hidden');
       }
 
       mostrarProductos(todosLosProductos.slice(0, 40));
@@ -497,7 +525,6 @@
         const codBarras = obtenerCodigoBarras(prod);
         const idUnico = prod.id || codBarras || idx;
         const codigoMostrado = codBarras || 'S/C';
-        const nombreEscapado = (prod.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const fotoUrl = prod.imagen_url || prod.foto || '';
 
         const pMayor = obtenerPrecioMayorista(prod);
@@ -543,7 +570,6 @@
       contenedor.innerHTML = htmlContent;
     }
 
-    // --- MÓDULO DE ELIMINACIÓN RÁPIDA DESDE EL MODAL DE EDICIÓN ---
     async function eliminarProductoActual() {
       const editId = document.getElementById('editProductoId').value;
       const nombreProd = document.getElementById('nuevoNombre').value;
@@ -561,7 +587,6 @@
         return;
       }
 
-      // Borrado lógico (activo = false) para preservar las relaciones con ventas históricas
       const { error } = await _supabase
         .from('productos')
         .update({ activo: false })
@@ -576,7 +601,6 @@
       }
     }
 
-    // --- CARGA Y EXPORTACIÓN MASIVA DE PRODUCTOS ---
     function abrirModalCargaMasiva() {
       document.getElementById('modalCargaMasiva').classList.remove('hidden');
       document.getElementById('nombreArchivoCsv').textContent = 'Ningún archivo seleccionado';
@@ -718,7 +742,6 @@
       URL.revokeObjectURL(url);
     }
 
-    // --- RESTO DE FUNCIONALIDADES DEL POS ---
     function capturarFotoCamara(event) {
       const archivo = event.target.files[0];
       if (!archivo) return;
@@ -763,7 +786,7 @@
 
     function abrirModalProducto() {
       document.getElementById('modalProductoTitulo').textContent = 'Agregar Nuevo Producto 📦';
-      document.getElementById('btnEliminarProductoModal').classList.add('hidden'); // Ocultar botón eliminar al crear nuevo
+      document.getElementById('btnEliminarProductoModal').classList.add('hidden');
       document.getElementById('editProductoId').value = '';
       document.getElementById('nuevoCodigo').value = '';
       document.getElementById('nuevoNombre').value = '';
@@ -786,7 +809,7 @@
       if (!prod) return;
 
       document.getElementById('modalProductoTitulo').textContent = 'Editar Producto ✏️';
-      document.getElementById('btnEliminarProductoModal').classList.remove('hidden'); // Mostrar botón eliminar al editar
+      document.getElementById('btnEliminarProductoModal').classList.remove('hidden');
       document.getElementById('editProductoId').value = prod.id;
       document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
