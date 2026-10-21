@@ -837,6 +837,22 @@
           const cod = obj['codigo_barras'] || obj['codigo_barra'] || null;
           const nom = obj['nombre'] || '';
           const pr = parseFloat(obj['precio']) || 0;
+          let imgCsv = obj['imagen_url'] || '';
+
+          // Si el CSV trae '[CON_FOTO]' o viene vacío, buscamos si el producto ya existe en la base de datos actual para mantener su foto existente
+          let imagenFinal = null;
+          if (imgCsv && imgCsv !== '[CON_FOTO]') {
+            imagenFinal = imgCsv; // Si pegaron un link web o base64 válido
+          } else {
+            // Buscamos si el producto ya existía para conservar su foto anterior
+            const prodExistente = todosLosProductos.find(p => 
+              (cod && String(obtenerCodigoBarras(p)) === String(cod)) || 
+              (p.nombre && p.nombre.toLowerCase() === nom.toLowerCase())
+            );
+            if (prodExistente) {
+              imagenFinal = prodExistente.imagen_url || prodExistente.foto || null;
+            }
+          }
 
           if (nom && pr > 0) {
             productosParaCargarMasiva.push({
@@ -848,7 +864,7 @@
               unidades_por_bulto: parseInt(obj['unidades_por_bulto'] || obj['unidades_bulto']) || 0,
               stock: parseInt(obj['stock']) || 0,
               "Precio Costo": parseFloat(obj['Precio Costo']) || 0,
-              imagen_url: obj['imagen_url'] || null,
+              imagen_url: imagenFinal,
               "Inv. Minimo": parseInt(obj['Inv. Minimo']) || 0,
               "Departamento": obj['Departamento'] || null,
               activo: true
@@ -886,7 +902,7 @@
         const { error } = await _supabase.from('productos').insert(productosParaCargarMasiva);
         if (error) throw error;
 
-        alert(`¡Carga completada con éxito! Se agregaron ${productosParaCargarMasiva.length} productos.`);
+        alert(`¡Carga completada con éxito! Se procesaron ${productosParaCargarMasiva.length} productos manteniendo sus imágenes.`);
         cerrarModalCargaMasiva();
         await cargarProductos();
       } catch (err) {
@@ -897,6 +913,7 @@
       }
     }
 
+    // FUNCIÓN DE EXPORTACIÓN INTELIGENTE (Exporta indicador [CON_FOTO] para proteger las imágenes)
     function descargarReporteProductosCSV() {
       if (!todosLosProductos || todosLosProductos.length === 0) {
         alert('No hay productos disponibles en el catálogo para exportar.');
@@ -906,18 +923,24 @@
       let csvContent = "codigo_barras;nombre;precio;precio_mayorista;cantidad_mayorista;unidades_por_bulto;stock;Precio Costo;imagen_url;Inv. Minimo;Departamento\n";
 
       todosLosProductos.forEach(p => {
-        let cod = obtenerCodigoBarras(p);
-        let nom = (p.nombre || '').replace(/"/g, '""');
+        let cod = (obtenerCodigoBarras(p) || '').replace(/;/g, ' ').replace(/"/g, '""');
+        let nom = (p.nombre || '').replace(/;/g, ' ').replace(/"/g, '""');
         let pr = p.precio || 0;
         let pMay = obtenerPrecioMayorista(p);
         let cMay = obtenerCantMayorista(p);
         let uBulto = obtenerUnidadesPorBulto(p);
         let st = p.stock || 0;
         let costo = p["Precio Costo"] || 0;
-        // Sanitizamos la imagen para que las comillas o caracteres largos no rompan el formato de columnas
-        let img = (p.imagen_url || '').replace(/"/g, '""');
+
+        // Si el producto tiene imagen guardada, ponemos '[CON_FOTO]' para que al reimportar el sistema sepa que debe conservarla.
+        let rawImg = p.imagen_url || p.foto || '';
+        let img = '';
+        if (rawImg) {
+          img = rawImg.startsWith('data:image') ? '[CON_FOTO]' : rawImg.replace(/;/g, ' ').replace(/"/g, '""');
+        }
+
         let invMin = p["Inv. Minimo"] || 0;
-        let depto = (p["Departamento"] || '').replace(/"/g, '""');
+        let depto = (p["Departamento"] || '').replace(/;/g, ' ').replace(/"/g, '""');
 
         csvContent += `"${cod}";"${nom}";"${pr}";"${pMay}";"${cMay}";"${uBulto}";"${st}";"${costo}";"${img}";"${invMin}";"${depto}"\n`;
       });
