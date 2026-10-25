@@ -835,18 +835,18 @@
           });
 
           const cod = obj['codigo_barras'] || obj['codigo_barra'] || null;
-          const nom = obj['nombre'] || '';
+          // Limpieza estricta de espacios y puntos finales accidentales
+          const nom = (obj['nombre'] || '').trim().replace(/\.$/, '').trim();
           const pr = parseFloat(obj['precio']) || 0;
           let imgCsv = obj['imagen_url'] || '';
 
-          // Búsqueda inteligente por CÓDIGO o por NOMBRE EXACTO para proteger fotos anteriores
           let imagenFinal = null;
           if (imgCsv) {
             imagenFinal = imgCsv;
           } else {
             const prodExistente = todosLosProductos.find(p => 
-              (cod && String(obtenerCodigoBarras(p)) === String(cod)) || 
-              (p.nombre && p.nombre.toLowerCase().trim() === nom.toLowerCase().trim())
+              (cod && String(obtenerCodigoBarras(p)).trim() === String(cod).trim()) || 
+              (p.nombre && p.nombre.trim().replace(/\.$/, '').trim().toLowerCase() === nom.toLowerCase())
             );
             if (prodExistente) {
               imagenFinal = prodExistente.imagen_url || prodExistente.foto || null;
@@ -854,20 +854,25 @@
           }
 
           if (nom && pr > 0) {
-            productosParaCargarMasiva.push({
-              codigo_barras: cod !== "" ? cod : null,
-              nombre: nom,
-              precio: pr,
-              precio_mayorista: parseFloat(obj['precio_mayorista'] || obj['precio_mayorist']) || null,
-              cantidad_mayorista: parseInt(obj['cantidad_mayorista'] || obj['cantidad_mayor']) || 6,
-              unidades_por_bulto: parseInt(obj['unidades_por_bulto'] || obj['unidades_bulto']) || 0,
-              stock: parseInt(obj['stock']) || 0,
-              "Precio Costo": parseFloat(obj['Precio Costo']) || 0,
-              imagen_url: imagenFinal,
-              "Inv. Minimo": parseInt(obj['Inv. Minimo']) || 0,
-              "Departamento": obj['Departamento'] || null,
-              activo: true
-            });
+            // Evitamos duplicados internos dentro del mismo archivo CSV
+            const yaExisteEnEsteCsv = productosParaCargarMasiva.some(p => p.nombre.toLowerCase() === nom.toLowerCase());
+            
+            if (!yaExisteEnEsteCsv) {
+              productosParaCargarMasiva.push({
+                codigo_barras: cod !== "" ? cod : null,
+                nombre: nom,
+                precio: pr,
+                precio_mayorista: parseFloat(obj['precio_mayorista'] || obj['precio_mayorist']) || null,
+                cantidad_mayorista: parseInt(obj['cantidad_mayorista'] || obj['cantidad_mayor']) || 6,
+                unidades_por_bulto: parseInt(obj['unidades_por_bulto'] || obj['unidades_bulto']) || 0,
+                stock: parseInt(obj['stock']) || 0,
+                "Precio Costo": parseFloat(obj['Precio Costo']) || 0,
+                imagen_url: imagenFinal,
+                "Inv. Minimo": parseInt(obj['Inv. Minimo']) || 0,
+                "Departamento": obj['Departamento'] || null,
+                activo: true
+              });
+            }
           }
         }
 
@@ -890,7 +895,7 @@
       banner.classList.remove('hidden');
     }
 
-    // CARGA INTELIGENTE UPSERT: Actualiza por nombre/código si ya existe, o inserta si es nuevo
+    // CARGA INTELIGENTE BLINDADA CONTRA PUNTOS Y ESPACIOS
     async function ejecutarImportacionInteligente() {
       if (productosParaCargarMasiva.length === 0) return;
 
@@ -903,19 +908,19 @@
         let insertados = 0;
 
         for (let item of productosParaCargarMasiva) {
-          // Buscamos si ya existe en Supabase por código o por nombre
-          let query = _supabase.from('productos').select('id, imagen_url');
+          const nombreLimpio = (item.nombre || '').trim().replace(/\.$/, '').trim();
+          
+          let query = _supabase.from('productos').select('id, imagen_url, nombre');
           
           if (item.codigo_barras) {
             query = query.eq('codigo_barras', item.codigo_barras);
           } else {
-            query = query.eq('nombre', item.nombre);
+            query = query.ilike('nombre', nombreLimpio);
           }
 
           const { data: existente } = await query.maybeSingle();
 
           if (existente) {
-            // Si ya existe, actualizamos sus datos manteniendo su ID y foto si el CSV venía sin imagen
             if (!item.imagen_url && existente.imagen_url) {
               item.imagen_url = existente.imagen_url;
             }
@@ -928,7 +933,6 @@
             if (errUpdate) throw errUpdate;
             actualizados++;
           } else {
-            // Si es completamente nuevo, lo insertamos
             const { error: errInsert } = await _supabase
               .from('productos')
               .insert([item]);
