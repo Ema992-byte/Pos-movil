@@ -839,21 +839,6 @@
           const pr = parseFloat(obj['precio']) || 0;
           let imgCsv = obj['imagen_url'] || '';
 
-          // Si el CSV trae '[CON_FOTO]' o viene vacío, buscamos si el producto ya existe en la base de datos actual para mantener su foto existente
-          let imagenFinal = null;
-          if (imgCsv && imgCsv !== '[CON_FOTO]') {
-            imagenFinal = imgCsv; // Si pegaron un link web o base64 válido
-          } else {
-            // Buscamos si el producto ya existía para conservar su foto anterior
-            const prodExistente = todosLosProductos.find(p => 
-              (cod && String(obtenerCodigoBarras(p)) === String(cod)) || 
-              (p.nombre && p.nombre.toLowerCase() === nom.toLowerCase())
-            );
-            if (prodExistente) {
-              imagenFinal = prodExistente.imagen_url || prodExistente.foto || null;
-            }
-          }
-
           if (nom && pr > 0) {
             productosParaCargarMasiva.push({
               codigo_barras: cod !== "" ? cod : null,
@@ -864,7 +849,7 @@
               unidades_por_bulto: parseInt(obj['unidades_por_bulto'] || obj['unidades_bulto']) || 0,
               stock: parseInt(obj['stock']) || 0,
               "Precio Costo": parseFloat(obj['Precio Costo']) || 0,
-              imagen_url: imagenFinal,
+              imagen_url: imgCsv !== "" ? imgCsv : null,
               "Inv. Minimo": parseInt(obj['Inv. Minimo']) || 0,
               "Departamento": obj['Departamento'] || null,
               activo: true
@@ -873,7 +858,7 @@
         }
 
         if (productosParaCargarMasiva.length > 0) {
-          mostrarMensajeCargaMasiva(`✓ Se leyeron ${productosParaCargarMasiva.length} productos válidos.`, 'emerald');
+          mostrarMensajeCargaMasiva(`✓ Se leyeron ${productosParaCargarMasiva.length} productos válidos con sus imágenes.`, 'emerald');
           const btn = document.getElementById('btnEjecutarCarga');
           btn.disabled = false;
           btn.className = "flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm font-bold shadow";
@@ -902,7 +887,7 @@
         const { error } = await _supabase.from('productos').insert(productosParaCargarMasiva);
         if (error) throw error;
 
-        alert(`¡Carga completada con éxito! Se procesaron ${productosParaCargarMasiva.length} productos manteniendo sus imágenes.`);
+        alert(`¡Carga completada con éxito! Se procesaron ${productosParaCargarMasiva.length} productos con sus respectivas imágenes.`);
         cerrarModalCargaMasiva();
         await cargarProductos();
       } catch (err) {
@@ -913,7 +898,7 @@
       }
     }
 
-    // FUNCIÓN DE EXPORTACIÓN INTELIGENTE (Exporta indicador [CON_FOTO] para proteger las imágenes)
+    // FUNCIÓN DE EXPORTACIÓN CON IMÁGENES COMPLETAS (Base64 envuelto correctamente en comillas para evitar desajustes en celdas)
     function descargarReporteProductosCSV() {
       if (!todosLosProductos || todosLosProductos.length === 0) {
         alert('No hay productos disponibles en el catálogo para exportar.');
@@ -932,12 +917,9 @@
         let st = p.stock || 0;
         let costo = p["Precio Costo"] || 0;
 
-        // Si el producto tiene imagen guardada, ponemos '[CON_FOTO]' para que al reimportar el sistema sepa que debe conservarla.
+        // Exportamos la imagen completa en Base64 encerrada estrictamente entre comillas dobles para que Excel la trate como un solo bloque de texto
         let rawImg = p.imagen_url || p.foto || '';
-        let img = '';
-        if (rawImg) {
-          img = rawImg.startsWith('data:image') ? '[CON_FOTO]' : rawImg.replace(/;/g, ' ').replace(/"/g, '""');
-        }
+        let img = rawImg.replace(/"/g, '""');
 
         let invMin = p["Inv. Minimo"] || 0;
         let depto = (p["Departamento"] || '').replace(/;/g, ' ').replace(/"/g, '""');
