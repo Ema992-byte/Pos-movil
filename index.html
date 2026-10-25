@@ -61,7 +61,7 @@
               <span>➕</span> Nuevo Producto
             </button>
             <button onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-teal-700 font-medium flex items-center gap-2 border-b">
-              <span>📥</span> Carga Masiva (CSV)
+              <span>📥</span> Carga Masiva (Actualizar sin Duplicar)
             </button>
             <button onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-indigo-700 font-medium flex items-center gap-2 border-b">
               <span>📦</span> Exportar Productos
@@ -173,8 +173,8 @@
   <!-- MODAL DE CARGA MASIVA DE PRODUCTOS (CSV) -->
   <div id="modalCargaMasiva" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
-      <h3 class="text-xl font-bold text-slate-800 mb-2">📥 Carga Masiva de Productos</h3>
-      <p class="text-xs text-slate-500 mb-4">Seleccione su archivo CSV con el formato habitual para cargar o actualizar su catálogo en Supabase.</p>
+      <h3 class="text-xl font-bold text-slate-800 mb-2">📥 Actualización / Carga Masiva</h3>
+      <p class="text-xs text-slate-500 mb-4">Sube tu CSV. El sistema actualizará los productos existentes por su nombre/código y agregará los nuevos sin duplicar, conservando sus fotos.</p>
       
       <div class="space-y-4">
         <div class="border-2 border-dashed border-slate-300 p-6 rounded-xl text-center bg-slate-50">
@@ -188,8 +188,8 @@
         <div id="estadoCargaMasiva" class="hidden text-xs text-center p-2 rounded"></div>
 
         <div class="flex gap-2 pt-2">
-          <button id="btnEjecutarCarga" onclick="ejecutarImportacionMasiva()" disabled class="flex-1 bg-slate-400 text-white py-2 rounded-lg text-sm font-bold shadow cursor-not-allowed">
-            Cargar a Supabase
+          <button id="btnEjecutarCarga" onclick="ejecutarImportacionInteligente()" disabled class="flex-1 bg-slate-400 text-white py-2 rounded-lg text-sm font-bold shadow cursor-not-allowed">
+            Procesar Catálogo en Supabase
           </button>
           <button type="button" onclick="cerrarModalCargaMasiva()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium">
             Cancelar
@@ -839,14 +839,14 @@
           const pr = parseFloat(obj['precio']) || 0;
           let imgCsv = obj['imagen_url'] || '';
 
-          // LÓGICA INTELIGENTE: Si la celda viene vacía en el CSV, buscamos si el producto ya existía para mantener su foto previa en Supabase
+          // Búsqueda inteligente por CÓDIGO o por NOMBRE EXACTO para proteger fotos anteriores
           let imagenFinal = null;
           if (imgCsv) {
             imagenFinal = imgCsv;
           } else {
             const prodExistente = todosLosProductos.find(p => 
               (cod && String(obtenerCodigoBarras(p)) === String(cod)) || 
-              (p.nombre && p.nombre.toLowerCase() === nom.toLowerCase())
+              (p.nombre && p.nombre.toLowerCase().trim() === nom.toLowerCase().trim())
             );
             if (prodExistente) {
               imagenFinal = prodExistente.imagen_url || prodExistente.foto || null;
@@ -872,7 +872,7 @@
         }
 
         if (productosParaCargarMasiva.length > 0) {
-          mostrarMensajeCargaMasiva(`✓ Se leyeron ${productosParaCargarMasiva.length} productos válidos protegiendo sus fotos.`, 'emerald');
+          mostrarMensajeCargaMasiva(`✓ Se leyeron ${productosParaCargarMasiva.length} productos listos para actualizar sin duplicar.`, 'emerald');
           const btn = document.getElementById('btnEjecutarCarga');
           btn.disabled = false;
           btn.className = "flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm font-bold shadow";
@@ -890,29 +890,66 @@
       banner.classList.remove('hidden');
     }
 
-    async function ejecutarImportacionMasiva() {
+    // CARGA INTELIGENTE UPSERT: Actualiza por nombre/código si ya existe, o inserta si es nuevo
+    async function ejecutarImportacionInteligente() {
       if (productosParaCargarMasiva.length === 0) return;
 
       const btn = document.getElementById('btnEjecutarCarga');
       btn.disabled = true;
-      btn.textContent = 'Cargando...';
+      btn.textContent = 'Actualizando base de datos...';
 
       try {
-        const { error } = await _supabase.from('productos').insert(productosParaCargarMasiva);
-        if (error) throw error;
+        let actualizados = 0;
+        let insertados = 0;
 
-        alert(`¡Carga completada con éxito! Se procesaron ${productosParaCargarMasiva.length} productos manteniendo sus imágenes intactas.`);
+        for (let item of productosParaCargarMasiva) {
+          // Buscamos si ya existe en Supabase por código o por nombre
+          let query = _supabase.from('productos').select('id, imagen_url');
+          
+          if (item.codigo_barras) {
+            query = query.eq('codigo_barras', item.codigo_barras);
+          } else {
+            query = query.eq('nombre', item.nombre);
+          }
+
+          const { data: existente } = await query.maybeSingle();
+
+          if (existente) {
+            // Si ya existe, actualizamos sus datos manteniendo su ID y foto si el CSV venía sin imagen
+            if (!item.imagen_url && existente.imagen_url) {
+              item.imagen_url = existente.imagen_url;
+            }
+
+            const { error: errUpdate } = await _supabase
+              .from('productos')
+              .update(item)
+              .eq('id', existente.id);
+
+            if (errUpdate) throw errUpdate;
+            actualizados++;
+          } else {
+            // Si es completamente nuevo, lo insertamos
+            const { error: errInsert } = await _supabase
+              .from('productos')
+              .insert([item]);
+
+            if (errInsert) throw errInsert;
+            insertados++;
+          }
+        }
+
+        alert(`¡Operación completada con éxito!\n- Productos actualizados: ${actualizados}\n- Nuevos productos agregados: ${insertados}`);
         cerrarModalCargaMasiva();
         await cargarProductos();
       } catch (err) {
-        alert('Error al realizar la carga masiva: ' + (err.message || err));
+        alert('Error al procesar la carga inteligente: ' + (err.message || err));
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Cargar a Supabase';
+        btn.textContent = 'Procesar Catálogo en Supabase';
       }
     }
 
-    // EXPORTACIÓN LIMPIA (Deja la columna de imagen limpia o con enlace para evitar romper celdas en Excel)
+    // EXPORTACIÓN LIMPIA
     function descargarReporteProductosCSV() {
       if (!todosLosProductos || todosLosProductos.length === 0) {
         alert('No hay productos disponibles en el catálogo para exportar.');
@@ -932,7 +969,6 @@
         let costo = p["Precio Costo"] || 0;
 
         let rawImg = p.imagen_url || p.foto || '';
-        // Si tiene un enlace web o Base64 corto se exporta, si es Base64 gigante se deja vacío para que la app lo rescate automáticamente al reimportar
         let img = (rawImg && !rawImg.startsWith('data:image')) ? rawImg.replace(/;/g, ' ').replace(/"/g, '""') : '';
 
         let invMin = p["Inv. Minimo"] || 0;
