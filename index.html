@@ -225,14 +225,8 @@
       <input type="hidden" id="editProductoId">
       
       <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">URL de la Imagen / Foto</label>
-          <input type="url" id="nuevoUrlFoto" placeholder="https://i.imgur.com/ejemplo.jpg" oninput="actualizarVistaPreviaUrl()"
-            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        </div>
-
         <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50">
-          <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden" onerror="errorCargaImagenUrl()">
+          <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden">
           <div id="placeholderFoto" class="text-slate-400 text-xs text-center mb-2">
             📸 Sin foto asignada
           </div>
@@ -240,7 +234,7 @@
           <input type="file" id="inputFotoCamara" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="capturarFotoCamara(event)">
           
           <button type="button" onclick="document.getElementById('inputFotoCamara').click()" 
-            class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow flex items-center gap-2">
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow flex items-center gap-2">
             🖼️ Elegir de Galería o Tomar Foto
           </button>
         </div>
@@ -594,9 +588,8 @@
           ? `<p class="text-emerald-600 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` 
           : '';
         
-        // Renderizado optimizado para URLs de imágenes web
-        const imagenTag = (fotoUrl && (fotoUrl.startsWith('http') || fotoUrl.startsWith('data:image')))
-          ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white p-1" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-24 bg-slate-200 rounded-md flex items-center justify-center text-slate-400 text-2xl\'>📦</div>';">`
+        const imagenTag = fotoUrl 
+          ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white p-1">`
           : `<div class="w-full h-24 bg-slate-200 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
 
         const btnEditarHtml = esAdmin 
@@ -844,11 +837,11 @@
           const cod = obj['codigo_barras'] || obj['codigo_barra'] || null;
           const nom = obj['nombre'] || '';
           const pr = parseFloat(obj['precio']) || 0;
-          let imgCsv = obj['imagen_url'] || obj['foto'] || '';
+          let imgCsv = obj['imagen_url'] || '';
 
-          // LÓGICA INTELIGENTE: Si viene vacía o no es una URL directa, busca si ya existía una foto guardada en el catálogo
+          // LÓGICA INTELIGENTE: Si la celda viene vacía en el CSV, buscamos si el producto ya existía para mantener su foto previa en Supabase
           let imagenFinal = null;
-          if (imgCsv && (imgCsv.startsWith('http') || imgCsv.startsWith('data:image'))) {
+          if (imgCsv) {
             imagenFinal = imgCsv;
           } else {
             const prodExistente = todosLosProductos.find(p => 
@@ -879,7 +872,7 @@
         }
 
         if (productosParaCargarMasiva.length > 0) {
-          mostrarMensajeCargaMasiva(`✓ Se leyeron ${productosParaCargarMasiva.length} productos válidos.`, 'emerald');
+          mostrarMensajeCargaMasiva(`✓ Se leyeron ${productosParaCargarMasiva.length} productos válidos protegiendo sus fotos.`, 'emerald');
           const btn = document.getElementById('btnEjecutarCarga');
           btn.disabled = false;
           btn.className = "flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm font-bold shadow";
@@ -908,7 +901,7 @@
         const { error } = await _supabase.from('productos').insert(productosParaCargarMasiva);
         if (error) throw error;
 
-        alert(`¡Carga completada con éxito! Se procesaron ${productosParaCargarMasiva.length} productos.`);
+        alert(`¡Carga completada con éxito! Se procesaron ${productosParaCargarMasiva.length} productos manteniendo sus imágenes intactas.`);
         cerrarModalCargaMasiva();
         await cargarProductos();
       } catch (err) {
@@ -919,7 +912,7 @@
       }
     }
 
-    // EXPORTACIÓN CON ENLACES URL DIRECTOS
+    // EXPORTACIÓN LIMPIA (Deja la columna de imagen limpia o con enlace para evitar romper celdas en Excel)
     function descargarReporteProductosCSV() {
       if (!todosLosProductos || todosLosProductos.length === 0) {
         alert('No hay productos disponibles en el catálogo para exportar.');
@@ -939,7 +932,8 @@
         let costo = p["Precio Costo"] || 0;
 
         let rawImg = p.imagen_url || p.foto || '';
-        let img = rawImg.replace(/;/g, ' ').replace(/"/g, '""');
+        // Si tiene un enlace web o Base64 corto se exporta, si es Base64 gigante se deja vacío para que la app lo rescate automáticamente al reimportar
+        let img = (rawImg && !rawImg.startsWith('data:image')) ? rawImg.replace(/;/g, ' ').replace(/"/g, '""') : '';
 
         let invMin = p["Inv. Minimo"] || 0;
         let depto = (p["Departamento"] || '').replace(/;/g, ' ').replace(/"/g, '""');
@@ -956,32 +950,6 @@
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    }
-
-    function actualizarVistaPreviaUrl() {
-      const url = document.getElementById('nuevoUrlFoto').value.trim();
-      const imgPreview = document.getElementById('previewFoto');
-      const placeholder = document.getElementById('placeholderFoto');
-
-      if (url) {
-        imgPreview.src = url;
-        imgPreview.classList.remove('hidden');
-        placeholder.classList.add('hidden');
-        fotoBase64Actual = url;
-      } else {
-        imgPreview.classList.add('hidden');
-        imgPreview.src = '';
-        placeholder.classList.remove('hidden');
-        fotoBase64Actual = '';
-      }
-    }
-
-    function errorCargaImagenUrl() {
-      const placeholder = document.getElementById('placeholderFoto');
-      const imgPreview = document.getElementById('previewFoto');
-      imgPreview.classList.add('hidden');
-      placeholder.innerHTML = '⚠️ URL no válida o imagen no accesible';
-      placeholder.classList.remove('hidden');
     }
 
     function capturarFotoCamara(event) {
@@ -1016,7 +984,6 @@
 
           fotoBase64Actual = canvas.toDataURL('image/jpeg', 0.7);
           
-          document.getElementById('nuevoUrlFoto').value = '';
           const imgPreview = document.getElementById('previewFoto');
           imgPreview.src = fotoBase64Actual;
           imgPreview.classList.remove('hidden');
@@ -1039,14 +1006,12 @@
       document.getElementById('nuevoMayorista').value = '';
       document.getElementById('nuevoCantMayor').value = '6';
       document.getElementById('nuevoUnidadesBulto').value = '';
-      document.getElementById('nuevoUrlFoto').value = '';
       document.getElementById('inputFotoCamara').value = '';
       fotoBase64Actual = '';
       
       document.getElementById('previewFoto').classList.add('hidden');
       document.getElementById('previewFoto').src = '';
       document.getElementById('placeholderFoto').classList.remove('hidden');
-      document.getElementById('placeholderFoto').innerHTML = '📸 Sin foto asignada';
       document.getElementById('modalProducto').classList.remove('hidden');
     }
 
@@ -1070,14 +1035,6 @@
       fotoBase64Actual = prod.imagen_url || prod.foto || '';
 
       const imgPreview = document.getElementById('previewFoto');
-      const inputUrl = document.getElementById('nuevoUrlFoto');
-
-      if (fotoBase64Actual && fotoBase64Actual.startsWith('http')) {
-        inputUrl.value = fotoBase64Actual;
-      } else {
-        inputUrl.value = '';
-      }
-
       if (fotoBase64Actual) {
         imgPreview.src = fotoBase64Actual;
         imgPreview.classList.remove('hidden');
@@ -1086,7 +1043,6 @@
         imgPreview.classList.add('hidden');
         imgPreview.src = '';
         document.getElementById('placeholderFoto').classList.remove('hidden');
-        document.getElementById('placeholderFoto').innerHTML = '📸 Sin foto asignada';
       }
 
       document.getElementById('modalProducto').classList.remove('hidden');
@@ -1106,7 +1062,6 @@
       const pMayor = parseFloat(document.getElementById('nuevoMayorista').value) || null;
       const cMayor = parseInt(document.getElementById('nuevoCantMayor').value) || 6;
       const uBulto = parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0;
-      const urlFoto = document.getElementById('nuevoUrlFoto').value.trim();
 
       if (!nombre || !venta) {
         alert("El nombre y el precio de venta son obligatorios.");
@@ -1119,12 +1074,11 @@
       }
 
       const codigoFinal = codigo !== "" ? codigo : null;
-      const fotoFinal = urlFoto || fotoBase64Actual || null;
 
       const datosProducto = {
         codigo_barras: codigoFinal,
         nombre: nombre,
-        imagen_url: fotoFinal,
+        imagen_url: fotoBase64Actual,
         stock: stock,
         "Precio Costo": costo,
         precio: venta,
