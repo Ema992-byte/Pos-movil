@@ -383,7 +383,7 @@
       <span id="ticketCliente">Consumidor Final</span>
     </div>
 
-    <!-- COLUMNA CANTIDAD RENOMBRADA A Cant. -->
+    <!-- COLUMNA CANTIDAD -->
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
       <span class="w-[18%] text-left">Cant.</span>
       <span class="w-[38%] text-left px-0.5 break-words">Descripción</span>
@@ -1426,7 +1426,6 @@
       const cant = parseInt(cantidad) || 1;
       const bultoSize = parseInt(unidadesBulto) || 0;
 
-      // Si el producto tiene configurado unidades por bulto (mayor a 0)
       if (bultoSize > 0) {
         const bultos = Math.floor(cant / bultoSize);
         const sueltas = cant % bultoSize;
@@ -1802,7 +1801,7 @@
             .select('*')
             .order('id', { ascending: false });
 
-          if (!errDetalles && detallesVenta && detallesVension = detallesVenta.length > 0) {
+          if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
             detallesVenta.forEach(d => {
               let f_h = formatearFechaYHoraEstricta(d.fecha, d.hora, d.creado_en);
               let codProd = d.codigo_barras || 'S/C';
