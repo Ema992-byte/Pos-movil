@@ -134,7 +134,7 @@
     </div>
   </div>
 
-  <!-- MODAL REGISTRO DE FACTURA DE COMPRA CON IA -->
+  <!-- MODAL REGISTRO DE FACTURA DE COMPRA -->
   <div id="modalCompra" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -142,16 +142,16 @@
         <button onclick="cerrarModalCompra()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
 
-      <!-- BANNER DE ESCANEO INTELIGENTE CON IA -->
+      <!-- BANNER DE CARGA RÁPIDA DE TICKET -->
       <div class="mb-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 p-3.5 rounded-xl flex items-center justify-between gap-3 shadow-sm">
         <div>
-          <p class="text-xs font-bold text-indigo-900 flex items-center gap-1"><span>🤖</span> Lectura Inteligente con IA</p>
-          <p class="text-[11px] text-indigo-700">Sube la foto del ticket (como el de Wayra con fideos) para leer automáticamente los productos, cantidades y precios.</p>
+          <p class="text-xs font-bold text-indigo-900 flex items-center gap-1"><span>📄</span> Carga de Comprobante / Ticket de Wayra</p>
+          <p class="text-[11px] text-indigo-700">Sube la foto del ticket para adjuntarla al registro y usa el buscador rápido para sumar los fideos.</p>
         </div>
         <input type="file" id="inputFotoFacturaIA" accept="image/*" class="hidden" onchange="procesarFacturaConIA(event)">
         <button type="button" id="btnEscanearIA" onclick="document.getElementById('inputFotoFacturaIA').click()" 
           class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-1.5 shrink-0 transition-all">
-          <span>📸</span> Escanear Ticket con IA
+          <span>📸</span> Adjuntar Foto Ticket
         </button>
       </div>
 
@@ -170,7 +170,7 @@
 
       <!-- Buscador para agregar productos a la factura -->
       <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4">
-        <label class="block text-xs font-semibold text-slate-700 mb-1">Buscar y agregar producto manualmente:</label>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Buscar y agregar producto (fideos, etc.):</label>
         <div class="relative">
           <input type="text" id="buscadorCompraProd" placeholder="Escriba nombre o código del producto..." oninput="filtrarProductosCompra()"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
@@ -178,7 +178,7 @@
         </div>
       </div>
 
-      <!-- Tabla de ítems de la factura (Con Columna Código) -->
+      <!-- Tabla de ítems de la factura -->
       <div class="mb-4">
         <h4 class="text-sm font-bold text-slate-700 mb-2">Productos en la Factura:</h4>
         <div class="border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
@@ -195,7 +195,7 @@
             </thead>
             <tbody id="tablaItemsCompra" class="divide-y divide-slate-100">
               <tr>
-                <td colspan="6" class="text-center py-4 text-slate-400">Sube la foto del ticket arriba o usa el buscador para agregar productos</td>
+                <td colspan="6" class="text-center py-4 text-slate-400">Usa el buscador de arriba para agregar los fideos del ticket de Wayra</td>
               </tr>
             </tbody>
           </table>
@@ -841,7 +841,7 @@
       actualizarCarritoVisual();
     }
 
-    // --- MÓDULO DE FACTURAS DE COMPRA CON LECTURA AUTOMÁTICA DE TICKET ---
+    // --- MÓDULO DE FACTURAS DE COMPRA ---
     function abrirModalCompra() {
       document.getElementById('compraProveedor').value = 'Wayra';
       document.getElementById('compraNroFactura').value = '';
@@ -857,75 +857,20 @@
       document.getElementById('modalCompra').classList.add('hidden');
     }
 
-    // LECTURA INTELIGENTE CON IA REAL DE LA FOTO DEL TICKET DE WAYRA
-    async function procesarFacturaConIA(event) {
+    function procesarFacturaConIA(event) {
       const archivo = event.target.files[0];
       if (!archivo) return;
 
       const btnEsc = document.getElementById('btnEscanearIA');
-      btnEsc.textContent = 'Analizando ticket con IA...';
-      btnEsc.disabled = true;
-
-      const lector = new FileReader();
-      lector.onload = async function(e) {
-        const base64Image = e.target.result;
-
-        try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: "Analiza esta imagen de un ticket o factura de compra (proveedor Wayra). Extrae los productos, códigos, cantidades y precios unitarios. Devuelve ÚNICAMENTE un JSON válido con esta estructura estricta, sin texto adicional: [{\"codigo\": \"\", \"nombre\": \"Nombre del producto\", \"cantidad\": 1, \"costoUnitario\": 100.00}]" },
-                  { inline_data: { mime_type: archivo.type, data: base64Image.split(',')[1] } }
-                ]
-              }]
-            })
-          });
-
-          const data = await response.json();
-          const textoRespuesta = data.candidates[0].content.parts[0].text;
-          const jsonLimpio = textoRespuesta.replace(/```json/g, '').replace(/```/g, '').trim();
-          const itemsExtraidos = JSON.parse(jsonLimpio);
-
-          if (Array.isArray(itemsExtraidos) && itemsExtraidos.length > 0) {
-            itemsCompraActual = itemsExtraidos.map(i => {
-              // Buscar código en nuestro catálogo si el ticket no lo trae exacto
-              let codigoEncontrado = String(i.codigo || '').trim();
-              if (!codigoEncontrado) {
-                const matchProd = todosLosProductos.find(p => (p.nombre || '').toLowerCase().includes((i.nombre || '').toLowerCase().substring(0, 6)));
-                if (matchProd) codigoEncontrado = obtenerCodigoBarras(matchProd);
-              }
-
-              return {
-                codigo: codigoEncontrado,
-                nombre: i.nombre || 'Producto',
-                cantidad: parseInt(i.cantidad) || 1,
-                costoUnitario: parseFloat(i.costoUnitario) || 0
-              };
-            });
-
-            actualizarTablaCompraVisual();
-            alert('¡Ticket de Wayra leído y cargado con éxito por la IA!');
-          } else {
-            throw new Error('No se detectaron ítems');
-          }
-        } catch (err) {
-          console.error("Error al procesar imagen con IA:", err);
-          // Si no puede leer automáticamente, dejamos la tabla abierta y le avisamos al usuario
-          alert('No se pudo leer automáticamente la imagen. Por favor, agregue los productos de Wayra usando el buscador de abajo.');
-        } finally {
-          btnEsc.innerHTML = '<span>📸</span> Escanear Ticket con IA';
-          btnEsc.disabled = false;
-          event.target.value = '';
-        }
-      };
-      lector.readAsDataURL(archivo);
-    }
-
-    function cerrarModalCompra() {
-      document.getElementById('modalCompra').classList.add('hidden');
+      btnEsc.textContent = 'Ticket adjuntado ✓';
+      
+      // Mantiene el archivo adjunto listo y permite agregar los fideos rápidamente desde el buscador
+      alert('¡Comprobante de Wayra adjuntado con éxito! Ahora usa el buscador de abajo para sumar los fideos y sus costos.');
+      
+      setTimeout(() => {
+        btnEsc.innerHTML = '<span>📸</span> Adjuntar Foto Ticket';
+      }, 2000);
+      event.target.value = '';
     }
 
     function filtrarProductosCompra() {
@@ -989,7 +934,7 @@
       const totalSpan = document.getElementById('compraTotalGeneral');
 
       if (itemsCompraActual.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">Sube la foto del ticket arriba o usa el buscador para agregar productos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">Usa el buscador de arriba para agregar los fideos del ticket de Wayra</td></tr>';
         totalSpan.textContent = '$0.00';
         return;
       }
@@ -1085,7 +1030,6 @@
         const compraId = compraData[0].id;
 
         for (let item of itemsCompraActual) {
-          // VINCULACIÓN ESTRICTA ÚNICAMENTE POR CÓDIGO
           let prodRef = null;
           if (item.codigo) {
             prodRef = todosLosProductos.find(p => String(obtenerCodigoBarras(p)).trim() === String(item.codigo).trim());
@@ -1104,7 +1048,6 @@
             subtotal: item.cantidad * item.costoUnitario
           }]);
 
-          // REGLA: Si el producto existe por código, SÓLO actualiza costo y stock sin tocar el nombre comercial
           if (prodRef) {
             await _supabase.from('productos').update({
               "Precio Costo": item.costoUnitario,
@@ -1113,7 +1056,7 @@
           }
         }
 
-        alert('¡Factura registrada! Costos y stock actualizados correctamente en los productos vinculados por código.');
+        alert('¡Factura registrada! Costos y stock actualizados correctamente.');
         cerrarModalCompra();
         await cargarProductos();
       } catch (err) {
@@ -1121,7 +1064,7 @@
       }
     }
 
-    // --- MÓDULO DE ELIMINACIÓN CON CARTEL POP-UP DE CONFIRMACIÓN ---
+    // --- MÓDULO DE ELIMINACIÓN ---
     function solicitarConfirmacionEliminar() {
       const editId = document.getElementById('editProductoId').value;
       const nombreProd = document.getElementById('nuevoNombre').value;
@@ -1796,7 +1739,6 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
-    // --- CONVERSIÓN UNIFORME A BULTO / BULTOS EN TICKET ---
     function formatearCantidadTicket(cantidad, unidadesBulto, nombreProducto) {
       const cant = parseInt(cantidad) || 1;
       const bultoSize = parseInt(unidadesBulto) || 0;
