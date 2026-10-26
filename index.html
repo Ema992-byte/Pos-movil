@@ -56,12 +56,15 @@
           </button>
 
           <!-- Menú Flotante / Desplegable -->
-          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden text-xs py-1">
+          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden text-xs py-1">
             <button onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2 border-b">
               <span>➕</span> Nuevo Producto
             </button>
+            <button onclick="ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-emerald-700 font-medium flex items-center gap-2 border-b">
+              <span>📥</span> Registrar Factura de Compra
+            </button>
             <button onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-teal-700 font-medium flex items-center gap-2 border-b">
-              <span>📥</span> Carga Masiva (Actualizar sin Duplicar)
+              <span>📄</span> Carga Masiva (Actualizar CSV)
             </button>
             <button onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-indigo-700 font-medium flex items-center gap-2 border-b">
               <span>📦</span> Exportar Productos
@@ -131,6 +134,77 @@
     </div>
   </div>
 
+  <!-- MODAL REGISTRO DE FACTURA DE COMPRA -->
+  <div id="modalCompra" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4 border-b pb-2">
+        <h3 class="text-xl font-bold text-slate-800">📥 Registrar Factura de Compra / Proveedor</h3>
+        <button onclick="cerrarModalCompra()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nombre del Proveedor *</label>
+          <input type="text" id="compraProveedor" placeholder="Ej: Distribuidora Mayorista S.A."
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Número de Factura / Remito</label>
+          <input type="text" id="compraNroFactura" placeholder="Ej: A-0001-00012345"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+      </div>
+
+      <!-- Buscador para agregar productos a la factura -->
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4">
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Buscar y agregar producto a la factura:</label>
+        <div class="relative">
+          <input type="text" id="buscadorCompraProd" placeholder="Escriba nombre o código del producto..." oninput="filtrarProductosCompra()"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+          <div id="listaResultadosCompra" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-xl max-h-48 overflow-y-auto z-30 text-xs"></div>
+        </div>
+      </div>
+
+      <!-- Tabla de ítems de la factura -->
+      <div class="mb-4">
+        <h4 class="text-sm font-bold text-slate-700 mb-2">Productos en la Factura:</h4>
+        <div class="border rounded-lg overflow-hidden max-h-56 overflow-y-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-100 text-slate-700 sticky top-0">
+              <tr>
+                <th class="p-2">Producto</th>
+                <th class="p-2 text-center w-20">Cantidad</th>
+                <th class="p-2 text-right w-28">Costo Unit. ($)</th>
+                <th class="p-2 text-right w-24">Subtotal</th>
+                <th class="p-2 text-center w-12">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tablaItemsCompra" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="5" class="text-center py-4 text-slate-400">Ningún producto agregado todavía</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Total y Botones -->
+      <div class="flex justify-between items-center border-t pt-4">
+        <div class="text-base font-bold text-slate-800">
+          Total Factura: <span id="compraTotalGeneral" class="text-emerald-600 text-lg">$0.00</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="guardarFacturaCompra()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow">
+            Guardar y Actualizar Costos / Stock
+          </button>
+          <button onclick="cerrarModalCompra()" class="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2.5 rounded-lg text-sm font-medium">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL NOMBRE DE CLIENTE AL COBRAR -->
   <div id="modalClienteCobro" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[70]">
     <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center">
@@ -173,7 +247,7 @@
   <!-- MODAL DE CARGA MASIVA DE PRODUCTOS (CSV) -->
   <div id="modalCargaMasiva" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
-      <h3 class="text-xl font-bold text-slate-800 mb-2">📥 Actualización / Carga Masiva</h3>
+      <h3 class="text-xl font-bold text-slate-800 mb-2">📄 Actualización / Carga Masiva</h3>
       <p class="text-xs text-slate-500 mb-4">Sube tu CSV. El sistema actualizará los productos existentes por su nombre/código y agregará los nuevos sin duplicar, conservando sus fotos.</p>
       
       <div class="space-y-4">
@@ -414,6 +488,7 @@
 
     let todosLosProductos = [];
     let carrito = [];
+    let itemsCompraActual = []; // Ítems de la factura de compra
     let timerBusqueda = null;
     let usuarioActualEmail = '';
     let scannerActivo = false;
@@ -429,6 +504,11 @@
       if (contenedor && !contenedor.contains(event.target)) {
         dropdown.classList.add('hidden');
       }
+      const resCompra = document.getElementById('listaResultadosCompra');
+      const inputCompra = document.getElementById('buscadorCompraProd');
+      if (resCompra && inputCompra && !inputCompra.contains(event.target) && !resCompra.contains(event.target)) {
+        resCompra.classList.add('hidden');
+      }
     });
 
     function toggleMenuAdmin(event) {
@@ -441,6 +521,7 @@
       document.getElementById('dropdownMenuAdmin').classList.add('hidden');
 
       if (accion === 'nuevoProducto') abrirModalProducto();
+      else if (accion === 'registrarCompra') abrirModalCompra();
       else if (accion === 'cargaMasiva') abrirModalCargaMasiva();
       else if (accion === 'exportarProductos') descargarReporteProductosCSV();
       else if (accion === 'modificarPrecios') abrirModalPrecios();
@@ -744,6 +825,201 @@
     function removerDelCarrito(index) {
       carrito.splice(index, 1);
       actualizarCarritoVisual();
+    }
+
+    // --- MÓDULO DE FACTURAS DE COMPRA Y COSTOS ---
+    function abrirModalCompra() {
+      document.getElementById('compraProveedor').value = '';
+      document.getElementById('compraNroFactura').value = '';
+      document.getElementById('buscadorCompraProd').value = '';
+      itemsCompraActual = [];
+      actualizarTablaCompraVisual();
+      document.getElementById('modalCompra').classList.remove('hidden');
+    }
+
+    function cerrarModalCompra() {
+      document.getElementById('modalCompra').classList.add('hidden');
+    }
+
+    function filtrarProductosCompra() {
+      const texto = document.getElementById('buscadorCompraProd').value.trim().toLowerCase();
+      const contenedor = document.getElementById('listaResultadosCompra');
+
+      if (!texto || texto.length < 2) {
+        contenedor.classList.add('hidden');
+        return;
+      }
+
+      const encontrados = todosLosProductos.filter(p => {
+        const n = (p.nombre || '').toLowerCase();
+        const c = String(obtenerCodigoBarras(p)).toLowerCase();
+        return n.includes(texto) || c.includes(texto);
+      }).slice(0, 10);
+
+      if (encontrados.length === 0) {
+        contenedor.innerHTML = '<div class="p-2 text-slate-400 text-center">No se encontró producto</div>';
+        contenedor.classList.remove('hidden');
+        return;
+      }
+
+      let html = '';
+      encontrados.forEach(p => {
+        const idProd = p.id;
+        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
+        const costoActual = parseFloat(p["Precio Costo"] || 0);
+        html += `
+          <div onclick="agregarItemCompra('${idProd}', '${nombreSeguro}', ${costoActual})" 
+            class="p-2 hover:bg-emerald-50 cursor-pointer border-b flex justify-between items-center">
+            <span>${p.nombre}</span>
+            <span class="text-emerald-700 font-semibold">Costo actual: $${costoActual}</span>
+          </div>
+        `;
+      });
+      contenedor.innerHTML = html;
+      contenedor.classList.remove('hidden');
+    }
+
+    function agregarItemCompra(idProd, nombre, costoActual) {
+      document.getElementById('listaResultadosCompra').classList.add('hidden');
+      document.getElementById('buscadorCompraProd').value = '';
+
+      const existente = itemsCompraActual.find(i => String(i.idProd) === String(idProd));
+      if (existente) {
+        existente.cantidad += 1;
+      } else {
+        itemsCompraActual.push({
+          idProd: idProd,
+          nombre: nombre,
+          cantidad: 1,
+          costoUnitario: costoActual
+        });
+      }
+      actualizarTablaCompraVisual();
+    }
+
+    function actualizarTablaCompraVisual() {
+      const tbody = document.getElementById('tablaItemsCompra');
+      const totalSpan = document.getElementById('compraTotalGeneral');
+
+      if (itemsCompraActual.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">Ningún producto agregado todavía</td></tr>';
+        totalSpan.textContent = '$0.00';
+        return;
+      }
+
+      let html = '';
+      let totalFactura = 0;
+
+      itemsCompraActual.forEach((item, idx) => {
+        let subtotal = (item.cantidad || 0) * (item.costoUnitario || 0);
+        totalFactura += subtotal;
+
+        html += `
+          <tr>
+            <td class="p-2 font-medium text-slate-800">${item.nombre}</td>
+            <td class="p-2 text-center">
+              <input type="number" min="1" value="${item.cantidad}" onchange="modificarCantCompraItem(${idx}, this.value)"
+                class="w-16 px-1 py-1 text-center border rounded text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+            </td>
+            <td class="p-2 text-right">
+              <input type="number" step="0.01" min="0" value="${item.costoUnitario}" onchange="modificarCostoCompraItem(${idx}, this.value)"
+                class="w-24 px-1 py-1 text-right border rounded text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+            </td>
+            <td class="p-2 text-right font-semibold text-slate-700">$${subtotal.toFixed(2)}</td>
+            <td class="p-2 text-center">
+              <button onclick="removerItemCompra(${idx})" class="text-rose-500 hover:text-rose-700 font-bold">✕</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+      totalSpan.textContent = '$' + totalFactura.toFixed(2);
+    }
+
+    function modificarCantCompraItem(idx, val) {
+      const cant = parseInt(val);
+      if (!isNaN(cant) && cant > 0) {
+        itemsCompraActual[idx].cantidad = cant;
+      }
+      actualizarTablaCompraVisual();
+    }
+
+    function modificarCostoCompraItem(idx, val) {
+      const costo = parseFloat(val);
+      if (!isNaN(costo) && costo >= 0) {
+        itemsCompraActual[idx].costoUnitario = costo;
+      }
+      actualizarTablaCompraVisual();
+    }
+
+    function removerItemCompra(idx) {
+      itemsCompraActual.splice(idx, 1);
+      actualizarTablaCompraVisual();
+    }
+
+    async function guardarFacturaCompra() {
+      const proveedor = document.getElementById('compraProveedor').value.trim();
+      const nroFactura = document.getElementById('compraNroFactura').value.trim();
+
+      if (!proveedor) {
+        alert('Por favor, ingrese el nombre del proveedor.');
+        return;
+      }
+
+      if (itemsCompraActual.length === 0) {
+        alert('Debe agregar al menos un producto a la factura.');
+        return;
+      }
+
+      if (!navigator.onLine) {
+        alert('Debe tener conexión a internet para registrar la factura y actualizar los costos en la nube.');
+        return;
+      }
+
+      let totalFactura = itemsCompraActual.reduce((acc, item) => acc + (item.cantidad * item.costoUnitario), 0);
+
+      try {
+        // 1. Insertar cabecera de la factura de compra
+        const { data: compraData, error: compraError } = await _supabase
+          .from('compras_facturas')
+          .insert([{ proveedor: proveedor, numero_factura: nroFactura || null, total: totalFactura }])
+          .select();
+
+        if (compraError) throw compraError;
+
+        const compraId = compraData[0].id;
+
+        // 2. Insertar detalles de la compra y actualizar costos/stock en productos
+        for (let item of itemsCompraActual) {
+          const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idProd));
+          const codigoProd = prodRef ? obtenerCodigoBarras(prodRef) : '';
+          const stockActual = prodRef ? (parseInt(prodRef.stock) || 0) : 0;
+          const nuevoStock = stockActual + item.cantidad;
+
+          // Guardar detalle de compra
+          await _supabase.from('compras_detalles').insert([{
+            compra_id: compraId,
+            codigo_barras: codigoProd,
+            nombre_producto: item.nombre,
+            cantidad: item.cantidad,
+            precio_costo_unitario: item.costoUnitario,
+            subtotal: item.cantidad * item.costoUnitario
+          }]);
+
+          // Actualizar costo unitario y stock del producto en la base de datos
+          await _supabase.from('productos').update({
+            "Precio Costo": item.costoUnitario,
+            stock: nuevoStock
+          }).eq('id', item.idProd);
+        }
+
+        alert('¡Factura de compra registrada y costos/stock actualizados con éxito!');
+        cerrarModalCompra();
+        await cargarProductos();
+      } catch (err) {
+        alert('Error al registrar la factura de compra: ' + (err.message || err));
+      }
     }
 
     // --- MÓDULO DE ELIMINACIÓN CON CARTEL POP-UP DE CONFIRMACIÓN ---
