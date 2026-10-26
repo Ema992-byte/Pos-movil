@@ -385,8 +385,8 @@
 
     <!-- COLUMNA CANTIDAD RENOMBRADA A Cant. -->
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
-      <span class="w-[15%] text-left">Cant.</span>
-      <span class="w-[41%] text-left px-0.5 break-words">Descripción</span>
+      <span class="w-[18%] text-left">Cant.</span>
+      <span class="w-[38%] text-left px-0.5 break-words">Descripción</span>
       <span class="w-[20%] text-right">P.U.</span>
       <span class="w-[24%] text-right">Importe</span>
     </div>
@@ -835,7 +835,6 @@
           });
 
           const cod = obj['codigo_barras'] || obj['codigo_barra'] || null;
-          // Limpieza estricta de espacios y puntos finales accidentales
           const nom = (obj['nombre'] || '').trim().replace(/\.$/, '').trim();
           const pr = parseFloat(obj['precio']) || 0;
           let imgCsv = obj['imagen_url'] || '';
@@ -854,7 +853,6 @@
           }
 
           if (nom && pr > 0) {
-            // Evitamos duplicados internos dentro del mismo archivo CSV
             const yaExisteEnEsteCsv = productosParaCargarMasiva.some(p => p.nombre.toLowerCase() === nom.toLowerCase());
             
             if (!yaExisteEnEsteCsv) {
@@ -895,7 +893,6 @@
       banner.classList.remove('hidden');
     }
 
-    // CARGA INTELIGENTE BLINDADA CONTRA PUNTOS Y ESPACIOS
     async function ejecutarImportacionInteligente() {
       if (productosParaCargarMasiva.length === 0) return;
 
@@ -953,7 +950,6 @@
       }
     }
 
-    // EXPORTACIÓN LIMPIA
     function descargarReporteProductosCSV() {
       if (!todosLosProductos || todosLosProductos.length === 0) {
         alert('No hay productos disponibles en el catálogo para exportar.');
@@ -1152,7 +1148,6 @@
       timerBusqueda = setTimeout(filtrarProductos, 120);
     }
 
-    // BUSCADOR MULTI-PALABRAS EN CUALQUIER ORDEN
     function filtrarProductos() {
       const texto = document.getElementById('buscador').value.trim().toLowerCase();
       if (!texto) {
@@ -1426,15 +1421,27 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
-    // Función inteligente para formatear la cantidad según las unidades por bulto
+    // --- CONVERSIÓN INTELIGENTE A BULTO / CAJA Y UNIDADES EN TICKET ---
     function formatearCantidadTicket(cantidad, unidadesBulto, nombreProducto) {
       const cant = parseInt(cantidad) || 1;
       const bultoSize = parseInt(unidadesBulto) || 0;
 
-      if (bultoSize > 0 && cant >= bultoSize && cant % bultoSize === 0) {
-        const nroBultos = cant / bultoSize;
+      // Si el producto tiene configurado unidades por bulto (mayor a 0)
+      if (bultoSize > 0) {
+        const bultos = Math.floor(cant / bultoSize);
+        const sueltas = cant % bultoSize;
+        
         const nombreBulto = (nombreProducto || '').toLowerCase().includes('papel') ? 'Bulto' : 'Caja';
-        return nroBultos === 1 ? `1 ${nombreBulto}` : `${nroBultos} ${nombreBulto}s`;
+        let partes = [];
+
+        if (bultos > 0) {
+          partes.push(bultos === 1 ? `1 ${nombreBulto}` : `${bultos} ${nombreBulto}s`);
+        }
+        if (sueltas > 0) {
+          partes.push(`${sueltas} und.`);
+        }
+
+        return partes.length > 0 ? partes.join(' ') : `${cant} und.`;
       }
       
       return `${cant} und.`;
@@ -1463,8 +1470,8 @@
 
         ticketItemsContainer.innerHTML += `
           <div class="flex justify-between items-start">
-            <span class="w-[15%] text-left font-bold">${textoCantidad}</span>
-            <span class="w-[41%] text-left px-0.5 break-words">${item.nombre}</span>
+            <span class="w-[18%] text-left font-bold">${textoCantidad}</span>
+            <span class="w-[38%] text-left px-0.5 break-words">${item.nombre}</span>
             <span class="w-[20%] text-right">$${pUnit.toFixed(2)}</span>
             <span class="w-[24%] text-right font-bold">$${importe.toFixed(2)}</span>
           </div>
@@ -1795,7 +1802,7 @@
             .select('*')
             .order('id', { ascending: false });
 
-          if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
+          if (!errDetalles && detallesVenta && detallesVension = detallesVenta.length > 0) {
             detallesVenta.forEach(d => {
               let f_h = formatearFechaYHoraEstricta(d.fecha, d.hora, d.creado_en);
               let codProd = d.codigo_barras || 'S/C';
