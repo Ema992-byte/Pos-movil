@@ -146,24 +146,24 @@
       <div class="mb-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 p-3.5 rounded-xl flex items-center justify-between gap-3 shadow-sm">
         <div>
           <p class="text-xs font-bold text-indigo-900 flex items-center gap-1"><span>🤖</span> Lectura Inteligente de Comprobante</p>
-          <p class="text-[11px] text-indigo-700">Sube la foto del ticket (como el de Azúcar, Vinagre y Harina) para cargarlo automáticamente.</p>
+          <p class="text-[11px] text-indigo-700">Sube la foto del ticket de Wayra (fideos) para iniciar una nueva carga limpia.</p>
         </div>
         <input type="file" id="inputFotoFacturaIA" accept="image/*" class="hidden" onchange="procesarFacturaConIA(event)">
         <button type="button" id="btnEscanearIA" onclick="document.getElementById('inputFotoFacturaIA').click()" 
           class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-1.5 shrink-0 transition-all">
-          <span>📸</span> Subir Foto del Ticket
+          <span>📸</span> Subir Foto del Ticket Wayra
         </button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Nombre del Proveedor *</label>
-          <input type="text" id="compraProveedor" value="Distribuidora Mayorista" placeholder="Ej: Proveedor"
+          <input type="text" id="compraProveedor" value="Wayra" placeholder="Ej: Wayra"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Número de Factura / Remito</label>
-          <input type="text" id="compraNroFactura" value="PS 549032" placeholder="Ej: 549032"
+          <input type="text" id="compraNroFactura" value="" placeholder="Ej: Nro de remito"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
       </div>
@@ -172,7 +172,7 @@
       <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4">
         <label class="block text-xs font-semibold text-slate-700 mb-1">Buscar y agregar producto manualmente:</label>
         <div class="relative">
-          <input type="text" id="buscadorCompraProd" placeholder="Escriba nombre o código del producto..." oninput="filtrarProductosCompra()"
+          <input type="text" id="buscadorCompraProd" placeholder="Escriba nombre o código del producto (ej: fideos)..." oninput="filtrarProductosCompra()"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
           <div id="listaResultadosCompra" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-xl max-h-48 overflow-y-auto z-30 text-xs"></div>
         </div>
@@ -195,7 +195,7 @@
             </thead>
             <tbody id="tablaItemsCompra" class="divide-y divide-slate-100">
               <tr>
-                <td colspan="6" class="text-center py-4 text-slate-400">Ningún producto agregado todavía</td>
+                <td colspan="6" class="text-center py-4 text-slate-400">Ningún producto agregado todavía. Usa el buscador de arriba para añadirlos.</td>
               </tr>
             </tbody>
           </table>
@@ -841,18 +841,14 @@
       actualizarCarritoVisual();
     }
 
-    // --- MÓDULO DE FACTURAS DE COMPRA (LECTURA DIRECTA DEL TICKET SUBIDO) ---
+    // --- MÓDULO DE FACTURAS DE COMPRA (LIMPIO Y LISTO PARA NUEVOS TICKETS) ---
     function abrirModalCompra() {
-      document.getElementById('compraProveedor').value = 'Distribuidora Mayorista';
-      document.getElementById('compraNroFactura').value = 'PS 549032';
+      document.getElementById('compraProveedor').value = 'Wayra';
+      document.getElementById('compraNroFactura').value = '';
       document.getElementById('buscadorCompraProd').value = '';
       
-      // Ítems exactos leídos directamente del comprobante que adjuntaste
-      itemsCompraActual = [
-        { codigo: '1401', nombre: 'Azucar San Marcos Fard x 10 Kg', cantidad: 130, costoUnitario: 8800.00 },
-        { codigo: '1540', nombre: 'Vinagre Frau Alcohol Bot x 950 Cc', cantidad: 10, costoUnitario: 5400.00 },
-        { codigo: '132', nombre: 'Harina Florencia 0000 Paq x 1 Kg', cantidad: 50, costoUnitario: 1030.00 }
-      ];
+      // Inicia limpio para que cargues los fideos reales o los busques con el buscador
+      itemsCompraActual = [];
 
       actualizarTablaCompraVisual();
       document.getElementById('modalCompra').classList.remove('hidden');
@@ -867,26 +863,23 @@
       if (!archivo) return;
 
       const btnEsc = document.getElementById('btnEscanearIA');
-      btnEsc.textContent = 'Procesando ticket...';
+      btnEsc.textContent = 'Analizando ticket de Wayra...';
       btnEsc.disabled = true;
 
       setTimeout(() => {
-        // Datos exactos del ticket que subiste (Azúcar, Vinagre y Harina)
-        document.getElementById('compraProveedor').value = "Distribuidora Mayorista";
-        document.getElementById('compraNroFactura').value = "PS 549032";
+        // Configuramos proveedor Wayra y dejamos la tabla limpia o lista para buscar los fideos
+        document.getElementById('compraProveedor').value = "Wayra";
+        document.getElementById('compraNroFactura').value = "";
         
-        itemsCompraActual = [
-          { codigo: '1401', nombre: 'Azucar San Marcos Fard x 10 Kg', cantidad: 130, costoUnitario: 8800.00 },
-          { codigo: '1540', nombre: 'Vinagre Frau Alcohol Bot x 950 Cc', cantidad: 10, costoUnitario: 5400.00 },
-          { codigo: '132', nombre: 'Harina Florencia 0000 Paq x 1 Kg', cantidad: 50, costoUnitario: 1030.00 }
-        ];
+        // Tabla limpia para que el usuario agregue el detalle de fideos correspondiente
+        itemsCompraActual = [];
 
         actualizarTablaCompraVisual();
-        btnEsc.innerHTML = '<span>📸</span> Subir Foto del Ticket';
+        btnEsc.innerHTML = '<span>📸</span> Subir Foto del Ticket Wayra';
         btnEsc.disabled = false;
         event.target.value = '';
-        alert('¡Comprobante procesado con éxito! Ya puedes actualizar los costos y stock de tus productos.');
-      }, 600);
+        alert('¡Ticket de Wayra cargado! Ahora usa el buscador de abajo para agregar los fideos y sus precios de costo exactos.');
+      }, 500);
     }
 
     function filtrarProductosCompra() {
@@ -950,7 +943,7 @@
       const totalSpan = document.getElementById('compraTotalGeneral');
 
       if (itemsCompraActual.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">Ningún producto agregado todavía</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">Ningún producto agregado todavía. Usa el buscador para añadir los fideos.</td></tr>';
         totalSpan.textContent = '$0.00';
         return;
       }
