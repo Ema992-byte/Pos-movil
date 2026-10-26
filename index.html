@@ -250,7 +250,7 @@
         <button onclick="confirmarEliminacionFinal()" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg text-xs font-bold shadow">
           Sí, Eliminar
         </button>
-        <button onclick="cerrarModalConfirmacion()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-sm font-semibold">
+        <button onclick="cerrarModalConfirmacion()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-xs font-semibold">
           Cancelar
         </button>
       </div>
@@ -857,13 +857,13 @@
       document.getElementById('modalCompra').classList.add('hidden');
     }
 
-    // --- PROCESAMIENTO DE FACTURA CON IA (GEMINI VISION) CON AUTORIZACIÓN BEARER ---
+    // --- PROCESAMIENTO DE FACTURA CON IA (GEMINI VISION CON BEARER TOKEN) ---
     async function procesarFacturaConIA(event) {
       const archivo = event.target.files[0];
       if (!archivo) return;
 
-      if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AQUI_TU_CLAVE_DE_GEMINI') {
-        alert('Por favor configure su clave de API de Gemini en la constante GEMINI_API_KEY dentro del código.');
+      if (!GEMINI_API_KEY) {
+        alert('Por favor configure su clave de API de Gemini.');
         event.target.value = '';
         return;
       }
@@ -917,7 +917,8 @@
         });
 
         if (!response.ok) {
-          throw new Error('Error al conectar con la API de Gemini. Verifique su API Key.');
+          const errorTxt = await response.text();
+          throw new Error('Error al conectar con la API de Gemini: ' + response.status + ' ' + errorTxt);
         }
 
         const data = await response.json();
