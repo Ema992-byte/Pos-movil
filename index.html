@@ -1421,7 +1421,7 @@
       localStorage.removeItem('ventas_pendientes');
     }
 
-    // --- CONVERSIÓN INTELIGENTE A BULTO / CAJA Y UNIDADES EN TICKET ---
+    // --- CONVERSIÓN UNIFORME A BULTO / BULTOS EN TICKET ---
     function formatearCantidadTicket(cantidad, unidadesBulto, nombreProducto) {
       const cant = parseInt(cantidad) || 1;
       const bultoSize = parseInt(unidadesBulto) || 0;
@@ -1430,11 +1430,10 @@
         const bultos = Math.floor(cant / bultoSize);
         const sueltas = cant % bultoSize;
         
-        const nombreBulto = (nombreProducto || '').toLowerCase().includes('papel') ? 'Bulto' : 'Caja';
         let partes = [];
 
         if (bultos > 0) {
-          partes.push(bultos === 1 ? `1 ${nombreBulto}` : `${bultos} ${nombreBulto}s`);
+          partes.push(bultos === 1 ? '1 bulto' : `${bultos} bultos`);
         }
         if (sueltas > 0) {
           partes.push(`${sueltas} und.`);
