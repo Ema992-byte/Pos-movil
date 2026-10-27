@@ -125,10 +125,16 @@
             <span>Total:</span>
             <span id="totalVenta">$0.00</span>
           </div>
-          <button onclick="iniciarProcesoCobro()"
-            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors shadow">
-            Cobrar, Imprimir y Registrar
-          </button>
+          <div class="space-y-2">
+            <button onclick="iniciarProcesoCobro('bluetooth')"
+              class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-colors shadow text-xs flex items-center justify-center gap-1.5">
+              <span>🖨️</span> Cobrar e Imprimir Bluetooth
+            </button>
+            <button onclick="iniciarProcesoCobro('pdf')"
+              class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 rounded-lg transition-colors shadow text-xs flex items-center justify-center gap-1.5">
+              <span>📄</span> Cobrar y Guardar PDF / Web
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -508,6 +514,7 @@
     let scannerActivo = false;
     let fotoBase64Actual = '';
     let productosParaCargarMasiva = [];
+    let modoImpresionActual = 'bluetooth'; // 'bluetooth' o 'pdf'
 
     window.addEventListener('online', actualizarEstadoRed);
     window.addEventListener('offline', actualizarEstadoRed);
@@ -1576,12 +1583,13 @@
       return { fechaStr, horaStr };
     }
 
-    // --- MÓDULO DE COBRO CON NOMBRE DE CLIENTE ---
-    function iniciarProcesoCobro() {
+    // --- MÓDULO DE COBRO CON OPCIÓN DE BLUETOOTH O PDF/WEB ---
+    function iniciarProcesoCobro(modo) {
       if (carrito.length === 0) {
         alert('El carrito está vacío');
         return;
       }
+      modoImpresionActual = modo; // 'bluetooth' o 'pdf'
       document.getElementById('nombreClienteInput').value = '';
       document.getElementById('modalClienteCobro').classList.remove('hidden');
       setTimeout(() => document.getElementById('nombreClienteInput').focus(), 100);
@@ -1684,17 +1692,23 @@
           } catch(e) {}
 
           alert('¡Venta registrada con éxito!');
-          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre);
+          
+          if (modoImpresionActual === 'bluetooth') {
+            imprimirTicketBluetooth(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre);
+          } else {
+            imprimirTicketNavegador(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre);
+          }
+
         } catch (err) {
           console.error("Error al registrar venta en Supabase:", err);
           alert('Hubo un problema al registrar en la nube. Se guardará localmente. Detalle: ' + (err.message || err));
           guardarVentaOffline(ventaLocal);
-          imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)', clienteNombre);
+          imprimirTicketNavegador(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)', clienteNombre);
         }
       } else {
         guardarVentaOffline(ventaLocal);
         alert('⚡ Sin internet: Venta guardada localmente.');
-        imprimirTicketGenerico(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)', clienteNombre);
+        imprimirTicketNavegador(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)', clienteNombre);
       }
 
       carrito = [];
@@ -1763,7 +1777,94 @@
       return `${cant} und.`;
     }
 
-    function imprimirTicketGenerico(items, total, fechaStr, tituloTicket, clienteNombre) {
+    // IMPRESIÓN DIRECTA BLUETOOTH ESC/POS
+    async function imprimirTicketBluetooth(items, total, fechaStr, tituloTicket, clienteNombre) {
+      if (!navigator.bluetooth) {
+        alert("Web Bluetooth no está soportado en este navegador. Abriendo vista web estándar.");
+        imprimirTicketNavegador(items, total, fechaStr, tituloTicket, clienteNombre);
+        return;
+      }
+
+      try {
+        alert("Seleccione su impresora térmica Bluetooth en la lista...");
+        
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '0000ff00-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+        });
+
+        const server = await device.gatt.connect();
+        const services = await server.getPrimaryServices();
+        let targetCharacteristic = null;
+
+        for (const service of services) {
+          const characteristics = await service.getCharacteristics();
+          for (const characteristic of characteristics) {
+            if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
+              targetCharacteristic = characteristic;
+              break;
+            }
+          }
+          if (targetCharacteristic) break;
+        }
+
+        if (!targetCharacteristic) {
+          throw new Error("No se encontró una característica de escritura compatible en la impresora.");
+        }
+
+        const encoder = new TextEncoder();
+        let comandos = [];
+
+        comandos.push(0x1B, 0x40); // Reset
+        comandos.push(0x1B, 0x61, 0x01); // Centrar
+        
+        comandos.push(...encoder.encode("GO! - PUNTO DE VENTA\n"));
+        comandos.push(...encoder.encode("--------------------------------\n"));
+        comandos.push(...encoder.encode(`${tituloTicket}\n`));
+        comandos.push(...encoder.encode(`Fecha: ${fechaStr}\n`));
+        comandos.push(...encoder.encode(`Atendido por: ${obtenerAtendidoPor(usuarioActualEmail)}\n`));
+        comandos.push(...encoder.encode(`Cliente: ${clienteNombre}\n`));
+        comandos.push(...encoder.encode("--------------------------------\n"));
+        
+        comandos.push(0x1B, 0x61, 0x00); // Izquierda
+        
+        items.forEach(item => {
+          let uBulto = item.unidadesBulto || 0;
+          let textoCant = formatearCantidadTicket(item.cantidad, uBulto, item.nombre);
+          let subtotal = (item.precio * item.cantidad).toFixed(2);
+          comandos.push(...encoder.encode(`${textoCant} ${item.nombre}\n`));
+          comandos.push(...encoder.encode(`  -> $${parseFloat(item.precio).toFixed(2)} c/u | Sub: $${subtotal}\n`));
+        });
+
+        comandos.push(...encoder.encode("--------------------------------\n"));
+        
+        comandos.push(0x1B, 0x61, 0x01); // Centrar
+        comandos.push(0x1D, 0x21, 0x11); // Doble tamaño
+        comandos.push(...encoder.encode(`TOTAL: $${parseFloat(total).toFixed(2)}\n`));
+        comandos.push(0x1D, 0x21, 0x00); // Normal
+        
+        comandos.push(...encoder.encode("--------------------------------\n"));
+        comandos.push(...encoder.encode("¡GRACIAS POR SU VISITA!\n\n\n"));
+        comandos.push(0x1D, 0x56, 0x42, 0x00); // Corte
+
+        const buffer = new Uint8Array(comandos);
+        const chunkSize = 512;
+        for (let i = 0; i < buffer.length; i += chunkSize) {
+          let chunk = buffer.slice(i, i + chunkSize);
+          await targetCharacteristic.writeValue(chunk);
+        }
+
+        alert("¡Ticket impreso con éxito por Bluetooth!");
+        device.gatt.disconnect();
+
+      } catch (error) {
+        console.warn("Impresión Bluetooth cancelada:", error);
+        imprimirTicketNavegador(items, total, fechaStr, tituloTicket, clienteNombre);
+      }
+    }
+
+    // MÉTODO CLÁSICO (GUARDAR PDF / IMPRESIÓN WEB)
+    function imprimirTicketNavegador(items, total, fechaStr, tituloTicket, clienteNombre) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
       document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
@@ -1776,12 +1877,7 @@
         let pUnit = parseFloat(item.precio || 0);
         let importe = pUnit * (item.cantidad || 1);
         
-        let uBulto = item.unidadesBulto;
-        if (!uBulto) {
-          const prodRef = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || String(p.nombre) === String(item.nombre));
-          uBulto = prodRef ? obtenerUnidadesPorBulto(prodRef) : 0;
-        }
-
+        let uBulto = item.unidadesBulto || 0;
         let textoCantidad = formatearCantidadTicket(item.cantidad, uBulto, item.nombre);
 
         ticketItemsContainer.innerHTML += `
@@ -1822,7 +1918,7 @@
         `);
         ventanaImpresion.document.close();
       } else {
-        alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir los tickets.');
+        alert('Por favor, permita las ventanas emergentes (pop-ups).');
       }
     }
 
@@ -1997,7 +2093,7 @@
         }];
       }
 
-      imprimirTicketGenerico(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`, clienteNom || 'Consumidor Final');
+      imprimirTicketNavegador(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`, clienteNom || 'Consumidor Final');
     }
 
     function reimprimirTicketLocal(index) {
@@ -2010,7 +2106,7 @@
         ? v.detalles.map(d => ({ nombre: d.nombre, cantidad: d.cantidad, precio: d.precio, unidadesBulto: d.unidadesBulto || 0 }))
         : [{ nombre: `Venta Local #${index + 1}`, cantidad: 1, precio: v.total }];
 
-      imprimirTicketGenerico(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)', v.cliente || 'Consumidor Final');
+      imprimirTicketNavegador(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)', v.cliente || 'Consumidor Final');
     }
 
     function abrirModalPrecios() {
