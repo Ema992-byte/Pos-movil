@@ -2032,7 +2032,12 @@
         let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
         let fechaHoraStr = `${f_h.fecha} ${f_h.hora}`;
         let clienteNom = v.cliente || 'Consumidor Final';
-        let operadorVenta = v.atendido_por || 'E.J';
+        
+        // Priorizar estrictamente el campo atendido_por guardado en el registro de la venta
+        let operadorVenta = v.atendido_por;
+        if (!operadorVenta || operadorVenta.trim() === "") {
+          operadorVenta = obtenerAtendidoPor(usuarioActualEmail);
+        }
 
         let botonEliminarHtml = '';
         if (puedeEliminarVentas) {
@@ -2093,7 +2098,7 @@
 
     async function reimprimirTicketAnterior(ventaId, fechaStr, total, clienteNom) {
       let itemsParaTicket = [];
-      let operadorOriginal = "E.J";
+      let operadorOriginal = obtenerAtendidoPor(usuarioActualEmail);
 
       try {
         const { data: ventaData, error: errVenta } = await _supabase
@@ -2103,6 +2108,7 @@
           .single();
 
         if (!errVenta && ventaData) {
+          // Asignar el operador exacto con el que se registró el ticket en la base de datos
           if (ventaData.atendido_por && ventaData.atendido_por.trim() !== "") {
             operadorOriginal = ventaData.atendido_por;
           }
