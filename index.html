@@ -585,7 +585,13 @@
 
     function obtenerAtendidoPor(email) {
       const emailLower = (email || '').toLowerCase();
-      if (emailLower.includes('admi')) {
+      if (emailLower.includes('admini')) {
+        return 'I.S.';
+      } else if (emailLower.includes('admine')) {
+        return 'E.S.';
+      } else if (emailLower.includes('adminr')) {
+        return 'R.S.';
+      } else if (emailLower.includes('admi')) {
         return 'E.J';
       } else if (emailLower.includes('vendedor1')) {
         return 'Vendedor 1';
@@ -623,7 +629,7 @@
 
       const esAdmin = email.toLowerCase().includes('admi');
       if (esAdmin) {
-        document.getElementById('usuarioRol').textContent = 'Perfil: Administrador (E.J)';
+        document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
         document.getElementById('contenedorMenuAdmin').classList.remove('hidden');
       } else {
         document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
