@@ -2188,17 +2188,40 @@
         return;
       }
 
-      const { error } = await _supabase
-        .from('productos')
-        .update({ precio: nuevoPrecio, precio_mayorista: nuevoMayorista })
-        .eq('id', id);
+      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
+      const usuarioEmail = usuarioActualEmail || 'Desconocido';
+      const operadorNombre = obtenerAtendidoPor(usuarioEmail);
 
-      if (error) {
-        alert('Error al actualizar precio: ' + error.message);
-      } else {
-        alert('¡Precios actualizados con éxito en la base de datos!');
+      try {
+        const { error } = await _supabase
+          .from('productos')
+          .update({ precio: nuevoPrecio, precio_mayorista: nuevoMayorista })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        const { error: errorAuditoria } = await _supabase
+          .from('auditoria_precios')
+          .insert([{
+            producto_id: id,
+            usuario_email: usuarioEmail,
+            operador: operadorNombre,
+            precio_minorista_nuevo: nuevoPrecio,
+            precio_mayorista_nuevo: nuevoMayorista,
+            fecha: fechaStr,
+            hora: horaStr
+          }]);
+
+        if (errorAuditoria) {
+          console.warn('Aviso: La tabla auditoria_precios no está disponible o requiere configuración en Supabase, pero el precio se actualizó correctamente.', errorAuditoria);
+        }
+
+        alert(`¡Precios actualizados con éxito!\nModificado por: ${operadorNombre} (${usuarioEmail})\nFecha: ${fechaStr} a las ${horaStr}`);
         cerrarModalPrecios();
         cargarProductos();
+
+      } catch (err) {
+        alert('Error al actualizar precio: ' + (err.message || err));
       }
     }
 
