@@ -1669,7 +1669,7 @@
           if (ventaError && (ventaError.message.includes('column') || ventaError.code === 'PGRST204')) {
             const resSimplificado = await _supabase
               .from('ventas')
-              .insert([{ total: total, detalles: detallesJson }])
+              .insert([{ total: total, cliente: clienteNombre, fecha: fechaStr, hora: horaStr, detalles: detallesJson }])
               .select();
             
             ventaData = resSimplificado.data;
@@ -2024,7 +2024,6 @@
         return;
       }
 
-      // Validar si el usuario actual es admini@pos.com o admine@pos.com para mostrar botón de eliminar
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const puedeEliminarVentas = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
 
@@ -2076,16 +2075,13 @@
       }
 
       try {
-        // Eliminar registros hijos en detalle_ventas si existen por llave foránea
         await _supabase.from('detalle_ventas').delete().eq('venta_id', ventaId);
-
-        // Eliminar el registro principal en ventas
         const { error } = await _supabase.from('ventas').delete().eq('id', ventaId);
 
         if (error) throw error;
 
         alert(`¡Ticket #${ventaId} eliminado con éxito!`);
-        abrirModalHistorial(); // Recargar la lista
+        abrirModalHistorial();
       } catch (err) {
         alert("Error al eliminar la venta: " + (err.message || err));
       }
@@ -2107,7 +2103,7 @@
           .single();
 
         if (!errVenta && ventaData) {
-          if (ventaData.atendido_por) {
+          if (ventaData.atendido_por && ventaData.atendido_por.trim() !== "") {
             operadorOriginal = ventaData.atendido_por;
           }
 
