@@ -1638,10 +1638,12 @@
       });
 
       const { fechaStr, horaStr } = obtenerFechaHoraLocal();
+      const operadorActual = obtenerAtendidoPor(usuarioActualEmail);
 
       const ventaLocal = {
         total: total,
         cliente: clienteNombre,
+        atendido_por: operadorActual,
         detalles: detallesJson,
         fecha_str: fechaStr,
         hora_str: horaStr,
@@ -1653,6 +1655,7 @@
           let objetoVentaInsert = { 
             total: total, 
             cliente: clienteNombre,
+            atendido_por: operadorActual,
             fecha: fechaStr, 
             hora: horaStr, 
             detalles: detallesJson 
@@ -1700,21 +1703,21 @@
           alert('¡Venta registrada con éxito!');
           
           if (modoImpresionActual === 'bluetooth') {
-            imprimirTicketBluetooth(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre);
+            imprimirTicketBluetooth(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operadorActual);
           } else {
-            imprimirTicketNavegador(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre);
+            imprimirTicketConOperadorFijo(detallesJson, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operadorActual);
           }
 
         } catch (err) {
           console.error("Error al registrar venta en Supabase:", err);
           alert('Hubo un problema al registrar en la nube. Se guardará localmente. Detalle: ' + (err.message || err));
           guardarVentaOffline(ventaLocal);
-          imprimirTicketNavegador(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)', clienteNombre);
+          imprimirTicketConOperadorFijo(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Pendiente Sync)', clienteNombre, operadorActual);
         }
       } else {
         guardarVentaOffline(ventaLocal);
         alert('⚡ Sin internet: Venta guardada localmente.');
-        imprimirTicketNavegador(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)', clienteNombre);
+        imprimirTicketConOperadorFijo(detallesJson, total, `${fechaStr} ${horaStr}`, 'Ticket (Offline)', clienteNombre, operadorActual);
       }
 
       carrito = [];
@@ -1736,7 +1739,7 @@
         try {
           const { data: vData, error: vErr } = await _supabase
             .from('ventas')
-            .insert([{ total: v.total, cliente: v.cliente || 'Consumidor Final', detalles: v.detalles }])
+            .insert([{ total: v.total, cliente: v.cliente || 'Consumidor Final', atendido_por: v.atendido_por || 'E.J', detalles: v.detalles }])
             .select();
 
           if (!vErr && vData) {
@@ -1784,10 +1787,10 @@
     }
 
     // IMPRESIÓN DIRECTA BLUETOOTH ESC/POS
-    async function imprimirTicketBluetooth(items, total, fechaStr, tituloTicket, clienteNombre) {
+    async function imprimirTicketBluetooth(items, total, fechaStr, tituloTicket, clienteNombre, operadorFijo) {
       if (!navigator.bluetooth) {
         alert("Web Bluetooth no está soportado en este navegador. Abriendo vista web estándar.");
-        imprimirTicketNavegador(items, total, fechaStr, tituloTicket, clienteNombre);
+        imprimirTicketConOperadorFijo(items, total, fechaStr, tituloTicket, clienteNombre, operadorFijo);
         return;
       }
 
@@ -1828,7 +1831,7 @@
         comandos.push(...encoder.encode("--------------------------------\n"));
         comandos.push(...encoder.encode(`${tituloTicket}\n`));
         comandos.push(...encoder.encode(`Fecha: ${fechaStr}\n`));
-        comandos.push(...encoder.encode(`Atendido por: ${obtenerAtendidoPor(usuarioActualEmail)}\n`));
+        comandos.push(...encoder.encode(`Atendido por: ${operadorFijo}\n`));
         comandos.push(...encoder.encode(`Cliente: ${clienteNombre}\n`));
         comandos.push(...encoder.encode("--------------------------------\n"));
         
@@ -1865,15 +1868,15 @@
 
       } catch (error) {
         console.warn("Impresión Bluetooth cancelada:", error);
-        imprimirTicketNavegador(items, total, fechaStr, tituloTicket, clienteNombre);
+        imprimirTicketConOperadorFijo(items, total, fechaStr, tituloTicket, clienteNombre, operadorFijo);
       }
     }
 
-    // MÉTODO CLÁSICO (GUARDAR PDF / IMPRESIÓN WEB)
-    function imprimirTicketNavegador(items, total, fechaStr, tituloTicket, clienteNombre) {
+    // MÉTODO CLÁSICO (GUARDAR PDF / IMPRESIÓN WEB) CON OPERADOR FIJO
+    function imprimirTicketConOperadorFijo(items, total, fechaStr, tituloTicket, clienteNombre, operadorFijo) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketIdVenta').textContent = tituloTicket;
-      document.getElementById('ticketAtendidoPor').textContent = obtenerAtendidoPor(usuarioActualEmail);
+      document.getElementById('ticketAtendidoPor').textContent = operadorFijo;
       document.getElementById('ticketCliente').textContent = clienteNombre || 'Consumidor Final';
       
       const ticketItemsContainer = document.getElementById('ticketItems');
@@ -2026,11 +2029,12 @@
         let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
         let fechaHoraStr = `${f_h.fecha} ${f_h.hora}`;
         let clienteNom = v.cliente || 'Consumidor Final';
+        let operadorVenta = v.atendido_por || 'E.J';
         html += `
           <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <p class="font-bold text-slate-800 text-sm">Ticket #${v.id}</p>
-              <p class="text-xs text-slate-500">${fechaHoraStr} • ${clienteNom}</p>
+              <p class="text-xs text-slate-500">${fechaHoraStr} • Cliente: ${clienteNom} • Atendido por: ${operadorVenta}</p>
             </div>
             <div class="flex items-center gap-3">
               <span class="font-bold text-slate-800 text-sm">$${parseFloat(v.total).toFixed(2)}</span>
@@ -2051,40 +2055,32 @@
 
     async function reimprimirTicketAnterior(ventaId, fechaStr, total, clienteNom) {
       let itemsParaTicket = [];
+      let operadorOriginal = "E.J";
 
       try {
-        const { data: detalles, error: errDetalles } = await _supabase
-          .from('detalle_ventas')
-          .select('*')
-          .eq('venta_id', ventaId);
+        const { data: ventaData, error: errVenta } = await _supabase
+          .from('ventas')
+          .select('detalles, total, atendido_por')
+          .eq('id', ventaId)
+          .single();
 
-        if (!errDetalles && detalles && detalles.length > 0) {
-          itemsParaTicket = detalles.map(d => ({
-            nombre: d.nombre_producto || d.nombre || 'Producto',
-            cantidad: d.cantidad || 1,
-            precio: d.precio_unitario || d.precio || 0
-          }));
-        } else {
-          const { data: ventaData, error: errVenta } = await _supabase
-            .from('ventas')
-            .select('detalles, total')
-            .eq('id', ventaId)
-            .single();
+        if (!errVenta && ventaData) {
+          if (ventaData.atendido_por) {
+            operadorOriginal = ventaData.atendido_por;
+          }
 
-          if (!errVenta && ventaData && ventaData.detalles) {
-            let arregloDetalles = ventaData.detalles;
-            if (typeof arregloDetalles === 'string') {
-              try { arregloDetalles = JSON.parse(arregloDetalles); } catch(e) {}
-            }
+          let arregloDetalles = ventaData.detalles;
+          if (typeof arregloDetalles === 'string') {
+            try { arregloDetalles = JSON.parse(arregloDetalles); } catch(e) {}
+          }
 
-            if (Array.isArray(arregloDetalles) && arregloDetalles.length > 0) {
-              itemsParaTicket = arregloDetalles.map(d => ({
-                nombre: d.nombre || d.nombre_producto || 'Producto',
-                cantidad: d.cantidad || 1,
-                precio: d.precio || d.precio_unitario || 0,
-                unidadesBulto: d.unidadesBulto || 0
-              }));
-            }
+          if (Array.isArray(arregloDetalles) && arregloDetalles.length > 0) {
+            itemsParaTicket = arregloDetalles.map(d => ({
+              nombre: d.nombre || d.nombre_producto || 'Producto',
+              cantidad: d.cantidad || 1,
+              precio: d.precio || d.precio_unitario || 0,
+              unidadesBulto: d.unidadesBulto || 0
+            }));
           }
         }
       } catch (e) {
@@ -2099,7 +2095,7 @@
         }];
       }
 
-      imprimirTicketNavegador(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`, clienteNom || 'Consumidor Final');
+      imprimirTicketConOperadorFijo(itemsParaTicket, total, fechaStr, `Ticket #${ventaId}`, clienteNom || 'Consumidor Final', operadorOriginal);
     }
 
     function reimprimirTicketLocal(index) {
@@ -2112,7 +2108,7 @@
         ? v.detalles.map(d => ({ nombre: d.nombre, cantidad: d.cantidad, precio: d.precio, unidadesBulto: d.unidadesBulto || 0 }))
         : [{ nombre: `Venta Local #${index + 1}`, cantidad: 1, precio: v.total }];
 
-      imprimirTicketNavegador(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)', v.cliente || 'Consumidor Final');
+      imprimirTicketConOperadorFijo(items, v.total, `${f_h.fecha} ${f_h.hora}`, 'Ticket (Local)', v.cliente || 'Consumidor Final', v.atendido_por || 'E.J');
     }
 
     function abrirModalPrecios() {
@@ -2234,7 +2230,6 @@
     async function descargarReporteCSV() {
       let csvContent = "ID Venta;Fecha;Hora;Atendido por;Producto;Cantidad;Precio Unitario;Subtotal\n";
       let filasAgregadas = 0;
-      let operadorActual = obtenerAtendidoPor(usuarioActualEmail);
 
       if (navigator.onLine) {
         try {
@@ -2246,6 +2241,7 @@
           if (!errVentas && ventasData && ventasData.length > 0) {
             ventasData.forEach(v => {
               let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
+              let operadorVenta = v.atendido_por || 'E.J';
               let detalles = v.detalles;
 
               if (typeof detalles === 'string') {
@@ -2259,7 +2255,7 @@
                   let precioU = d.precio || 0;
                   let subtotal = cant * precioU;
 
-                  csvContent += `"${v.id || 'N/A'}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${nombreProdClean}";"${cant}";"${precioU}";"${subtotal}"\n`;
+                  csvContent += `"${v.id || 'N/A'}";"${f_h.fecha}";"${f_h.hora}";"${operadorVenta}";"${nombreProdClean}";"${cant}";"${precioU}";"${subtotal}"\n`;
                   filasAgregadas++;
                 });
               }
