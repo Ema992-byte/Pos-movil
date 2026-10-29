@@ -2226,25 +2226,37 @@
     }
 
     async function descargarReporteCSV() {
-      let csvContent = "ID Venta;Fecha;Hora;Atendido por;Cod de Producto;Producto;Cantidad;Precio Unitario;Subtotal\n";
+      let csvContent = "ID Venta;Fecha;Hora;Atendido por;Producto;Cantidad;Precio Unitario;Subtotal\n";
       let filasAgregadas = 0;
       let operadorActual = obtenerAtendidoPor(usuarioActualEmail);
 
       if (navigator.onLine) {
         try {
-          const { data: detallesVenta, error: errDetalles } = await _supabase
-            .from('detalle_ventas')
+          const { data: ventasData, error: errVentas } = await _supabase
+            .from('ventas')
             .select('*')
             .order('id', { ascending: false });
 
-          if (!errDetalles && detallesVenta && detallesVenta.length > 0) {
-            detallesVenta.forEach(d => {
-              let f_h = formatearFechaYHoraEstricta(d.fecha, d.hora, d.creado_en);
-              let codProd = d.codigo_barras || 'S/C';
-              let nombreProdClean = (d.nombre_producto || 'Producto').replace(/"/g, '""');
+          if (!errVentas && ventasData && ventasData.length > 0) {
+            ventasData.forEach(v => {
+              let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
+              let detalles = v.detalles;
 
-              csvContent += `"${d.venta_id || 'N/A'}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${codProd}";"${nombreProdClean}";"${d.cantidad || 1}";"${d.precio_unitario || 0}";"${d.subtotal || 0}"\n`;
-              filasAgregadas++;
+              if (typeof detalles === 'string') {
+                try { detalles = JSON.parse(detalles); } catch(e) {}
+              }
+
+              if (Array.isArray(detalles) && detalles.length > 0) {
+                detalles.forEach(d => {
+                  let nombreProdClean = (d.nombre || 'Producto').replace(/"/g, '""');
+                  let cant = d.cantidad || 1;
+                  let precioU = d.precio || 0;
+                  let subtotal = cant * precioU;
+
+                  csvContent += `"${v.id || 'N/A'}";"${f_h.fecha}";"${f_h.hora}";"${operadorActual}";"${nombreProdClean}";"${cant}";"${precioU}";"${subtotal}"\n`;
+                  filasAgregadas++;
+                });
+              }
             });
           }
         } catch (e) {
