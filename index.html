@@ -2024,29 +2024,71 @@
         return;
       }
 
+      // Validar si el usuario actual es admini@pos.com o admine@pos.com para mostrar botón de eliminar
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const puedeEliminarVentas = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+
       let html = '';
       data.forEach(v => {
         let f_h = formatearFechaYHoraEstricta(v.fecha, v.hora, v.creado_en);
         let fechaHoraStr = `${f_h.fecha} ${f_h.hora}`;
         let clienteNom = v.cliente || 'Consumidor Final';
         let operadorVenta = v.atendido_por || 'E.J';
+
+        let botonEliminarHtml = '';
+        if (puedeEliminarVentas) {
+          botonEliminarHtml = `
+            <button onclick="eliminarVentaSupabase(${v.id})" title="Eliminar Venta"
+              class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded text-xs font-bold shadow-sm">
+              🗑️
+            </button>
+          `;
+        }
+
         html += `
           <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
             <div>
               <p class="font-bold text-slate-800 text-sm">Ticket #${v.id}</p>
               <p class="text-xs text-slate-500">${fechaHoraStr} • Cliente: ${clienteNom} • Atendido por: ${operadorVenta}</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               <span class="font-bold text-slate-800 text-sm">$${parseFloat(v.total).toFixed(2)}</span>
               <button onclick="reimprimirTicketAnterior(${v.id}, '${fechaHoraStr}', ${v.total}, '${clienteNom.replace(/'/g, "\\'")}')" 
                 class="bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 rounded text-xs font-medium">
                 🖨️ Reimprimir
               </button>
+              ${botonEliminarHtml}
             </div>
           </div>
         `;
       });
       contenedor.innerHTML = html;
+    }
+
+    async function eliminarVentaSupabase(ventaId) {
+      if (!confirm(`¿Está seguro de eliminar el Ticket #${ventaId}? Esta acción no se puede deshacer.`)) {
+        return;
+      }
+
+      if (!navigator.onLine) {
+        alert("Necesita internet para eliminar ventas de la base de datos.");
+        return;
+      }
+
+      try {
+        // Eliminar registros hijos en detalle_ventas si existen por llave foránea
+        await _supabase.from('detalle_ventas').delete().eq('venta_id', ventaId);
+
+        // Eliminar el registro principal en ventas
+        const { error } = await _supabase.from('ventas').delete().eq('id', ventaId);
+
+        if (error) throw error;
+
+        alert(`¡Ticket #${ventaId} eliminado con éxito!`);
+        abrirModalHistorial(); // Recargar la lista
+      } catch (err) {
+        alert("Error al eliminar la venta: " + (err.message || err));
+      }
     }
 
     function cerrarModalHistorial() {
