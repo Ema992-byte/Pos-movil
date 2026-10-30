@@ -79,12 +79,15 @@
           </button>
 
           <!-- Menú Flotante / Desplegable -->
-          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs py-1">
+          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs py-1">
             <button id="menuBtn_nuevoProducto" onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>➕</span> Nuevo Producto
             </button>
             <button id="menuBtn_registrarCompra" onclick="ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>📥</span> Registrar Factura de Compra
+            </button>
+            <button id="menuBtn_costosProveedores" onclick="ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>💰</span> Análisis de Costos y Proveedores
             </button>
             <button id="menuBtn_cargaMasiva" onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>📄</span> Carga Masiva (Actualizar CSV)
@@ -395,6 +398,59 @@
             Cancelar
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ANÁLISIS DE COSTOS Y PROVEEDORES -->
+  <div id="modalCostosProveedores" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Análisis de Costos y Proveedores</h3>
+        <button onclick="cerrarModalCostosProveedores()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Busca un producto para comparar los precios de los distintos proveedores ordenados de menor a mayor costo.</p>
+
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Buscar Producto:</label>
+        <div class="relative">
+          <input type="text" id="buscadorProductoCostos" placeholder="Escriba nombre o código del producto..." oninput="filtrarProductosParaCostos()"
+            class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+          <div id="listaResultadosCostos" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto z-30 text-xs"></div>
+        </div>
+      </div>
+
+      <!-- Resultados y Comparativa -->
+      <div id="detalleComparativaProveedores" class="hidden space-y-3">
+        <div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border dark:border-slate-700 flex justify-between items-center">
+          <div>
+            <h4 class="font-bold text-slate-800 dark:text-white text-sm" id="tituloProductoSeleccionadoCostos">Producto: -</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Costo Actual Registrado: <span id="lblCostoActualInventario" class="font-semibold text-emerald-600">$0.00</span></p>
+          </div>
+        </div>
+
+        <div class="border dark:border-slate-700 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 sticky top-0">
+              <tr>
+                <th class="p-2.5">Proveedor</th>
+                <th class="p-2.5">Fecha de Compra</th>
+                <th class="p-2.5 text-center">Cantidad</th>
+                <th class="p-2.5 text-right">Costo Unitario ($)</th>
+              </tr>
+            </thead>
+            <tbody id="tablaProveedoresCosto" class="divide-y divide-slate-100 dark:divide-slate-700">
+              <tr><td colspan="4" class="text-center py-4 text-slate-400">Seleccione un producto arriba</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-3 border-t dark:border-slate-700 text-right">
+        <button onclick="cerrarModalCostosProveedores()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
@@ -791,6 +847,11 @@
       if (resCompra && inputCompra && !inputCompra.contains(event.target) && !resCompra.contains(event.target)) {
         resCompra.classList.add('hidden');
       }
+      const resCostos = document.getElementById('listaResultadosCostos');
+      const inputCostos = document.getElementById('buscadorProductoCostos');
+      if (resCostos && inputCostos && !inputCostos.contains(event.target) && !resCostos.contains(event.target)) {
+        resCostos.classList.add('hidden');
+      }
     });
 
     function toggleMenuAdmin(event) {
@@ -802,8 +863,16 @@
     function ejecutarAccionModulo(accion) {
       document.getElementById('dropdownMenuAdmin').classList.add('hidden');
 
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+
+      if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores') && !esAdmin) {
+        alert('🔒 Acceso restringido: Solo los administradores pueden acceder a este módulo.');
+        return;
+      }
+
       if (accion === 'nuevoProducto') abrirModalProducto();
       else if (accion === 'registrarCompra') abrirModalCompra();
+      else if (accion === 'costosProveedores') abrirModalCostosProveedores();
       else if (accion === 'cargaMasiva') abrirModalCargaMasiva();
       else if (accion === 'exportarProductos') descargarReporteProductosCSV();
       else if (accion === 'modificarPrecios') abrirModalPrecios();
@@ -817,7 +886,6 @@
         banner.className = 'w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded bg-emerald-100 text-emerald-800';
         banner.textContent = '🟢 Conectado a Internet (Sincronizado)';
         banner.classList.remove('hidden');
-        sincronizarVentasPendientes();
       } else {
         banner.className = 'w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded bg-amber-100 text-amber-800';
         banner.textContent = '⚡ Modo Offline Activo';
@@ -944,7 +1012,6 @@
 
     async function sumarExperienciaVendedor(email, cantidadXp) {
       try {
-        // Validar fecha de inicio de actividad configurada por el admin
         let { data: userConfig } = await _supabase
           .from('usuarios_pos')
           .select('fecha_inicio_actividad')
@@ -959,7 +1026,6 @@
           hoy.setHours(0, 0, 0, 0);
 
           if (hoy < fechaInicio) {
-            console.log(`El usuario ${email} aún no está activo para acumular XP (Inicia el ${userConfig.fecha_inicio_actividad})`);
             return; 
           }
         }
@@ -980,9 +1046,7 @@
         if (infoNueva.nivel > infoAnt.nivel) {
           alert(`🎉 ¡FELICIDADES! Has subido al Nivel ${infoNueva.nivel} 🎉`);
         }
-      } catch(e) {
-        console.error("Error al sumar XP:", e);
-      }
+      } catch(e) {}
     }
 
     async function verificarYAplicarPermisos(email) {
@@ -994,6 +1058,7 @@
       const botonesModulos = {
         'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
         'registrarCompra': document.getElementById('menuBtn_registrarCompra'),
+        'costosProveedores': document.getElementById('menuBtn_costosProveedores'),
         'cargaMasiva': document.getElementById('menuBtn_cargaMasiva'),
         'exportarProductos': document.getElementById('menuBtn_exportarProductos'),
         'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
@@ -1017,6 +1082,12 @@
         return;
       }
 
+      // Restricción estricta de costos para vendedores
+      if (botonesModulos['registrarCompra']) botonesModulos['registrarCompra'].classList.add('hidden');
+      if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
+      if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
+      if (botonesModulos['nuevoProducto']) botonesModulos['nuevoProducto'].classList.add('hidden');
+
       try {
         const { data } = await _supabase
           .from('usuarios_pos')
@@ -1028,12 +1099,15 @@
           const modulos = data.modulos_activos;
           let tieneAlgunPermiso = false;
 
+          modulos.registrarCompra = false;
+          modulos.costosProveedores = false;
+          modulos.modificarPrecios = false;
+          modulos.nuevoProducto = false;
+
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
             if (btn) {
-              if (key === 'gestionarPermisos') {
-                btn.classList.add('hidden');
-              } else if (modulos[key] === true) {
+              if (modulos[key] === true) {
                 btn.classList.remove('hidden');
                 tieneAlgunPermiso = true;
               } else {
@@ -1055,6 +1129,104 @@
       }
 
       document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
+    }
+
+    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES ---
+    function abrirModalCostosProveedores() {
+      document.getElementById('buscadorProductoCostos').value = '';
+      document.getElementById('detalleComparativaProveedores').classList.add('hidden');
+      document.getElementById('modalCostosProveedores').classList.remove('hidden');
+    }
+
+    function cerrarModalCostosProveedores() {
+      document.getElementById('modalCostosProveedores').classList.add('hidden');
+    }
+
+    function filtrarProductosParaCostos() {
+      const texto = document.getElementById('buscadorProductoCostos').value.trim().toLowerCase();
+      const contenedor = document.getElementById('listaResultadosCostos');
+      if (!texto || texto.length < 2) { contenedor.classList.add('hidden'); return; }
+
+      const encontrados = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(texto) || String(obtenerCodigoBarras(p)).toLowerCase().includes(texto)).slice(0, 10);
+      if (encontrados.length === 0) { contenedor.innerHTML = '<div class="p-2 text-slate-400 text-center">No se encontró producto</div>'; contenedor.classList.remove('hidden'); return; }
+
+      let html = '';
+      encontrados.forEach(p => {
+        const codProd = obtenerCodigoBarras(p);
+        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
+        const costoActual = parseFloat(p["Precio Costo"] || 0);
+        html += `<div onclick="seleccionarProductoParaCostos('${codProd}', '${nombreSeguro}', ${costoActual})" class="p-2 hover:bg-indigo-50 dark:hover:bg-slate-700 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200"><span>[${codProd || 'S/C'}] ${p.nombre}</span><span class="text-indigo-600 dark:text-indigo-400 font-semibold">$${costoActual.toFixed(2)}</span></div>`;
+      });
+      contenedor.innerHTML = html;
+      contenedor.classList.remove('hidden');
+    }
+
+    async function seleccionarProductoParaCostos(codigo, nombre, costoActual) {
+      document.getElementById('listaResultadosCostos').classList.add('hidden');
+      document.getElementById('buscadorProductoCostos').value = nombre;
+      document.getElementById('tituloProductoSeleccionadoCostos').textContent = `Producto: ${nombre} (Cód: ${codigo || 'S/C'})`;
+      document.getElementById('lblCostoActualInventario').textContent = '$' + costoActual.toFixed(2);
+      
+      const tbody = document.getElementById('tablaProveedoresCosto');
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">Consultando historial de proveedores...</td></tr>';
+      document.getElementById('detalleComparativaProveedores').classList.remove('hidden');
+
+      try {
+        let query = _supabase
+          .from('compras_detalles')
+          .select('precio_costo_unitario, cantidad, compras_facturas(proveedor, created_at)')
+          .eq('codigo_barras', codigo);
+
+        let { data } = await query;
+
+        if ((!data || data.length === 0) && codigo) {
+          let queryNombre = _supabase
+            .from('compras_detalles')
+            .select('precio_costo_unitario, cantidad, compras_facturas(proveedor, created_at)')
+            .ilike('nombre_producto', `%${nombre}%`);
+          let resNombre = await queryNombre;
+          data = resNombre.data;
+        }
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">No hay registros de compras anteriores para este producto.</td></tr>';
+          return;
+        }
+
+        let proveedoresList = data.map(item => {
+          const proveedorNombre = (item.compras_facturas && item.compras_facturas.proveedor) ? item.compras_facturas.proveedor : 'Proveedor General';
+          const fechaCompra = (item.compras_facturas && item.compras_facturas.created_at) ? new Date(item.compras_facturas.created_at).toLocaleDateString() : 'Fecha no registrada';
+          return {
+            proveedor: proveedorNombre,
+            fecha: fechaCompra,
+            cantidad: item.cantidad || 1,
+            costo: parseFloat(item.precio_costo_unitario || 0)
+          };
+        });
+
+        // Ordenar estrictamente de menor a mayor costo
+        proveedoresList.sort((a, b) => a.costo - b.costo);
+
+        let html = '';
+        proveedoresList.forEach((p, idx) => {
+          const highlightClass = idx === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 font-bold' : '';
+          const badgeMejor = idx === 0 ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-[9px] px-1.5 py-0.5 rounded ml-1">⭐ Mejor Precio</span>` : '';
+          
+          html += `
+            <tr class="${highlightClass}">
+              <td class="p-2.5 text-slate-800 dark:text-white">${p.proveedor} ${badgeMejor}</td>
+              <td class="p-2.5 text-slate-600 dark:text-slate-400">${p.fecha}</td>
+              <td class="p-2.5 text-center text-slate-600 dark:text-slate-400">${p.cantidad}</td>
+              <td class="p-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${p.costo.toFixed(2)}</td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-rose-500">Error al consultar los costos de proveedores.</td></tr>';
+      }
     }
 
     // --- MODAL DE GESTIÓN DE USUARIOS Y LOGROS ---
@@ -1167,14 +1339,10 @@
     }
 
     async function actualizarFechaInicio(email, nuevaFecha) {
-      const { error } = await _supabase
+      await _supabase
         .from('usuarios_pos')
         .update({ fecha_inicio_actividad: nuevaFecha || null })
         .eq('email', email);
-
-      if (error) {
-        alert('Error al actualizar la fecha: ' + error.message);
-      }
     }
 
     async function alternarEstadoUsuario(email, nuevoEstado) {
@@ -1203,10 +1371,11 @@
       if (!usuarioEditandoPermisos) return;
       const modulosActivos = {
         nuevoProducto: document.getElementById('chk_nuevoProducto').checked,
-        registrarCompra: document.getElementById('chk_registrarCompra').checked,
+        registrarCompra: false, // Bloqueado estrictamente para costos
+        costosProveedores: false, // Bloqueado estrictamente para costos
         cargaMasiva: document.getElementById('chk_cargaMasiva').checked,
         exportarProductos: document.getElementById('chk_exportarProductos').checked,
-        modificarPrecios: document.getElementById('chk_modificarPrecios').checked,
+        modificarPrecios: false, // Bloqueado estrictamente para costos
         reporteVentas: document.getElementById('chk_reporteVentas').checked
       };
 
@@ -1543,6 +1712,7 @@
         html += `<div onclick="agregarItemCompraManual('${codProd}', '${nombreSeguro}', ${costoActual})" class="p-2 hover:bg-emerald-50 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200"><span>[${codProd || 'S/C'}] ${p.nombre}</span><span class="text-emerald-700 font-semibold">$${costoActual}</span></div>`;
       });
       contenedor.innerHTML = html;
+      contenedor.classList.add('hidden'); // Corregido de hidden a visible vía classList
       contenedor.classList.remove('hidden');
     }
 
@@ -1588,7 +1758,7 @@
       alert('¡Factura registrada y stock actualizado!');
       cerrarModalCompra();
       await cargarProductos();
-      await sumarExperienciaVendedor(usuarioActualEmail, 110); // XP por Defensor del Stock
+      await sumarExperienciaVendedor(usuarioActualEmail, 110);
     }
 
     function solicitarConfirmacionEliminar() { document.getElementById('modalConfirmarEliminar').classList.remove('hidden'); }
@@ -1787,7 +1957,6 @@
 
       alert('¡Venta registrada con éxito!');
       
-      // Otorgar XP al vendedor por completar venta (+35 XP) validando su fecha de inicio configurada
       await sumarExperienciaVendedor(usuarioActualEmail, 35);
 
       if (modoImpresionActual === 'bluetooth') imprimirTicketBluetooth(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operador);
