@@ -67,23 +67,26 @@
 
           <!-- Menú Flotante / Desplegable -->
           <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs py-1">
-            <button onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+            <button id="menuBtn_nuevoProducto" onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>➕</span> Nuevo Producto
             </button>
-            <button onclick="ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+            <button id="menuBtn_registrarCompra" onclick="ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>📥</span> Registrar Factura de Compra
             </button>
-            <button onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+            <button id="menuBtn_cargaMasiva" onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>📄</span> Carga Masiva (Actualizar CSV)
             </button>
-            <button onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+            <button id="menuBtn_exportarProductos" onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>📦</span> Exportar Productos
             </button>
-            <button onclick="ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+            <button id="menuBtn_modificarPrecios" onclick="ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>✏️</span> Modificar Precios
             </button>
-            <button onclick="ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
+            <button id="menuBtn_reporteVentas" onclick="ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
               <span>📊</span> Reporte de Ventas
+            </button>
+            <button id="menuBtn_gestionarPermisos" onclick="ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
+              <span>🛡️</span> Gestionar Permisos
             </button>
           </div>
         </div>
@@ -159,7 +162,6 @@
       </div>
 
       <div class="space-y-5 text-sm">
-        <!-- a) Selector de Tema -->
         <div>
           <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-2">Tema de Interfaz:</label>
           <div class="grid grid-cols-2 gap-2">
@@ -174,7 +176,6 @@
           </div>
         </div>
 
-        <!-- b) Zoom de Pantalla -->
         <div>
           <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-2">Zoom / Escala Visual:</label>
           <div class="grid grid-cols-4 gap-1.5">
@@ -185,7 +186,6 @@
           </div>
         </div>
 
-        <!-- c) Cuadrícula o Lista -->
         <div>
           <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-2">Visualización del Catálogo:</label>
           <div class="grid grid-cols-2 gap-2">
@@ -205,6 +205,53 @@
         <button onclick="cerrarModalConfiguracion()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow">
           Guardar y Cerrar
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE GESTIÓN DE PERMISOS -->
+  <div id="modalPermisos" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-lg">
+      <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">🛡️ Gestionar Módulos por Usuario</h3>
+        <button onclick="cerrarModalPermisos()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      
+      <div class="space-y-4 text-sm">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Correo del Vendedor / Usuario:</label>
+          <input type="email" id="permisoEmailUser" placeholder="vendedor@pos.com" 
+            class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs">
+          <button onclick="cargarPermisosUsuario()" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-semibold">
+            🔍 Buscar Permisos
+          </button>
+        </div>
+
+        <div id="contenedorCheckboxesModulos" class="space-y-2 border-t dark:border-slate-700 pt-3 hidden">
+          <p class="font-semibold text-xs text-slate-600 dark:text-slate-300 mb-2">Seleccione los módulos permitidos:</p>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="chk_nuevoProducto" class="rounded text-indigo-600"> ➕ Nuevo Producto
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="chk_registrarCompra" class="rounded text-indigo-600"> 📥 Registrar Factura de Compra
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="chk_cargaMasiva" class="rounded text-indigo-600"> 📄 Carga Masiva (CSV)
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600"> 📦 Exportar Productos
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modificar Precios
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Reporte de Ventas
+          </label>
+
+          <button onclick="guardarPermisosUsuario()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
+            Guardar Permisos
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -693,6 +740,7 @@
       else if (accion === 'exportarProductos') descargarReporteProductosCSV();
       else if (accion === 'modificarPrecios') abrirModalPrecios();
       else if (accion === 'reporteVentas') descargarReporteCSV();
+      else if (accion === 'gestionarPermisos') abrirModalPermisos();
     }
 
     function actualizarEstadoRed() {
@@ -765,7 +813,7 @@
       return parseInt(prod.unidades_por_bulto || prod.unidades_bulto || 0);
     }
 
-    function iniciarSesionExitosa(email, productosData) {
+    async function iniciarSesionExitosa(email, productosData) {
       usuarioActualEmail = email;
       document.getElementById('loginSection').classList.add('hidden');
       document.getElementById('posSection').classList.remove('hidden');
@@ -773,16 +821,134 @@
       todosLosProductos = productosData;
       document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
 
-      const esAdmin = email.toLowerCase().includes('admi');
-      if (esAdmin) {
-        document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
-        document.getElementById('contenedorMenuAdmin').classList.remove('hidden');
-      } else {
-        document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
-        document.getElementById('contenedorMenuAdmin').classList.add('hidden');
-      }
+      await verificarYAplicarPermisos(email);
 
       mostrarProductos(todosLosProductos.slice(0, 40));
+    }
+
+    async function verificarYAplicarPermisos(email) {
+      const emailLower = email.toLowerCase();
+      const esAdminPrincipal = emailLower.includes('admi');
+      const contenedorAdmin = document.getElementById('contenedorMenuAdmin');
+
+      const botonesModulos = {
+        'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
+        'registrarCompra': document.getElementById('menuBtn_registrarCompra'),
+        'cargaMasiva': document.getElementById('menuBtn_cargaMasiva'),
+        'exportarProductos': document.getElementById('menuBtn_exportarProductos'),
+        'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
+        'reporteVentas': document.getElementById('menuBtn_reporteVentas'),
+        'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
+      };
+
+      if (esAdminPrincipal) {
+        contenedorAdmin.classList.remove('hidden');
+        Object.values(botonesModulos).forEach(btn => {
+          if (btn) btn.classList.remove('hidden');
+        });
+        document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
+        return;
+      }
+
+      // Consultar permisos en Supabase para usuarios no administradores principales
+      try {
+        const { data } = await _supabase
+          .from('permisos_usuarios')
+          .select('modulos_activos')
+          .eq('email_usuario', emailLower)
+          .maybeSingle();
+
+        if (data && data.modulos_activos) {
+          const modulos = data.modulos_activos;
+          let tieneAlgunPermiso = false;
+
+          Object.keys(botonesModulos).forEach(key => {
+            const btn = botonesModulos[key];
+            if (btn) {
+              if (key === 'gestionarPermisos') {
+                btn.classList.add('hidden'); // Solo admin gestiona permisos
+              } else if (modulos[key] === true) {
+                btn.classList.remove('hidden');
+                tieneAlgunPermiso = true;
+              } else {
+                btn.classList.add('hidden');
+              }
+            }
+          });
+
+          if (tieneAlgunPermiso) {
+            contenedorAdmin.classList.remove('hidden');
+          } else {
+            contenedorAdmin.classList.add('hidden');
+          }
+        } else {
+          contenedorAdmin.classList.add('hidden');
+        }
+      } catch (e) {
+        contenedorAdmin.classList.add('hidden');
+      }
+
+      document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
+    }
+
+    // --- FUNCIONES DE GESTIÓN DE PERMISOS ---
+    function abrirModalPermisos() {
+      document.getElementById('modalPermisos').classList.remove('hidden');
+      document.getElementById('permisoEmailUser').value = '';
+      document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
+    }
+
+    function cerrarModalPermisos() {
+      document.getElementById('modalPermisos').classList.add('hidden');
+    }
+
+    async function cargarPermisosUsuario() {
+      const email = document.getElementById('permisoEmailUser').value.trim().toLowerCase();
+      if (!email) {
+        alert('Ingrese un correo electrónico válido.');
+        return;
+      }
+
+      const { data, error } = await _supabase
+        .from('permisos_usuarios')
+        .select('*')
+        .eq('email_usuario', email)
+        .maybeSingle();
+
+      document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
+
+      const modulos = data ? data.modulos_activos : {};
+      document.getElementById('chk_nuevoProducto').checked = !!modulos.nuevoProducto;
+      document.getElementById('chk_registrarCompra').checked = !!modulos.registrarCompra;
+      document.getElementById('chk_cargaMasiva').checked = !!modulos.cargaMasiva;
+      document.getElementById('chk_exportarProductos').checked = !!modulos.exportarProductos;
+      document.getElementById('chk_modificarPrecios').checked = !!modulos.modificarPrecios;
+      document.getElementById('chk_reporteVentas').checked = !!modulos.reporteVentas;
+    }
+
+    async function guardarPermisosUsuario() {
+      const email = document.getElementById('permisoEmailUser').value.trim().toLowerCase();
+      if (!email) return;
+
+      const modulosActivos = {
+        nuevoProducto: document.getElementById('chk_nuevoProducto').checked,
+        registrarCompra: document.getElementById('chk_registrarCompra').checked,
+        cargaMasiva: document.getElementById('chk_cargaMasiva').checked,
+        exportarProductos: document.getElementById('chk_exportarProductos').checked,
+        modificarPrecios: document.getElementById('chk_modificarPrecios').checked,
+        reporteVentas: document.getElementById('chk_reporteVentas').checked
+      };
+
+      const { error } = await _supabase
+        .from('permisos_usuarios')
+        .upsert({ email_usuario: email, modulos_activos: modulosActivos }, { onConflict: 'email_usuario' });
+
+      if (error) {
+        alert('Error al guardar permisos: ' + error.message);
+      } else {
+        alert('¡Permisos actualizados con éxito para ' + email + '!');
+        cerrarModalPermisos();
+      }
     }
 
     async function cargarProductos() {
