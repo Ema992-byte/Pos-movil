@@ -49,17 +49,30 @@
 
   <!-- PANTALLA PRINCIPAL DEL POS -->
   <div id="posSection" class="hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg w-full max-w-6xl transition-colors duration-200">
+    
+    <!-- BARRA SUPERIOR CON BOTÓN HAMBURGUESA A LA IZQUIERDA -->
     <div class="flex justify-between items-center mb-6 border-b dark:border-slate-700 pb-4 flex-wrap gap-2">
-      <div>
-        <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-wide">GO! POS 📱</h1>
-        <p id="usuarioRol" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5"></p>
-        <!-- BARRA DE NIVEL Y XP -->
-        <div id="barraNivelContainer" class="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-          <span id="labelNivelBadge" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-bold px-2 py-0.5 rounded">Nivel 1</span>
-          <div class="w-32 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-            <div id="barraXpProgreso" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+      <div class="flex items-center gap-3">
+        <!-- Botón Hamburguesa Superior Izquierda -->
+        <button onclick="toggleSidebarMenu()" class="bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white p-2.5 rounded-xl shadow flex items-center justify-center transition-all" aria-label="Abrir menú de módulos">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <div>
+          <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-wide">GO! POS 📱</h1>
+          <p id="usuarioRol" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5"></p>
+          <!-- BARRA DE NIVEL Y XP -->
+          <div id="barraNivelContainer" class="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span id="labelNivelBadge" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-bold px-2 py-0.5 rounded">Nivel 1</span>
+            <div class="w-32 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+              <div id="barraXpProgreso" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+            </div>
+            <span id="labelXpTexto" class="text-[10px]">0 / 400 XP</span>
           </div>
-          <span id="labelXpTexto" class="text-[10px]">0 / 400 XP</span>
         </div>
       </div>
 
@@ -171,6 +184,50 @@
       </div>
     </div>
   </div>
+
+  <!-- MENÚ LATERAL DESPLEGABLE (SIDEBAR DRAWER) -->
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 z-50" onclick="toggleSidebarMenu()"></div>
+  <aside id="sidebarMenu" class="fixed top-0 left-[-300px] w-[280px] h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transition-all duration-300 flex flex-col border-r dark:border-slate-700">
+    <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
+      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Módulos GO!</h3>
+      <button onclick="toggleSidebarMenu()" class="text-white hover:bg-indigo-700 p-1.5 rounded-lg font-bold">✕</button>
+    </div>
+    <div class="p-3 flex-grow overflow-y-auto space-y-1.5 text-sm">
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
+        <span>➕</span> Nuevo Producto
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2.5">
+        <span>📥</span> Registrar Factura Compra
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2.5">
+        <span>💰</span> Análisis de Costos
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2.5">
+        <span>📄</span> Carga Masiva (CSV)
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2.5">
+        <span>📦</span> Exportar Productos
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2.5">
+        <span>✏️</span> Modificar Precios
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2.5">
+        <span>📊</span> Reporte de Ventas
+      </button>
+      <button onclick="toggleSidebarMenu(); abrirModalHistorial()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sky-700 dark:text-sky-400 font-medium flex items-center gap-2.5">
+        <span>📜</span> Historial de Ventas
+      </button>
+      <button onclick="toggleSidebarMenu(); abrirModalMisLogros()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 font-medium flex items-center gap-2.5">
+        <span>🏆</span> Mis Logros
+      </button>
+      <button onclick="toggleSidebarMenu(); abrirModalConfiguracion()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2.5">
+        <span>⚙️</span> Configuración
+      </button>
+      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2.5 border-t dark:border-slate-700 mt-2 pt-3">
+        <span>🛡️</span> Gestión de Usuarios
+      </button>
+    </div>
+  </aside>
 
   <!-- MODAL DE CONFIGURACIÓN -->
   <div id="modalConfiguracion" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
@@ -774,12 +831,27 @@
       tema: localStorage.getItem('go_config_tema') || 'light',
       zoom: localStorage.getItem('go_config_zoom') || '100',
       vista: localStorage.getItem('go_config_vista') || 'grid',
-      notifPrecios: localStorage.getItem('go_config_notif') !== 'false' // por defecto activado (true)
+      notifPrecios: localStorage.getItem('go_config_notif') !== 'false'
     };
 
     document.addEventListener("DOMContentLoaded", () => {
       aplicarConfiguracionGlobal();
     });
+
+    // --- FUNCIÓN PARA CONTROLAR EL MENÚ LATERAL (SIDEBAR DRAWER) ---
+    function toggleSidebarMenu() {
+      const sidebar = document.getElementById('sidebarMenu');
+      const overlay = document.getElementById('sidebarOverlay');
+      if (!sidebar || !overlay) return;
+
+      if (sidebar.style.left === '0px') {
+        sidebar.style.left = '-300px';
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+      } else {
+        sidebar.style.left = '0px';
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+      }
+    }
 
     function aplicarConfiguracionGlobal() {
       const htmlEl = document.documentElement;
@@ -918,9 +990,9 @@
       return false;
     }
 
-    // --- NUEVO: SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
+    // --- SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
     function mostrarNotificacionFlotante(titulo, mensaje) {
-      if (!configActual.notifPrecios) return; // Si el usuario desactivó las notificaciones en configuración, no se muestran
+      if (!configActual.notifPrecios) return;
 
       const contenedor = document.getElementById('contenedorNotificaciones');
       if (!contenedor) return;
@@ -946,7 +1018,6 @@
         }
       }, 10);
 
-      // Auto-remover a los 6 segundos
       setTimeout(() => {
         if (elemento) {
           elemento.classList.add('translate-y-2', 'opacity-0');
@@ -955,7 +1026,6 @@
       }, 6000);
     }
 
-    // Suscripción en Tiempo Real a cambios en la tabla 'productos' de Supabase
     function inicializarSuscripcionPreciosRealtime() {
       _supabase
         .channel('cambios-precios-productos')
@@ -966,7 +1036,6 @@
             const prodNuevo = payload.new;
             const prodViejo = payload.old;
 
-            // Verificar si hubo cambios en los precios (minorista o mayorista)
             const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
             const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
 
@@ -980,7 +1049,6 @@
                 detalleCambios.join(' | ')
               );
 
-              // Recargar silenciosamente el catálogo local para refrescar los precios en pantalla
               cargarProductosSilencioso();
             }
           }
@@ -1073,7 +1141,6 @@
         await cargarProductos();
         await cargarProgresoVendedor(usuarioActualEmail);
         
-        // Iniciar canal de notificaciones en tiempo real
         inicializarSuscripcionPreciosRealtime();
 
       } catch (err) {
