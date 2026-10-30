@@ -695,7 +695,7 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM -->
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (Unificada para todos) -->
   <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
     <div class="text-center font-black text-lg tracking-widest mb-0.5">GO!</div>
     <div class="text-center text-[9px] text-slate-700 mb-1.5">Punto de Venta Móvil</div>
@@ -721,12 +721,12 @@
       <span id="ticketCliente">Consumidor Final</span>
     </div>
 
-    <!-- COLUMNA CANTIDAD -->
+    <!-- COLUMNAS UNIFICADAS -->
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
       <span class="w-[18%] text-left">Cant.</span>
-      <span class="w-[38%] text-left px-0.5 break-words">Descripción</span>
+      <span class="w-[42%] text-left px-0.5">Descripción</span>
       <span class="w-[20%] text-right">P.U.</span>
-      <span class="w-[24%] text-right">Importe</span>
+      <span class="w-[20%] text-right">Importe</span>
     </div>
     <div class="border-b border-black mb-1.5"></div>
 
@@ -908,7 +908,7 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
-    // --- LOGIN STRICTO CON VERIFICACIÓN DE ESTADO CONGELADO / ACTIVO ---
+    // LOGIN
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
@@ -957,9 +957,9 @@
       const emailLower = (email || '').toLowerCase();
       if (emailLower.includes('admini')) return 'I.S.';
       if (emailLower.includes('admine')) return 'E.S.';
-      if (emailLower.includes('admi')) return 'E.J';
-      let nombre = emailLower.split('@')[0];
-      return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+      if (emailLower.includes('admi')) return 'E.J.';
+      let nombreBase = emailLower.split('@')[0];
+      return nombreBase.charAt(0).toUpperCase() + nombreBase.slice(1);
     }
 
     function obtenerCodigoBarras(prod) { return prod.codigo_barras || prod.codigo_barra || ''; }
@@ -981,7 +981,7 @@
       mostrarProductos(todosLosProductos.slice(0, 40));
     }
 
-    // --- SISTEMA DE NIVELES Y XP (Hasta 100) CON VALIDACIÓN DE FECHA DE INICIO ---
+    // NIVELES Y XP
     async function cargarProgresoVendedor(email) {
       try {
         let { data } = await _supabase.from('vendedor_niveles').select('*').eq('email', email).maybeSingle();
@@ -996,7 +996,7 @@
 
     function calcularNivelYProgreso(xpTotal) {
       let nivel = 1;
-      let xpRequeridaNivelSiguiente = 400; // Calibrado al volumen diario
+      let xpRequeridaNivelSiguiente = 400;
       
       while (xpTotal >= xpRequeridaNivelSiguiente && nivel < 100) {
         xpTotal -= xpRequeridaNivelSiguiente;
@@ -1035,13 +1035,9 @@
         if (userConfig && userConfig.fecha_inicio_actividad) {
           const fechaInicio = new Date(userConfig.fecha_inicio_actividad);
           const hoy = new Date();
-          
           fechaInicio.setHours(0, 0, 0, 0);
           hoy.setHours(0, 0, 0, 0);
-
-          if (hoy < fechaInicio) {
-            return; 
-          }
+          if (hoy < fechaInicio) return; 
         }
 
         let { data } = await _supabase.from('vendedor_niveles').select('*').eq('email', email).maybeSingle();
@@ -1096,7 +1092,6 @@
         return;
       }
 
-      // Restricción estricta de costos para vendedores
       if (botonesModulos['registrarCompra']) botonesModulos['registrarCompra'].classList.add('hidden');
       if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
       if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
@@ -1145,7 +1140,7 @@
       document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
     }
 
-    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES (Con buscador incompleto flexible) ---
+    // COSTOS Y PROVEEDORES
     function abrirModalCostosProveedores() {
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
@@ -1234,7 +1229,6 @@
           };
         });
 
-        // Ordenar estrictamente de menor a mayor costo
         proveedoresList.sort((a, b) => a.costo - b.costo);
 
         let html = '';
@@ -1259,7 +1253,7 @@
       }
     }
 
-    // --- MODAL DE GESTIÓN DE USUARIOS Y LOGROS ---
+    // MODAL PERMISOS
     function abrirModalPermisos() {
       document.getElementById('modalPermisos').classList.remove('hidden');
       mostrarSubPestanaPermisos('crear');
@@ -1312,7 +1306,11 @@
 
       try {
         const { error: authErr } = await _supabase.auth.signUp({ email: email, password: password });
-        if (authErr) throw authErr;
+        
+        // Manejo automático si el usuario ya existe en Auth
+        if (authErr && !authErr.message.includes('already registered')) {
+          throw authErr;
+        }
 
         const { error: dbErr } = await _supabase
           .from('usuarios_pos')
@@ -1320,13 +1318,13 @@
 
         if (dbErr) throw dbErr;
 
-        alert(`¡Usuario vendedor "${email}" creado exitosamente!`);
+        alert(`¡Usuario vendedor "${email}" configurado con éxito!`);
         document.getElementById('nuevoUserEmail').value = '';
         document.getElementById('nuevoUserPass').value = '';
         document.getElementById('nuevoUserNombre').value = '';
         mostrarSubPestanaPermisos('lista');
       } catch (err) {
-        alert('Error al crear usuario: ' + (err.message || err));
+        alert('Error al registrar usuario: ' + (err.message || err));
       }
     }
 
@@ -1447,7 +1445,7 @@
       await _supabase.from('logros_catalogo').update({ habilitado: estado }).eq('codigo', codigo);
     }
 
-    // --- MODAL DE "MIS LOGROS" PARA EL VENDEDOR ---
+    // LOGROS VENDEDOR
     async function abrirModalMisLogros() {
       document.getElementById('modalMisLogros').classList.remove('hidden');
       const contenedor = document.getElementById('gridLogrosVendedor');
@@ -1531,7 +1529,6 @@
       }
     }
 
-    // --- MOSTRAR PRODUCTOS CON OFERTAS PRIMERO Y ESTILO DIFERENCIADO ---
     function mostrarProductos(productos) {
       const contenedor = document.getElementById('productosList');
       if (!productos || productos.length === 0) {
@@ -1539,7 +1536,6 @@
         return;
       }
 
-      // Ordenar para que los productos EN OFERTA aparezcan siempre primeros
       const productosOrdenados = [...productos].sort((a, b) => {
         return (b.en_oferta === true) - (a.en_oferta === true);
       });
@@ -1732,7 +1728,7 @@
       actualizarCarritoVisual();
     }
 
-    // --- MÓDULO DE FACTURAS DE COMPRA ---
+    // FACTURAS COMPRA
     function abrirModalCompra() {
       document.getElementById('compraProveedor').value = 'Wayra';
       document.getElementById('compraNroFactura').value = '';
@@ -1815,12 +1811,20 @@
       await sumarExperienciaVendedor(usuarioActualEmail, 110);
     }
 
-    function solicitarConfirmacionEliminar() { document.getElementById('modalConfirmarEliminar').classList.remove('hidden'); }
-    function cerrarModalConfirmacion() { document.getElementById('modalConfirmarEliminar').classList.add('hidden'); }
+    function solicitarConfirmacionEliminar() { 
+      document.getElementById('modalConfirmarEliminar').classList.remove('hidden'); 
+    }
+    
+    function cerrarModalConfirmacion() { 
+      document.getElementById('modalConfirmarEliminar').classList.add('hidden'); 
+    }
+    
     async function confirmarEliminacionFinal() {
-      const editId = document.getElementById('editProductoId').value;
+      const editInput = document.getElementById('editProductoId');
+      if (!editInput || !editInput.value) return;
+      
       cerrarModalConfirmacion();
-      await _supabase.from('productos').update({ activo: false }).eq('id', editId);
+      await _supabase.from('productos').update({ activo: false }).eq('id', editInput.value);
       cerrarModalProducto();
       await cargarProductos();
     }
@@ -1965,7 +1969,7 @@
       if (e.key === 'Enter') {
         const c = document.getElementById('buscador').value.trim();
         const p = todosLosProductos.find(x => obtenerCodigoBarras(x).toLowerCase() === c.toLowerCase());
-        if (p) { agregarAlCarrito(p.id || obtenerCodigoBarras(p)); document.getElementById('buscador').value = ''; mostrarProductos(todosLosProductos.slice(0, 40)); }
+        if (p) { agregarAlCarritoConPrecio(p.id || obtenerCodigoBarras(p), p.precio); document.getElementById('buscador').value = ''; mostrarProductos(todosLosProductos.slice(0, 40)); }
       }
     }
 
@@ -1977,7 +1981,7 @@
         if (!scannerActivo) return;
         const code = result.codeResult.code;
         const p = todosLosProductos.find(x => obtenerCodigoBarras(x) === code);
-        if (p) { agregarAlCarrito(p.id || code); cerrarScannerCamara(); }
+        if (p) { agregarAlCarritoConPrecio(p.id || code, p.precio); cerrarScannerCamara(); }
       });
     }
 
@@ -2016,7 +2020,6 @@
       const ventaId = vData ? vData[0].id : 1;
 
       alert('¡Venta registrada con éxito!');
-      
       await sumarExperienciaVendedor(usuarioActualEmail, 35);
 
       if (modoImpresionActual === 'bluetooth') imprimirTicketBluetooth(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operador);
@@ -2044,11 +2047,40 @@
       document.getElementById('ticketIdVenta').textContent = ticket;
       document.getElementById('ticketAtendidoPor').textContent = operador;
       document.getElementById('ticketCliente').textContent = cliente;
-      const c = document.getElementById('ticketItems'); c.innerHTML = '';
-      items.forEach(i => { c.innerHTML += `<div class="flex justify-between"><span>${i.cantidad}x ${i.nombre}</span><span>$${(i.precio*i.cantidad).toFixed(2)}</span></div>`; });
-      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
-      const w = window.open('', '_blank', 'width=380,height=600');
-      if (w) { w.document.write(`<html><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); w.document.close(); setTimeout(() => w.print(), 300); }
+      
+      const contenedorItems = document.getElementById('ticketItems'); 
+      contenedorItems.innerHTML = '';
+      
+      items.forEach(i => { 
+        contenedorItems.innerHTML += `
+          <div class="flex justify-between text-[10px] py-0.5 border-b border-dashed border-slate-300">
+            <span class="w-[18%] text-left">${i.cantidad}x</span>
+            <span class="w-[42%] text-left px-0.5 break-words">${i.nombre}</span>
+            <span class="w-[20%] text-right">$${Number(i.precio).toFixed(2)}</span>
+            <span class="w-[20%] text-right font-semibold">$${(i.precio * i.cantidad).toFixed(2)}</span>
+          </div>`; 
+      });
+      
+      document.getElementById('ticketTotal').textContent = '$' + Number(total).toFixed(2);
+      
+      const ventanaImpresion = window.open('', '_blank', 'width=380,height=600');
+      if (ventanaImpresion) { 
+        ventanaImpresion.document.write(`
+          <html>
+            <head>
+              <title>Ticket de Venta - GO! POS</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-white p-4 flex justify-center">
+              <div class="font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
+                ${document.getElementById('ticketImpresion').innerHTML}
+              </div>
+            </body>
+          </html>
+        `); 
+        ventanaImpresion.document.close(); 
+        setTimeout(() => ventanaImpresion.print(), 400); 
+      }
     }
 
     async function abrirModalHistorial() {
@@ -2068,7 +2100,7 @@
 
     async function reimprimirTicketAnterior(id, fecha, total, cliente) {
       const { data } = await _supabase.from('ventas').select('detalles, atendido_por').eq('id', id).single();
-      imprimirTicketConOperadorFijo(data.detalles || [], total, fecha, `Ticket #${id}`, cliente, data.atendido_por || 'E.J');
+      imprimirTicketConOperadorFijo(data.detalles || [], total, fecha, `Ticket #${id}`, cliente, data.atendido_por || 'E.J.');
     }
 
     function abrirModalPrecios() { document.getElementById('modalPrecios').classList.remove('hidden'); }
@@ -2110,4 +2142,3 @@
   </script>
 </body>
 </html>
- 
