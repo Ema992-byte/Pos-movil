@@ -874,13 +874,38 @@
       dropdown.classList.toggle('hidden');
     }
 
-    function ejecutarAccionModulo(accion) {
+    // --- NUEVO: SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
+    async function registrarIntentoNoAutorizado(emailUsuario, accionIntentada) {
+      try {
+        const { fechaStr, horaStr } = obtenerFechaHoraLocal();
+        await _supabase.from('auditoria_seguridad').insert([{
+          email_usuario: emailUsuario,
+          accion_intentada: accionIntentada,
+          fecha: fechaStr,
+          hora: horaStr,
+          detalle: 'Intento de alteración o acceso no autorizado por vendedor'
+        }]);
+      } catch (e) {
+        console.error('Error al registrar auditoría de seguridad', e);
+      }
+    }
+
+    async function validarAccionConAlerta(accion) {
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      if (esAdmin) return true;
+
+      await registrarIntentoNoAutorizado(usuarioActualEmail, accion);
+      alert(`⚠️ ALERTA DE SEGURIDAD: El usuario ${usuarioActualEmail} ha intentado alterar o ejecutar una acción restringida (${accion}). El evento ha sido reportado al sistema.`);
+      return false;
+    }
+
+    async function ejecutarAccionModulo(accion) {
       document.getElementById('dropdownMenuAdmin').classList.add('hidden');
 
       const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
 
       if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores') && !esAdmin) {
-        alert('🔒 Acceso restringido: Solo los administradores pueden acceder a este módulo.');
+        await validarAccionConAlerta(accion);
         return;
       }
 
@@ -1096,7 +1121,6 @@
         return;
       }
 
-      // Restricción estricta de costos para vendedores
       if (botonesModulos['registrarCompra']) botonesModulos['registrarCompra'].classList.add('hidden');
       if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
       if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
@@ -1145,7 +1169,7 @@
       document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
     }
 
-    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES (Con buscador incompleto flexible) ---
+    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES ---
     function abrirModalCostosProveedores() {
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
@@ -1234,7 +1258,6 @@
           };
         });
 
-        // Ordenar estrictamente de menor a mayor costo
         proveedoresList.sort((a, b) => a.costo - b.costo);
 
         let html = '';
@@ -1539,7 +1562,6 @@
         return;
       }
 
-      // Ordenar para que los productos EN OFERTA aparezcan siempre primeros
       const productosOrdenados = [...productos].sort((a, b) => {
         return (b.en_oferta === true) - (a.en_oferta === true);
       });
@@ -1688,6 +1710,7 @@
         const badgeMayorista = (esMayorista && item.precioPersonalizado === null) ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded ml-1">MAYORISTA</span>` : '';
         const badgePersonalizado = item.precioPersonalizado !== null ? `<span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded ml-1">EDITADO</span>` : '';
 
+        // Si un vendedor intenta modificar el precio en el carrito de forma directa, se intercepta
         const campoPrecioHtml = esAdmin
           ? `<div class="flex items-center gap-0.5">
                <span class="text-xs text-slate-400">$</span>
@@ -1715,7 +1738,13 @@
       totalSpan.textContent = '$' + total.toFixed(2);
     }
 
-    function modificarPrecioPersonalizadoDirecto(index, nuevoPrecio) {
+    async function modificarPrecioPersonalizadoDirecto(index, nuevoPrecio) {
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      if (!esAdmin) {
+        await validarAccionConAlerta('modificar_precio_carrito');
+        actualizarCarritoVisual();
+        return;
+      }
       const p = parseFloat(nuevoPrecio);
       carrito[index].precioPersonalizado = (!isNaN(p) && p >= 0) ? p : null;
       actualizarCarritoVisual();
@@ -1931,6 +1960,13 @@
     function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
 
     async function guardarProducto() {
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      if (!esAdmin) {
+        await validarAccionConAlerta('guardar_producto');
+        cerrarModalProducto();
+        return;
+      }
+
       const editId = document.getElementById('editProductoId').value;
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
@@ -1965,7 +2001,7 @@
       if (e.key === 'Enter') {
         const c = document.getElementById('buscador').value.trim();
         const p = todosLosProductos.find(x => obtenerCodigoBarras(x).toLowerCase() === c.toLowerCase());
-        if (p) { agregarAlCarrito(p.id || obtenerCodigoBarras(p)); document.getElementById('buscador').value = ''; mostrarProductos(todosLosProductos.slice(0, 40)); }
+        if (p) { agregarAlCarritoConPrecio(p.id || obtenerCodigoBarras(p), p.precio); document.getElementById('buscador').value = ''; mostrarProductos(todosLosProductos.slice(0, 40)); }
       }
     }
 
@@ -1977,7 +2013,7 @@
         if (!scannerActivo) return;
         const code = result.codeResult.code;
         const p = todosLosProductos.find(x => obtenerCodigoBarras(x) === code);
-        if (p) { agregarAlCarrito(p.id || code); cerrarScannerCamara(); }
+        if (p) { agregarAlCarritoConPrecio(p.id || code, p.precio); cerrarScannerCamara(); }
       });
     }
 
@@ -2085,6 +2121,13 @@
     }
 
     async function guardarNuevoPrecio() {
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      if (!esAdmin) {
+        await validarAccionConAlerta('guardar_nuevo_precio');
+        cerrarModalPrecios();
+        return;
+      }
+
       const id = document.getElementById('prodSeleccionadoId').value;
       const np = parseFloat(document.getElementById('nuevoPrecioInput').value);
       if (!id || isNaN(np)) return;
