@@ -86,7 +86,7 @@
               <span>📊</span> Reporte de Ventas
             </button>
             <button id="menuBtn_gestionarPermisos" onclick="ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
-              <span>🛡️</span> Gestionar Permisos
+              <span>🛡️</span> Gestión de Usuarios
             </button>
           </div>
         </div>
@@ -209,47 +209,67 @@
     </div>
   </div>
 
-  <!-- MODAL DE GESTIÓN DE PERMISOS -->
+  <!-- MODAL DE GESTIÓN Y ALTA DE USUARIOS / PERMISOS -->
   <div id="modalPermisos" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-lg">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white">🛡️ Gestionar Módulos por Usuario</h3>
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">🛡️ Gestión de Usuarios</h3>
         <button onclick="cerrarModalPermisos()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
-      <div class="space-y-4 text-sm">
+      <!-- Pestañas internas -->
+      <div class="flex gap-2 mb-4 border-b dark:border-slate-700 pb-2">
+        <button onclick="mostrarSubPestanaPermisos('crear')" id="tabCrearUser" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white">
+          ➕ Crear Vendedor
+        </button>
+        <button onclick="mostrarSubPestanaPermisos('lista')" id="tabListaUser" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+          👥 Lista y Estado
+        </button>
+      </div>
+
+      <!-- SECCIÓN 1: CREAR USUARIO -->
+      <div id="secCrearUsuario" class="space-y-3 text-sm">
         <div>
-          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Correo del Vendedor / Usuario:</label>
-          <input type="email" id="permisoEmailUser" placeholder="vendedor@pos.com" 
+          <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Correo Electrónico *</label>
+          <input type="email" id="nuevoUserEmail" placeholder="vendedor3@pos.com"
             class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs">
-          <button onclick="cargarPermisosUsuario()" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-semibold">
-            🔍 Buscar Permisos
-          </button>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Contraseña *</label>
+          <input type="password" id="nuevoUserPass" placeholder="••••••••"
+            class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Nombre / Identificador</label>
+          <input type="text" id="nuevoUserNombre" placeholder="Ej. Vendedor 3 / Juan"
+            class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs">
         </div>
 
-        <div id="contenedorCheckboxesModulos" class="space-y-2 border-t dark:border-slate-700 pt-3 hidden">
-          <p class="font-semibold text-xs text-slate-600 dark:text-slate-300 mb-2">Seleccione los módulos permitidos:</p>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <input type="checkbox" id="chk_nuevoProducto" class="rounded text-indigo-600"> ➕ Nuevo Producto
-          </label>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <input type="checkbox" id="chk_registrarCompra" class="rounded text-indigo-600"> 📥 Registrar Factura de Compra
-          </label>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <input type="checkbox" id="chk_cargaMasiva" class="rounded text-indigo-600"> 📄 Carga Masiva (CSV)
-          </label>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600"> 📦 Exportar Productos
-          </label>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modificar Precios
-          </label>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Reporte de Ventas
-          </label>
+        <button onclick="registrarNuevoUsuarioPOS()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-bold shadow">
+          Registrar Usuario en Supabase
+        </button>
+      </div>
 
-          <button onclick="guardarPermisosUsuario()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
-            Guardar Permisos
+      <!-- SECCIÓN 2: LISTA DE USUARIOS Y MÓDULOS -->
+      <div id="secListaUsuarios" class="hidden space-y-3 text-sm">
+        <div id="contenedorListaUsuariosPos" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <p class="text-slate-400 text-center py-2 text-xs">Cargando lista de usuarios...</p>
+        </div>
+
+        <!-- Editor de Permisos para Usuario Seleccionado -->
+        <div id="contenedorCheckboxesModulos" class="space-y-2 border-t dark:border-slate-700 pt-3 hidden">
+          <p class="font-bold text-xs text-indigo-600 dark:text-indigo-400 mb-1" id="lblUsuarioEditando">Editando Módulos:</p>
+          <div class="grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_nuevoProducto" class="rounded text-indigo-600"> ➕ Nuevo Producto</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_registrarCompra" class="rounded text-indigo-600"> 📥 Factura Compra</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_cargaMasiva" class="rounded text-indigo-600"> 📄 Carga Masiva</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600"> 📦 Exportar Prod.</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modif. Precios</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Rep. Ventas</label>
+          </div>
+
+          <button onclick="guardarPermisosUsuario()" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
+            Guardar Permisos de Módulos
           </button>
         </div>
       </div>
@@ -621,7 +641,8 @@
     let scannerActivo = false;
     let fotoBase64Actual = '';
     let productosParaCargarMasiva = [];
-    let modoImpresionActual = 'bluetooth'; // 'bluetooth' o 'pdf'
+    let modoImpresionActual = 'bluetooth';
+    let usuarioEditandoPermisos = '';
 
     let configActual = {
       tema: localStorage.getItem('go_config_tema') || 'light',
@@ -758,17 +779,44 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
+    // --- LOGIN STRICTO CON VERIFICACIÓN DE ESTADO CONGELADO / ACTIVO ---
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value.trim();
       const btnLogin = document.getElementById('btnLogin');
 
-      btnLogin.textContent = 'Ingresando...';
+      btnLogin.textContent = 'Verificando...';
       btnLogin.disabled = true;
 
       try {
-        usuarioActualEmail = email;
+        // 1. Validar autenticación real con Supabase Auth
+        const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+
+        if (authError) {
+          alert('Acceso denegado: Credenciales incorrectas o el usuario fue eliminado de Supabase Auth.');
+          return;
+        }
+
+        // 2. Verificar estado en la tabla de usuarios local
+        const { data: userData } = await _supabase
+          .from('usuarios_pos')
+          .select('estado')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (userData && userData.estado === 'congelado') {
+          await _supabase.auth.signOut();
+          alert('🚫 CUENTA CONGELADA: Su usuario se encuentra deshabilitado temporalmente por el Administrador.');
+          return;
+        }
+
+        usuarioActualEmail = authData.user.email;
         await cargarProductos();
+
       } catch (err) {
         alert('Error al intentar ingresar: ' + (err.message || err));
       } finally {
@@ -828,7 +876,8 @@
 
     async function verificarYAplicarPermisos(email) {
       const emailLower = email.toLowerCase();
-      const esAdminPrincipal = emailLower.includes('admi');
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esCualquierAdmin = emailLower.includes('admi');
       const contenedorAdmin = document.getElementById('contenedorMenuAdmin');
 
       const botonesModulos = {
@@ -841,21 +890,28 @@
         'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
       };
 
-      if (esAdminPrincipal) {
+      if (esCualquierAdmin) {
         contenedorAdmin.classList.remove('hidden');
-        Object.values(botonesModulos).forEach(btn => {
-          if (btn) btn.classList.remove('hidden');
+        Object.keys(botonesModulos).forEach(key => {
+          const btn = botonesModulos[key];
+          if (btn) {
+            if (key === 'gestionarPermisos' && !esAdminEspecial) {
+              btn.classList.add('hidden'); // Solo admini@pos.com y admine@pos.com ven este módulo
+            } else {
+              btn.classList.remove('hidden');
+            }
+          }
         });
         document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
         return;
       }
 
-      // Consultar permisos en Supabase para usuarios no administradores principales
+      // Permisos para Vendedores
       try {
         const { data } = await _supabase
-          .from('permisos_usuarios')
+          .from('usuarios_pos')
           .select('modulos_activos')
-          .eq('email_usuario', emailLower)
+          .eq('email', emailLower)
           .maybeSingle();
 
         if (data && data.modulos_activos) {
@@ -866,7 +922,7 @@
             const btn = botonesModulos[key];
             if (btn) {
               if (key === 'gestionarPermisos') {
-                btn.classList.add('hidden'); // Solo admin gestiona permisos
+                btn.classList.add('hidden');
               } else if (modulos[key] === true) {
                 btn.classList.remove('hidden');
                 tieneAlgunPermiso = true;
@@ -891,44 +947,158 @@
       document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
     }
 
-    // --- FUNCIONES DE GESTIÓN DE PERMISOS ---
+    // --- MÓDULO ADMINISTRADOR: GESTIÓN DE USUARIOS Y ESTADO CONGELADO/ACTIVO ---
     function abrirModalPermisos() {
       document.getElementById('modalPermisos').classList.remove('hidden');
-      document.getElementById('permisoEmailUser').value = '';
-      document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
+      mostrarSubPestanaPermisos('crear');
     }
 
     function cerrarModalPermisos() {
       document.getElementById('modalPermisos').classList.add('hidden');
     }
 
-    async function cargarPermisosUsuario() {
-      const email = document.getElementById('permisoEmailUser').value.trim().toLowerCase();
-      if (!email) {
-        alert('Ingrese un correo electrónico válido.');
+    function mostrarSubPestanaPermisos(pestana) {
+      const btnCrear = document.getElementById('tabCrearUser');
+      const btnLista = document.getElementById('tabListaUser');
+      const secCrear = document.getElementById('secCrearUsuario');
+      const secLista = document.getElementById('secListaUsuarios');
+
+      if (pestana === 'crear') {
+        btnCrear.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+        secCrear.classList.remove('hidden');
+        secLista.classList.add('hidden');
+      } else {
+        btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        btnCrear.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+        secLista.classList.remove('hidden');
+        secCrear.classList.add('hidden');
+        cargarListaUsuariosPOS();
+      }
+    }
+
+    async function registrarNuevoUsuarioPOS() {
+      const email = document.getElementById('nuevoUserEmail').value.trim().toLowerCase();
+      const password = document.getElementById('nuevoUserPass').value.trim();
+      const nombre = document.getElementById('nuevoUserNombre').value.trim() || email.split('@')[0];
+
+      if (!email || !password) {
+        alert('El correo y la contraseña son obligatorios.');
         return;
       }
 
+      try {
+        // 1. Crear en Supabase Auth
+        const { data: authUser, error: authErr } = await _supabase.auth.signUp({
+          email: email,
+          password: password
+        });
+
+        if (authErr) throw authErr;
+
+        // 2. Crear en tabla local usuarios_pos
+        const { error: dbErr } = await _supabase
+          .from('usuarios_pos')
+          .upsert({
+            email: email,
+            nombre: nombre,
+            rol: 'vendedor',
+            estado: 'activo'
+          }, { onConflict: 'email' });
+
+        if (dbErr) throw dbErr;
+
+        alert(`¡Usuario vendedor "${email}" creado exitosamente!`);
+        document.getElementById('nuevoUserEmail').value = '';
+        document.getElementById('nuevoUserPass').value = '';
+        document.getElementById('nuevoUserNombre').value = '';
+
+        mostrarSubPestanaPermisos('lista');
+
+      } catch (err) {
+        alert('Error al crear usuario: ' + (err.message || err));
+      }
+    }
+
+    async function cargarListaUsuariosPOS() {
+      const contenedor = document.getElementById('contenedorListaUsuariosPos');
+      contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>';
+
       const { data, error } = await _supabase
-        .from('permisos_usuarios')
+        .from('usuarios_pos')
         .select('*')
-        .eq('email_usuario', email)
+        .order('id', { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay usuarios vendedores registrados aún.</p>';
+        return;
+      }
+
+      let html = '';
+      data.forEach(u => {
+        const esCongelado = u.estado === 'congelado';
+        const badgeEstado = esCongelado 
+          ? `<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">❄️ Congelado</span>` 
+          : `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">🟢 Activo</span>`;
+
+        const btnCambiarEstado = esCongelado
+          ? `<button onclick="alternarEstadoUsuario('${u.email}', 'activo')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] px-2 py-1 rounded font-bold">Activar</button>`
+          : `<button onclick="alternarEstadoUsuario('${u.email}', 'congelado')" class="bg-rose-500 hover:bg-rose-600 text-white text-[10px] px-2 py-1 rounded font-bold">Congelar</button>`;
+
+        html += `
+          <div class="flex justify-between items-center p-2 rounded border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+            <div>
+              <p class="font-bold text-slate-800 dark:text-white">${u.email} ${badgeEstado}</p>
+              <p class="text-[10px] text-slate-500">${u.nombre || 'Sin nombre'}</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              ${btnCambiarEstado}
+              <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2 py-1 rounded font-bold">⚙️ Módulos</button>
+            </div>
+          </div>
+        `;
+      });
+
+      contenedor.innerHTML = html;
+    }
+
+    async function alternarEstadoUsuario(email, nuevoEstado) {
+      const { error } = await _supabase
+        .from('usuarios_pos')
+        .update({ estado: nuevoEstado })
+        .eq('email', email);
+
+      if (error) {
+        alert('Error al cambiar el estado: ' + error.message);
+      } else {
+        alert(`El usuario ${email} ahora está: ${nuevoEstado.toUpperCase()}`);
+        cargarListaUsuariosPOS();
+      }
+    }
+
+    async function seleccionarUsuarioParaModulos(email) {
+      usuarioEditandoPermisos = email;
+      document.getElementById('lblUsuarioEditando').textContent = `Editando Módulos de: ${email}`;
+
+      const { data } = await _supabase
+        .from('usuarios_pos')
+        .select('modulos_activos')
+        .eq('email', email)
         .maybeSingle();
 
-      document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
-
-      const modulos = data ? data.modulos_activos : {};
+      const modulos = data ? data.modulos_activos || {} : {};
       document.getElementById('chk_nuevoProducto').checked = !!modulos.nuevoProducto;
       document.getElementById('chk_registrarCompra').checked = !!modulos.registrarCompra;
       document.getElementById('chk_cargaMasiva').checked = !!modulos.cargaMasiva;
       document.getElementById('chk_exportarProductos').checked = !!modulos.exportarProductos;
       document.getElementById('chk_modificarPrecios').checked = !!modulos.modificarPrecios;
       document.getElementById('chk_reporteVentas').checked = !!modulos.reporteVentas;
+
+      document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
     }
 
     async function guardarPermisosUsuario() {
-      const email = document.getElementById('permisoEmailUser').value.trim().toLowerCase();
-      if (!email) return;
+      if (!usuarioEditandoPermisos) return;
 
       const modulosActivos = {
         nuevoProducto: document.getElementById('chk_nuevoProducto').checked,
@@ -940,14 +1110,15 @@
       };
 
       const { error } = await _supabase
-        .from('permisos_usuarios')
-        .upsert({ email_usuario: email, modulos_activos: modulosActivos }, { onConflict: 'email_usuario' });
+        .from('usuarios_pos')
+        .update({ modulos_activos: modulosActivos })
+        .eq('email', usuarioEditandoPermisos);
 
       if (error) {
         alert('Error al guardar permisos: ' + error.message);
       } else {
-        alert('¡Permisos actualizados con éxito para ' + email + '!');
-        cerrarModalPermisos();
+        alert(`¡Módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
+        document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
       }
     }
 
@@ -1940,7 +2111,7 @@
         alert('El carrito está vacío');
         return;
       }
-      modoImpresionActual = modo; // 'bluetooth' o 'pdf'
+      modoImpresionActual = modo;
       document.getElementById('nombreClienteInput').value = '';
       document.getElementById('modalClienteCobro').classList.remove('hidden');
       setTimeout(() => document.getElementById('nombreClienteInput').focus(), 100);
@@ -2669,8 +2840,8 @@
       URL.revokeObjectURL(url);
     }
 
-    function cerrarSesion() {
-      _supabase.auth.signOut();
+    async function cerrarSesion() {
+      await _supabase.auth.signOut();
       document.getElementById('posSection').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
     }
