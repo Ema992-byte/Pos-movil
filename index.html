@@ -20,6 +20,9 @@
 </head>
 <body id="bodyApp" class="bg-slate-100 dark:bg-slate-900 min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200">
 
+  <!-- CONTENEDOR DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL -->
+  <div id="contenedorNotificaciones" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
   <!-- INDICADOR DE ESTADO DE RED -->
   <div id="estadoRed" class="w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded hidden"></div>
 
@@ -134,7 +137,7 @@
           </button>
         </div>
 
-        <!-- Contenedor Dinámico de Productos (Cuadrícula o Lista) -->
+        <!-- Contenedor Dinámico de Productos -->
         <div id="productosList" class="overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors">
           <p class="text-slate-400 text-sm text-center py-4 col-span-full">Cargando catálogo...</p>
         </div>
@@ -214,6 +217,15 @@
               📋 Lista
             </button>
           </div>
+        </div>
+
+        <!-- NUEVO: TOGGLE DE NOTIFICACIONES DE PRECIOS -->
+        <div class="border-t dark:border-slate-700 pt-3">
+          <label class="flex items-center justify-between cursor-pointer">
+            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio</span>
+            <input type="checkbox" id="toggleNotifPrecios" onchange="cambiarEstadoNotificaciones(this.checked)" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
+          </label>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualice el precio de un producto.</p>
         </div>
       </div>
 
@@ -313,7 +325,6 @@
       
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Completa retos en tus ventas diarias para desbloquear insignias y ganar experiencia (XP).</p>
       
-      <!-- Contenedor dinámico de la lista de logros -->
       <div id="gridLogrosVendedor" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
         <p class="text-slate-400 text-center py-4 col-span-full text-xs">Cargando tus logros...</p>
       </div>
@@ -421,7 +432,6 @@
         </div>
       </div>
 
-      <!-- Resultados y Comparativa -->
       <div id="detalleComparativaProveedores" class="hidden space-y-3">
         <div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border dark:border-slate-700 flex justify-between items-center">
           <div>
@@ -657,7 +667,7 @@
   <!-- MODAL DE ADMINISTRACIÓN DE PRECIOS -->
   <div id="modalPrecios" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-md">
-      <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Modificar Precio de Venta ⚙️</h3>
+      <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-4">Modificar Precios ⚙️</h3>
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Buscar producto a actualizar</label>
@@ -673,19 +683,19 @@
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Precio Minorista ($)</label>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Nuevo Minorista ($)</label>
             <input type="number" id="nuevoPrecioInput" step="0.01" placeholder="Ej: 3500"
               class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Precio Mayorista ($)</label>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Nuevo Mayorista ($)</label>
             <input type="number" id="nuevoPrecioMayoristaInput" step="0.01" placeholder="Ej: 3000"
               class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
           </div>
         </div>
         <div class="flex gap-2 pt-2">
-          <button onclick="guardarNuevoPrecio()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium">
-            Actualizar en Base de Datos
+          <button onclick="guardarNuevosPreciosAdmin()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium">
+            Actualizar Precios en BD
           </button>
           <button onclick="cerrarModalPrecios()" class="bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
             Cancelar
@@ -721,7 +731,6 @@
       <span id="ticketCliente">Consumidor Final</span>
     </div>
 
-    <!-- COLUMNA CANTIDAD -->
     <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
       <span class="w-[18%] text-left">Cant.</span>
       <span class="w-[38%] text-left px-0.5 break-words">Descripción</span>
@@ -764,7 +773,8 @@
     let configActual = {
       tema: localStorage.getItem('go_config_tema') || 'light',
       zoom: localStorage.getItem('go_config_zoom') || '100',
-      vista: localStorage.getItem('go_config_vista') || 'grid'
+      vista: localStorage.getItem('go_config_vista') || 'grid',
+      notifPrecios: localStorage.getItem('go_config_notif') !== 'false' // por defecto activado (true)
     };
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -779,6 +789,10 @@
         htmlEl.classList.remove('dark');
       }
       document.body.style.zoom = configActual.zoom + '%';
+      
+      const checkboxNotif = document.getElementById('toggleNotifPrecios');
+      if (checkboxNotif) checkboxNotif.checked = configActual.notifPrecios;
+
       actualizarEstilosBotonesConfig();
     }
 
@@ -808,6 +822,11 @@
       localStorage.setItem('go_config_vista', nuevaVista);
       aplicarConfiguracionGlobal();
       filtrarProductos();
+    }
+
+    function cambiarEstadoNotificaciones(estado) {
+      configActual.notifPrecios = estado;
+      localStorage.setItem('go_config_notif', estado);
     }
 
     function actualizarEstilosBotonesConfig() {
@@ -874,7 +893,7 @@
       dropdown.classList.toggle('hidden');
     }
 
-    // --- NUEVO: SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
+    // --- SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
     async function registrarIntentoNoAutorizado(emailUsuario, accionIntentada) {
       try {
         const { fechaStr, horaStr } = obtenerFechaHoraLocal();
@@ -897,6 +916,90 @@
       await registrarIntentoNoAutorizado(usuarioActualEmail, accion);
       alert(`⚠️ ALERTA DE SEGURIDAD: El usuario ${usuarioActualEmail} ha intentado alterar o ejecutar una acción restringida (${accion}). El evento ha sido reportado al sistema.`);
       return false;
+    }
+
+    // --- NUEVO: SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
+    function mostrarNotificacionFlotante(titulo, mensaje) {
+      if (!configActual.notifPrecios) return; // Si el usuario desactivó las notificaciones en configuración, no se muestran
+
+      const contenedor = document.getElementById('contenedorNotificaciones');
+      if (!contenedor) return;
+
+      const idNotif = 'notif_' + Date.now();
+      const htmlNotif = `
+        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border border-indigo-500/30 flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0">
+          <div class="text-xl shrink-0 mt-0.5">🔔</div>
+          <div class="flex-grow text-xs">
+            <h5 class="font-bold tracking-wide">${titulo}</h5>
+            <p class="text-[11px] opacity-90 mt-0.5">${mensaje}</p>
+          </div>
+          <button onclick="document.getElementById('${idNotif}').remove()" class="text-slate-400 hover:text-white dark:hover:text-slate-900 font-bold text-sm shrink-0">✕</button>
+        </div>
+      `;
+
+      contenedor.insertAdjacentHTML('beforeend', htmlNotif);
+      const elemento = document.getElementById(idNotif);
+      
+      setTimeout(() => {
+        if (elemento) {
+          elemento.classList.remove('translate-y-2', 'opacity-0');
+        }
+      }, 10);
+
+      // Auto-remover a los 6 segundos
+      setTimeout(() => {
+        if (elemento) {
+          elemento.classList.add('translate-y-2', 'opacity-0');
+          setTimeout(() => elemento.remove(), 300);
+        }
+      }, 6000);
+    }
+
+    // Suscripción en Tiempo Real a cambios en la tabla 'productos' de Supabase
+    function inicializarSuscripcionPreciosRealtime() {
+      _supabase
+        .channel('cambios-precios-productos')
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'productos' },
+          (payload) => {
+            const prodNuevo = payload.new;
+            const prodViejo = payload.old;
+
+            // Verificar si hubo cambios en los precios (minorista o mayorista)
+            const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
+            const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
+
+            if (cambioMinorista || cambioMayorista) {
+              let detalleCambios = [];
+              if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
+              if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+
+              mostrarNotificacionFlotante(
+                `📦 Precio Actualizado: ${prodNuevo.nombre}`,
+                detalleCambios.join(' | ')
+              );
+
+              // Recargar silenciosamente el catálogo local para refrescar los precios en pantalla
+              cargarProductosSilencioso();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    async function cargarProductosSilencioso() {
+      const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
+      if (data) {
+        todosLosProductos = data;
+        localStorage.setItem('go_pos_productos', JSON.stringify(data));
+        const textoBusq = document.getElementById('buscador').value.trim();
+        if (!textoBusq) {
+          mostrarProductos(todosLosProductos.slice(0, 40));
+        } else {
+          filtrarProductos();
+        }
+      }
     }
 
     async function ejecutarAccionModulo(accion) {
@@ -933,7 +1036,7 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
-    // --- LOGIN STRICTO CON VERIFICACIÓN DE ESTADO CONGELADO / ACTIVO ---
+    // --- LOGIN STRICTO ---
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
@@ -969,6 +1072,9 @@
         usuarioActualEmail = authData.user.email;
         await cargarProductos();
         await cargarProgresoVendedor(usuarioActualEmail);
+        
+        // Iniciar canal de notificaciones en tiempo real
+        inicializarSuscripcionPreciosRealtime();
 
       } catch (err) {
         alert('Error al intentar ingresar: ' + (err.message || err));
@@ -1006,7 +1112,6 @@
       mostrarProductos(todosLosProductos.slice(0, 40));
     }
 
-    // --- SISTEMA DE NIVELES Y XP (Hasta 100) CON VALIDACIÓN DE FECHA DE INICIO ---
     async function cargarProgresoVendedor(email) {
       try {
         let { data } = await _supabase.from('vendedor_niveles').select('*').eq('email', email).maybeSingle();
@@ -1021,7 +1126,7 @@
 
     function calcularNivelYProgreso(xpTotal) {
       let nivel = 1;
-      let xpRequeridaNivelSiguiente = 400; // Calibrado al volumen diario
+      let xpRequeridaNivelSiguiente = 400;
       
       while (xpTotal >= xpRequeridaNivelSiguiente && nivel < 100) {
         xpTotal -= xpRequeridaNivelSiguiente;
@@ -1060,13 +1165,9 @@
         if (userConfig && userConfig.fecha_inicio_actividad) {
           const fechaInicio = new Date(userConfig.fecha_inicio_actividad);
           const hoy = new Date();
-          
           fechaInicio.setHours(0, 0, 0, 0);
           hoy.setHours(0, 0, 0, 0);
-
-          if (hoy < fechaInicio) {
-            return; 
-          }
+          if (hoy < fechaInicio) return;
         }
 
         let { data } = await _supabase.from('vendedor_niveles').select('*').eq('email', email).maybeSingle();
@@ -1154,11 +1255,8 @@
             }
           });
 
-          if (tieneAlgunPermiso) {
-            contenedorAdmin.classList.remove('hidden');
-          } else {
-            contenedorAdmin.classList.add('hidden');
-          }
+          if (tieneAlgunPermiso) contenedorAdmin.classList.remove('hidden');
+          else contenedorAdmin.classList.add('hidden');
         } else {
           contenedorAdmin.classList.add('hidden');
         }
@@ -1276,7 +1374,6 @@
         });
 
         tbody.innerHTML = html;
-
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-rose-500">Error al consultar los costos de proveedores.</td></tr>';
       }
@@ -1392,10 +1489,7 @@
     }
 
     async function actualizarFechaInicio(email, nuevaFecha) {
-      await _supabase
-        .from('usuarios_pos')
-        .update({ fecha_inicio_actividad: nuevaFecha || null })
-        .eq('email', email);
+      await _supabase.from('usuarios_pos').update({ fecha_inicio_actividad: nuevaFecha || null }).eq('email', email);
     }
 
     async function alternarEstadoUsuario(email, nuevoEstado) {
@@ -1443,7 +1537,7 @@
 
       const { data } = await _supabase.from('logros_catalogo').select('*').order('id', { ascending: true });
       if (!data || data.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay logros registrados en la base de datos.</p>';
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay logros registrados.</p>';
         return;
       }
 
@@ -1470,7 +1564,6 @@
       await _supabase.from('logros_catalogo').update({ habilitado: estado }).eq('codigo', codigo);
     }
 
-    // --- MODAL DE "MIS LOGROS" PARA EL VENDEDOR ---
     async function abrirModalMisLogros() {
       document.getElementById('modalMisLogros').classList.remove('hidden');
       const contenedor = document.getElementById('gridLogrosVendedor');
@@ -1483,18 +1576,16 @@
         const codigosConseguidos = new Set((conseguidos || []).map(l => l.codigo_logro));
 
         if (!catalogo || catalogo.length === 0) {
-          contenedor.innerHTML = '<p class="text-slate-400 text-center py-4 col-span-full text-xs">No hay logros disponibles en este momento.</p>';
+          contenedor.innerHTML = '<p class="text-slate-400 text-center py-4 col-span-full text-xs">No hay logros disponibles.</p>';
           return;
         }
 
         let html = '';
         catalogo.forEach(logro => {
           const obtenido = codigosConseguidos.has(logro.codigo);
-          
           const cardClass = obtenido 
             ? "bg-gradient-to-r from-amber-50 to-indigo-50 dark:from-slate-700 dark:to-indigo-950/40 border-amber-300 dark:border-indigo-500 shadow-sm" 
             : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60 grayscale";
-          
           const badgeEstado = obtenido 
             ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">✓ ¡Conseguido!</span>` 
             : `<span class="bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-medium px-2 py-0.5 rounded-full">🔒 Bloqueado</span>`;
@@ -1515,7 +1606,6 @@
             </div>
           `;
         });
-
         contenedor.innerHTML = html;
       } catch (err) {
         contenedor.innerHTML = '<p class="text-rose-500 text-center py-4 col-span-full text-xs">Error al cargar los logros.</p>';
@@ -1554,7 +1644,6 @@
       }
     }
 
-    // --- MOSTRAR PRODUCTOS CON OFERTAS PRIMERO Y ESTILO DIFERENCIADO ---
     function mostrarProductos(productos) {
       const contenedor = document.getElementById('productosList');
       if (!productos || productos.length === 0) {
@@ -1668,8 +1757,8 @@
           idUnico: idUnico, 
           nombre: prodRef.nombre, 
           precioMinorista: precioEspecial,
-          precioMayorista: 0,
-          cantMayorista: 9999,
+          precioMayorista: obtenerPrecioMayorista(prodRef),
+          cantMayorista: obtenerCantMayorista(prodRef),
           unidadesBulto: obtenerUnidadesPorBulto(prodRef),
           precioPersonalizado: null,
           cantidad: cantidadAAgregar 
@@ -1710,7 +1799,6 @@
         const badgeMayorista = (esMayorista && item.precioPersonalizado === null) ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded ml-1">MAYORISTA</span>` : '';
         const badgePersonalizado = item.precioPersonalizado !== null ? `<span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded ml-1">EDITADO</span>` : '';
 
-        // Si un vendedor intenta modificar el precio en el carrito de forma directa, se intercepta
         const campoPrecioHtml = esAdmin
           ? `<div class="flex items-center gap-0.5">
                <span class="text-xs text-slate-400">$</span>
@@ -2052,7 +2140,6 @@
       const ventaId = vData ? vData[0].id : 1;
 
       alert('¡Venta registrada con éxito!');
-      
       await sumarExperienciaVendedor(usuarioActualEmail, 35);
 
       if (modoImpresionActual === 'bluetooth') imprimirTicketBluetooth(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operador);
@@ -2116,23 +2203,32 @@
       if (t.length < 2) { c.innerHTML = ''; return; }
       const res = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(t)).slice(0, 10);
       let h = '';
-      res.forEach(p => { h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';" class="p-1 hover:bg-purple-50 cursor-pointer">${p.nombre} - $${p.precio}</div>`; });
+      res.forEach(p => { 
+        h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';document.getElementById('nuevoPrecioMayoristaInput').value='${obtenerPrecioMayorista(p)}';" class="p-1.5 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer border-b">${p.nombre} - Min: $${p.precio} | May: $${obtenerPrecioMayorista(p)}</div>`; 
+      });
       c.innerHTML = h;
     }
 
-    async function guardarNuevoPrecio() {
+    async function guardarNuevosPreciosAdmin() {
       const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
       if (!esAdmin) {
-        await validarAccionConAlerta('guardar_nuevo_precio');
+        await validarAccionConAlerta('guardar_nuevos_precios');
         cerrarModalPrecios();
         return;
       }
 
       const id = document.getElementById('prodSeleccionadoId').value;
-      const np = parseFloat(document.getElementById('nuevoPrecioInput').value);
-      if (!id || isNaN(np)) return;
-      await _supabase.from('productos').update({ precio: np }).eq('id', id);
-      alert('Precio actualizado');
+      const nuevoMin = parseFloat(document.getElementById('nuevoPrecioInput').value);
+      const nuevoMay = parseFloat(document.getElementById('nuevoPrecioMayoristaInput').value);
+      
+      if (!id || (isNaN(nuevoMin) && isNaN(nuevoMay))) return;
+
+      let datosUpdate = {};
+      if (!isNaN(nuevoMin)) datosUpdate.precio = nuevoMin;
+      if (!isNaN(nuevoMay)) datosUpdate.precio_mayorista = nuevoMay;
+
+      await _supabase.from('productos').update(datosUpdate).eq('id', id);
+      alert('¡Precios actualizados con éxito!');
       cerrarModalPrecios();
       await cargarProductos();
     }
