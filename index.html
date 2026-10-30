@@ -76,59 +76,9 @@
         </div>
       </div>
 
+      <!-- SECCIÓN DERECHA DE LA BARRA SUPERIOR (Limpia, sin botones repetidos) -->
       <div class="flex gap-2 flex-wrap items-center">
-        <!-- BOTÓN DE LOGROS -->
-        <button onclick="abrirModalMisLogros()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
-          <span>🏆</span> Logros
-        </button>
-
-        <!-- BOTÓN DE CONFIGURACIÓN -->
-        <button onclick="abrirModalConfiguracion()" class="bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
-          <span>⚙️</span> Configuración
-        </button>
-
-        <!-- BOTÓN DESPLEGABLE MÓDULOS DE ADMINISTRADOR -->
-        <div id="contenedorMenuAdmin" class="relative hidden">
-          <button onclick="toggleMenuAdmin(event)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
-            <span>⚙️ Módulos Admin</span>
-            <span class="text-xs">▼</span>
-          </button>
-
-          <!-- Menú Flotante / Desplegable -->
-          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs py-1">
-            <button id="menuBtn_nuevoProducto" onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>➕</span> Nuevo Producto
-            </button>
-            <button id="menuBtn_registrarCompra" onclick="ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>📥</span> Registrar Factura de Compra
-            </button>
-            <button id="menuBtn_costosProveedores" onclick="ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>💰</span> Análisis de Costos y Proveedores
-            </button>
-            <button id="menuBtn_cargaMasiva" onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>📄</span> Carga Masiva (Actualizar CSV)
-            </button>
-            <button id="menuBtn_exportarProductos" onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>📦</span> Exportar Productos
-            </button>
-            <button id="menuBtn_modificarPrecios" onclick="ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>✏️</span> Modificar Precios
-            </button>
-            <button id="menuBtn_reporteVentas" onclick="ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
-              <span>📊</span> Reporte de Ventas
-            </button>
-            <button id="menuBtn_gestionarPermisos" onclick="ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
-              <span>🛡️</span> Gestión de Usuarios
-            </button>
-          </div>
-        </div>
-
-        <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
-          📜 Historial
-        </button>
-        <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
-          Salir
-        </button>
+        <!-- Indicador rápido o estado libre opcional -->
       </div>
     </div>
 
@@ -185,47 +135,74 @@
     </div>
   </div>
 
-  <!-- MENÚ LATERAL DESPLEGABLE (SIDEBAR DRAWER) -->
+  <!-- MENÚ LATERAL DESPLEGABLE (SIDEBAR DRAWER) CON ESTRUCTURA ORGANIZADA -->
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 z-50" onclick="toggleSidebarMenu()"></div>
   <aside id="sidebarMenu" class="fixed top-0 left-[-300px] w-[280px] h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transition-all duration-300 flex flex-col border-r dark:border-slate-700">
     <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
-      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Módulos GO!</h3>
+      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Menú Principal GO!</h3>
       <button onclick="toggleSidebarMenu()" class="text-white hover:bg-indigo-700 p-1.5 rounded-lg font-bold">✕</button>
     </div>
-    <div class="p-3 flex-grow overflow-y-auto space-y-1.5 text-sm">
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
-        <span>➕</span> Nuevo Producto
-      </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2.5">
-        <span>📥</span> Registrar Factura Compra
-      </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2.5">
-        <span>💰</span> Análisis de Costos
-      </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2.5">
-        <span>📄</span> Carga Masiva (CSV)
-      </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2.5">
-        <span>📦</span> Exportar Productos
-      </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2.5">
-        <span>✏️</span> Modificar Precios
-      </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2.5">
-        <span>📊</span> Reporte de Ventas
-      </button>
-      <button onclick="toggleSidebarMenu(); abrirModalHistorial()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sky-700 dark:text-sky-400 font-medium flex items-center gap-2.5">
+    
+    <div class="p-3 flex-grow overflow-y-auto space-y-2 text-sm">
+      
+      <!-- a) MÓDULO ADMINISTRACIÓN (Acordeón desplegable para herramientas admin) -->
+      <div id="contenedorMenuAdminSidebar" class="hidden border dark:border-slate-700 rounded-xl overflow-hidden">
+        <button onclick="toggleAcordeonAdmin()" class="w-full text-left px-3.5 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-between">
+          <span class="flex items-center gap-2"><span>⚙️</span> Módulo Administración</span>
+          <span id="flechaAcordeonAdmin" class="text-xs transition-transform duration-200">▼</span>
+        </button>
+        
+        <!-- Submenús de Administración -->
+        <div id="submenusAdminSidebar" class="hidden bg-white dark:bg-slate-800 px-2 py-1.5 space-y-1 text-xs border-t dark:border-slate-700">
+          <button id="menuBtn_nuevoProducto" onclick="toggleSidebarMenu(); ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2">
+            <span>➕</span> Nuevo Producto
+          </button>
+          <button id="menuBtn_registrarCompra" onclick="toggleSidebarMenu(); ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
+            <span>📥</span> Factura de Compra
+          </button>
+          <button id="menuBtn_costosProveedores" onclick="toggleSidebarMenu(); ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
+            <span>💰</span> Análisis de Costos
+          </button>
+          <button id="menuBtn_cargaMasiva" onclick="toggleSidebarMenu(); ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2">
+            <span>📄</span> Carga Masiva (CSV)
+          </button>
+          <button id="menuBtn_exportarProductos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2">
+            <span>📦</span> Exportar Productos
+          </button>
+          <button id="menuBtn_modificarPrecios" onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2">
+            <span>✏️</span> Modificar Precios
+          </button>
+          <button id="menuBtn_reporteVentas" onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
+            <span>📊</span> Reporte de Ventas
+          </button>
+          <button id="menuBtn_gestionarPermisos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
+            <span>🛡️</span> Gestión de Usuarios
+          </button>
+        </div>
+      </div>
+
+      <!-- b) HISTORIAL DE VENTAS -->
+      <button onclick="toggleSidebarMenu(); abrirModalHistorial()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
         <span>📜</span> Historial de Ventas
       </button>
-      <button onclick="toggleSidebarMenu(); abrirModalMisLogros()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 font-medium flex items-center gap-2.5">
-        <span>🏆</span> Mis Logros
+
+      <!-- d) LOGROS -->
+      <button onclick="toggleSidebarMenu(); abrirModalMisLogros()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
+        <span>🏆</span> Logros
       </button>
-      <button onclick="toggleSidebarMenu(); abrirModalConfiguracion()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2.5">
+
+      <!-- e) CONFIGURACIÓN -->
+      <button onclick="toggleSidebarMenu(); abrirModalConfiguracion()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
         <span>⚙️</span> Configuración
       </button>
-      <button onclick="toggleSidebarMenu(); ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2.5 border-t dark:border-slate-700 mt-2 pt-3">
-        <span>🛡️</span> Gestión de Usuarios
-      </button>
+
+      <!-- f) SALIR -->
+      <div class="border-t dark:border-slate-700 pt-3 mt-3">
+        <button onclick="toggleSidebarMenu(); cerrarSesion()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-2.5">
+          <span>🚪</span> Salir
+        </button>
+      </div>
+
     </div>
   </aside>
 
@@ -276,7 +253,7 @@
           </div>
         </div>
 
-        <!-- NUEVO: TOGGLE DE NOTIFICACIONES DE PRECIOS -->
+        <!-- TOGGLE DE NOTIFICACIONES DE PRECIOS -->
         <div class="border-t dark:border-slate-700 pt-3">
           <label class="flex items-center justify-between cursor-pointer">
             <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio</span>
@@ -853,6 +830,21 @@
       }
     }
 
+    // --- ACORDEÓN PARA DESPLEGAR EL MÓDULO ADMINISTRACIÓN DENTRO DEL SIDEBAR ---
+    function toggleAcordeonAdmin() {
+      const submenus = document.getElementById('submenusAdminSidebar');
+      const flecha = document.getElementById('flechaAcordeonAdmin');
+      if (!submenus || !flecha) return;
+
+      if (submenus.classList.contains('hidden')) {
+        submenus.classList.remove('hidden');
+        flecha.style.transform = 'rotate(180deg)';
+      } else {
+        submenus.classList.add('hidden');
+        flecha.style.transform = 'rotate(0deg)';
+      }
+    }
+
     function aplicarConfiguracionGlobal() {
       const htmlEl = document.documentElement;
       if (configActual.tema === 'dark') {
@@ -942,11 +934,6 @@
     window.addEventListener('offline', actualizarEstadoRed);
 
     document.addEventListener('click', function(event) {
-      const contenedor = document.getElementById('contenedorMenuAdmin');
-      const dropdown = document.getElementById('dropdownMenuAdmin');
-      if (contenedor && !contenedor.contains(event.target)) {
-        dropdown.classList.add('hidden');
-      }
       const resCompra = document.getElementById('listaResultadosCompra');
       const inputCompra = document.getElementById('buscadorCompraProd');
       if (resCompra && inputCompra && !inputCompra.contains(event.target) && !resCompra.contains(event.target)) {
@@ -958,12 +945,6 @@
         resCostos.classList.add('hidden');
       }
     });
-
-    function toggleMenuAdmin(event) {
-      event.stopPropagation();
-      const dropdown = document.getElementById('dropdownMenuAdmin');
-      dropdown.classList.toggle('hidden');
-    }
 
     // --- SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
     async function registrarIntentoNoAutorizado(emailUsuario, accionIntentada) {
@@ -1071,8 +1052,6 @@
     }
 
     async function ejecutarAccionModulo(accion) {
-      document.getElementById('dropdownMenuAdmin').classList.add('hidden');
-
       const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
 
       if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores') && !esAdmin) {
@@ -1260,7 +1239,7 @@
       const emailLower = email.toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
       const esCualquierAdmin = emailLower.includes('admi');
-      const contenedorAdmin = document.getElementById('contenedorMenuAdmin');
+      const contenedorAdminSidebar = document.getElementById('contenedorMenuAdminSidebar');
 
       const botonesModulos = {
         'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
@@ -1274,7 +1253,7 @@
       };
 
       if (esCualquierAdmin) {
-        contenedorAdmin.classList.remove('hidden');
+        if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
         Object.keys(botonesModulos).forEach(key => {
           const btn = botonesModulos[key];
           if (btn) {
@@ -1322,13 +1301,13 @@
             }
           });
 
-          if (tieneAlgunPermiso) contenedorAdmin.classList.remove('hidden');
-          else contenedorAdmin.classList.add('hidden');
+          if (tieneAlgunPermiso && contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
+          else if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
         } else {
-          contenedorAdmin.classList.add('hidden');
+          if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
         }
       } catch (e) {
-        contenedorAdmin.classList.add('hidden');
+        if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
       }
 
       document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
