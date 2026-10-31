@@ -1683,16 +1683,19 @@
       }
 
       localStorage.setItem('go_pos_productos', JSON.stringify(data));
-      iniciarSesionExitosa(usuarioActualEmail, data);
+      todosLosProductos = data;
+      document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
+      filtrarProductos();
     }
 
     function cargarProductosOffline() {
       const cached = localStorage.getItem('go_pos_productos');
       if (cached) {
-        iniciarSesionExitosa(usuarioActualEmail, JSON.parse(cached));
+        todosLosProductos = JSON.parse(cached);
+        document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
+        filtrarProductos();
       } else {
         document.getElementById('productosList').innerHTML = '<p class="text-red-500 text-sm text-center col-span-full">Sin internet y sin catálogo guardado.</p>';
-        iniciarSesionExitosa(usuarioActualEmail, []);
       }
     }
 
@@ -2088,9 +2091,6 @@
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
         nombre: document.getElementById('nuevoNombre').value.trim(),
-        en_oferta: false,
-        fecha_vencimiento_oferta: null,
-        imagen_url: fotoBase64Actual,
         stock: parseInt(document.getElementById('nuevoStock').value) || 0,
         "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
         precio: parseFloat(document.getElementById('nuevoVenta').value) || 0,
@@ -2100,9 +2100,25 @@
         activo: true
       };
 
-      if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
-      else await _supabase.from('productos').insert([datos]);
-      
+      if (fotoBase64Actual) {
+        datos.imagen_url = fotoBase64Actual;
+      }
+
+      let errorSupabase = null;
+      if (editId) {
+        const { error } = await _supabase.from('productos').update(datos).eq('id', editId);
+        errorSupabase = error;
+      } else {
+        const { error } = await _supabase.from('productos').insert([datos]);
+        errorSupabase = error;
+      }
+
+      if (errorSupabase) {
+        alert('Error al guardar en Supabase: ' + errorSupabase.message);
+        return;
+      }
+
+      alert('¡Producto guardado correctamente en la base de datos!');
       cerrarModalProducto();
       await cargarProductos();
     }
@@ -2258,8 +2274,13 @@
       if (!isNaN(nuevoMin)) datosUpdate.precio = nuevoMin;
       if (!isNaN(nuevoMay)) datosUpdate.precio_mayorista = nuevoMay;
 
-      await _supabase.from('productos').update(datosUpdate).eq('id', id);
-      alert('¡Precios actualizados con éxito!');
+      const { error } = await _supabase.from('productos').update(datosUpdate).eq('id', id);
+      if (error) {
+        alert('Error al actualizar precios en Supabase: ' + error.message);
+        return;
+      }
+
+      alert('¡Precios actualizados con éxito en la base de datos!');
       cerrarModalPrecios();
       await cargarProductos();
     }
