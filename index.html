@@ -995,6 +995,12 @@
     }
 
     function inicializarSuscripcionPreciosRealtime() {
+      // Evitar canales duplicados removiendo canales previos si existen
+      const canalExistente = _supabase.getChannels().find(c => c.topic === 'realtime:cambios-precios-productos');
+      if (canalExistente) {
+        _supabase.removeChannel(canalExistente);
+      }
+
       _supabase
         .channel('cambios-precios-productos')
         .on(
