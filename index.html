@@ -49,35 +49,73 @@
 
   <!-- PANTALLA PRINCIPAL DEL POS -->
   <div id="posSection" class="hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg w-full max-w-6xl transition-colors duration-200">
-    
-    <!-- BARRA SUPERIOR CON BOTÓN HAMBURGUESA A LA IZQUIERDA -->
     <div class="flex justify-between items-center mb-6 border-b dark:border-slate-700 pb-4 flex-wrap gap-2">
-      <div class="flex items-center gap-3">
-        <!-- Botón Hamburguesa Superior Izquierda -->
-        <button onclick="toggleSidebarMenu()" class="bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white p-2.5 rounded-xl shadow flex items-center justify-center transition-all" aria-label="Abrir menú de módulos">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
-
-        <div>
-          <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-wide">GO! POS 📱</h1>
-          <p id="usuarioRol" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5"></p>
-          <!-- BARRA DE NIVEL Y XP -->
-          <div id="barraNivelContainer" class="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-            <span id="labelNivelBadge" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-bold px-2 py-0.5 rounded">Nivel 1</span>
-            <div class="w-32 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-              <div id="barraXpProgreso" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
-            </div>
-            <span id="labelXpTexto" class="text-[10px]">0 / 400 XP</span>
+      <div>
+        <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-wide">GO! POS 📱</h1>
+        <p id="usuarioRol" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5"></p>
+        <!-- BARRA DE NIVEL Y XP -->
+        <div id="barraNivelContainer" class="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <span id="labelNivelBadge" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-bold px-2 py-0.5 rounded">Nivel 1</span>
+          <div class="w-32 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+            <div id="barraXpProgreso" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
           </div>
+          <span id="labelXpTexto" class="text-[10px]">0 / 400 XP</span>
         </div>
       </div>
 
-      <!-- SECCIÓN DERECHA DE LA BARRA SUPERIOR -->
       <div class="flex gap-2 flex-wrap items-center">
+        <!-- BOTÓN DE LOGROS -->
+        <button onclick="abrirModalMisLogros()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
+          <span>🏆</span> Logros
+        </button>
+
+        <!-- BOTÓN DE CONFIGURACIÓN -->
+        <button onclick="abrirModalConfiguracion()" class="bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
+          <span>⚙️</span> Configuración
+        </button>
+
+        <!-- BOTÓN DESPLEGABLE MÓDULOS DE ADMINISTRADOR -->
+        <div id="contenedorMenuAdmin" class="relative hidden">
+          <button onclick="toggleMenuAdmin(event)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow flex items-center gap-1">
+            <span>⚙️ Módulos Admin</span>
+            <span class="text-xs">▼</span>
+          </button>
+
+          <!-- Menú Flotante / Desplegable -->
+          <div id="dropdownMenuAdmin" class="hidden absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden text-xs py-1">
+            <button id="menuBtn_nuevoProducto" onclick="ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>➕</span> Nuevo Producto
+            </button>
+            <button id="menuBtn_registrarCompra" onclick="ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>📥</span> Registrar Factura de Compra
+            </button>
+            <button id="menuBtn_costosProveedores" onclick="ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>💰</span> Análisis de Costos y Proveedores
+            </button>
+            <button id="menuBtn_cargaMasiva" onclick="ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>📄</span> Carga Masiva (Actualizar CSV)
+            </button>
+            <button id="menuBtn_exportarProductos" onclick="ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>📦</span> Exportar Productos
+            </button>
+            <button id="menuBtn_modificarPrecios" onclick="ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>✏️</span> Modificar Precios
+            </button>
+            <button id="menuBtn_reporteVentas" onclick="ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2 border-b dark:border-slate-700">
+              <span>📊</span> Reporte de Ventas
+            </button>
+            <button id="menuBtn_gestionarPermisos" onclick="ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
+              <span>🛡️</span> Gestión de Usuarios
+            </button>
+          </div>
+        </div>
+
+        <button onclick="abrirModalHistorial()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
+          📜 Historial
+        </button>
+        <button onclick="cerrarSesion()" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
+          Salir
+        </button>
       </div>
     </div>
 
@@ -134,77 +172,6 @@
     </div>
   </div>
 
-  <!-- MENÚ LATERAL DESPLEGABLE (SIDEBAR DRAWER) CON ESTRUCTURA ORGANIZADA -->
-  <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 z-50" onclick="toggleSidebarMenu()"></div>
-  <aside id="sidebarMenu" class="fixed top-0 left-[-300px] w-[280px] h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transition-all duration-300 flex flex-col border-r dark:border-slate-700">
-    <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
-      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Menú Principal GO!</h3>
-      <button onclick="toggleSidebarMenu()" class="text-white hover:bg-indigo-700 p-1.5 rounded-lg font-bold">✕</button>
-    </div>
-    
-    <div class="p-3 flex-grow overflow-y-auto space-y-2 text-sm">
-      
-      <!-- a) MÓDULO ADMINISTRACIÓN (Acordeón desplegable) -->
-      <div id="contenedorMenuAdminSidebar" class="hidden border dark:border-slate-700 rounded-xl overflow-hidden">
-        <button onclick="toggleAcordeonAdmin()" class="w-full text-left px-3.5 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-between">
-          <span class="flex items-center gap-2"><span>⚙️</span> Módulo Administración</span>
-          <span id="flechaAcordeonAdmin" class="text-xs transition-transform duration-200">▼</span>
-        </button>
-        
-        <!-- Submenús de Administración -->
-        <div id="submenusAdminSidebar" class="hidden bg-white dark:bg-slate-800 px-2 py-1.5 space-y-1 text-xs border-t dark:border-slate-700">
-          <button id="menuBtn_nuevoProducto" onclick="toggleSidebarMenu(); ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2">
-            <span>➕</span> Nuevo Producto
-          </button>
-          <button id="menuBtn_registrarCompra" onclick="toggleSidebarMenu(); ejecutarAccionModulo('registrarCompra')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
-            <span>📥</span> Factura de Compra
-          </button>
-          <button id="menuBtn_costosProveedores" onclick="toggleSidebarMenu(); ejecutarAccionModulo('costosProveedores')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-2">
-            <span>💰</span> Análisis de Costos
-          </button>
-          <button id="menuBtn_cargaMasiva" onclick="toggleSidebarMenu(); ejecutarAccionModulo('cargaMasiva')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-700 dark:text-teal-400 font-medium flex items-center gap-2">
-            <span>📄</span> Carga Masiva (CSV)
-          </button>
-          <button id="menuBtn_exportarProductos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2">
-            <span>📦</span> Exportar Productos
-          </button>
-          <button id="menuBtn_modificarPrecios" onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2">
-            <span>✏️</span> Modificar Precios
-          </button>
-          <button id="menuBtn_reporteVentas" onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
-            <span>📊</span> Reporte de Ventas
-          </button>
-          <button id="menuBtn_gestionarPermisos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
-            <span>🛡️</span> Gestión de Usuarios
-          </button>
-        </div>
-      </div>
-
-      <!-- b) HISTORIAL DE VENTAS -->
-      <button onclick="toggleSidebarMenu(); abrirModalHistorial()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
-        <span>📜</span> Historial de Ventas
-      </button>
-
-      <!-- d) LOGROS -->
-      <button onclick="toggleSidebarMenu(); abrirModalMisLogros()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
-        <span>🏆</span> Logros
-      </button>
-
-      <!-- e) CONFIGURACIÓN -->
-      <button onclick="toggleSidebarMenu(); abrirModalConfiguracion()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
-        <span>⚙️</span> Configuración
-      </button>
-
-      <!-- f) SALIR -->
-      <div class="border-t dark:border-slate-700 pt-3 mt-3">
-        <button onclick="toggleSidebarMenu(); cerrarSesion()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-2.5">
-          <span>🚪</span> Salir
-        </button>
-      </div>
-
-    </div>
-  </aside>
-
   <!-- MODAL DE CONFIGURACIÓN -->
   <div id="modalConfiguracion" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-200">
@@ -252,12 +219,13 @@
           </div>
         </div>
 
+        <!-- NUEVO: TOGGLE DE NOTIFICACIONES DE PRECIOS -->
         <div class="border-t dark:border-slate-700 pt-3">
           <label class="flex items-center justify-between cursor-pointer">
-            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio y Ofertas</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio</span>
             <input type="checkbox" id="toggleNotifPrecios" onchange="cambiarEstadoNotificaciones(this.checked)" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
           </label>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualicen precios o se lancen ofertas.</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualice el precio de un producto.</p>
         </div>
       </div>
 
@@ -277,6 +245,7 @@
         <button onclick="cerrarModalPermisos()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
+      <!-- Pestañas internas -->
       <div class="flex gap-2 mb-4 border-b dark:border-slate-700 pb-2 flex-wrap">
         <button onclick="mostrarSubPestanaPermisos('crear')" id="tabCrearUser" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white">
           ➕ Crear Vendedor
@@ -289,6 +258,7 @@
         </button>
       </div>
 
+      <!-- SECCIÓN 1: CREAR USUARIO -->
       <div id="secCrearUsuario" class="space-y-3 text-sm">
         <div>
           <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Correo Electrónico *</label>
@@ -311,11 +281,13 @@
         </button>
       </div>
 
+      <!-- SECCIÓN 2: LISTA DE USUARIOS Y MÓDULOS -->
       <div id="secListaUsuarios" class="hidden space-y-3 text-sm">
         <div id="contenedorListaUsuariosPos" class="space-y-2 max-h-60 overflow-y-auto pr-1">
           <p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>
         </div>
 
+        <!-- Editor de Permisos para Usuario Seleccionado -->
         <div id="contenedorCheckboxesModulos" class="space-y-2 border-t dark:border-slate-700 pt-3 hidden">
           <p class="font-bold text-xs text-indigo-600 dark:text-indigo-400 mb-1" id="lblUsuarioEditando">Editando Módulos:</p>
           <div class="grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
@@ -325,9 +297,6 @@
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600"> 📦 Exportar Prod.</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modif. Precios</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Rep. Ventas</label>
-            <label class="col-span-2 flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded border border-indigo-200 dark:border-indigo-800">
-              <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600"> ✏️ **Editar Datos Directos en Cuadrícula** <span class="text-[10px] text-slate-500">(Precios, ofertas, fotos, bultos)</span>
-            </label>
           </div>
 
           <button onclick="guardarPermisosUsuario()" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
@@ -336,6 +305,7 @@
         </div>
       </div>
 
+      <!-- SECCIÓN 3: HABILITAR / DESHABILITAR LOGROS -->
       <div id="secAdminLogros" class="hidden space-y-2 text-sm">
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Active o pause los logros disponibles para todo el equipo:</p>
         <div id="listaAdminLogros" class="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -614,6 +584,19 @@
             class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
+        <!-- SECCIÓN DE OFERTAS -->
+        <div class="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800 space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="nuevoEnOferta" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+            <span class="text-xs font-bold text-amber-800 dark:text-amber-300">🔥 Marcar este producto como OFERTA</span>
+          </label>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 dark:text-slate-300 mb-1">Precio de Oferta ($)</label>
+            <input type="number" id="nuevoPrecioOferta" step="0.01" placeholder="0.00"
+              class="w-full px-3 py-1.5 border dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Stock Actual</label>
@@ -770,7 +753,7 @@
     <div class="text-center text-[10px] font-semibold mt-2">¡GRACIAS POR SU VISITA!</div>
   </div>
 
-  <!-- SCRIPT DE LÓGICA COMPLETA -->
+  <!-- SCRIPT DE LÓGICA COMPLETA CORREGIDO -->
   <script>
     const SUPABASE_URL = 'https://xjvhzfdgdivumluuegmm.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_lPJ95RgDRb5Vi4lLGrFULg_HI8_57RP';
@@ -797,36 +780,6 @@
     document.addEventListener("DOMContentLoaded", () => {
       aplicarConfiguracionGlobal();
     });
-
-    // --- FUNCIÓN PARA CONTROLAR EL MENÚ LATERAL (SIDEBAR DRAWER) ---
-    function toggleSidebarMenu() {
-      const sidebar = document.getElementById('sidebarMenu');
-      const overlay = document.getElementById('sidebarOverlay');
-      if (!sidebar || !overlay) return;
-
-      if (sidebar.style.left === '0px') {
-        sidebar.style.left = '-300px';
-        overlay.classList.add('opacity-0', 'pointer-events-none');
-      } else {
-        sidebar.style.left = '0px';
-        overlay.classList.remove('opacity-0', 'pointer-events-none');
-      }
-    }
-
-    // --- ACORDEÓN PARA DESPLEGAR EL MÓDULO ADMINISTRACIÓN DENTRO DEL SIDEBAR ---
-    function toggleAcordeonAdmin() {
-      const submenus = document.getElementById('submenusAdminSidebar');
-      const flecha = document.getElementById('flechaAcordeonAdmin');
-      if (!submenus || !flecha) return;
-
-      if (submenus.classList.contains('hidden')) {
-        submenus.classList.remove('hidden');
-        flecha.style.transform = 'rotate(180deg)';
-      } else {
-        submenus.classList.add('hidden');
-        flecha.style.transform = 'rotate(0deg)';
-      }
-    }
 
     function aplicarConfiguracionGlobal() {
       const htmlEl = document.documentElement;
@@ -917,6 +870,11 @@
     window.addEventListener('offline', actualizarEstadoRed);
 
     document.addEventListener('click', function(event) {
+      const contenedor = document.getElementById('contenedorMenuAdmin');
+      const dropdown = document.getElementById('dropdownMenuAdmin');
+      if (contenedor && !contenedor.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
       const resCompra = document.getElementById('listaResultadosCompra');
       const inputCompra = document.getElementById('buscadorCompraProd');
       if (resCompra && inputCompra && !inputCompra.contains(event.target) && !resCompra.contains(event.target)) {
@@ -929,7 +887,12 @@
       }
     });
 
-    // --- SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
+    function toggleMenuAdmin(event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById('dropdownMenuAdmin');
+      dropdown.classList.toggle('hidden');
+    }
+
     async function registrarIntentoNoAutorizado(emailUsuario, accionIntentada) {
       try {
         const { fechaStr, horaStr } = obtenerFechaHoraLocal();
@@ -954,23 +917,18 @@
       return false;
     }
 
-    // --- SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
-    function mostrarNotificacionFlotante(titulo, mensaje, esOferta = false) {
+    function mostrarNotificacionFlotante(titulo, mensaje) {
       if (!configActual.notifPrecios) return;
 
       const contenedor = document.getElementById('contenedorNotificaciones');
       if (!contenedor) return;
 
       const idNotif = 'notif_' + Date.now();
-      const icono = esOferta ? '🔥' : '🔔';
-      const borderClass = esOferta ? 'border-amber-500 shadow-amber-500/20' : 'border-indigo-500/30';
-      const bgHeader = esOferta ? 'text-amber-400 font-extrabold' : 'font-bold';
-
       const htmlNotif = `
-        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border ${borderClass} flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0">
-          <div class="text-xl shrink-0 mt-0.5">${icono}</div>
+        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border border-indigo-500/30 flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0">
+          <div class="text-xl shrink-0 mt-0.5">🔔</div>
           <div class="flex-grow text-xs">
-            <h5 class="${bgHeader} tracking-wide">${titulo}</h5>
+            <h5 class="font-bold tracking-wide">${titulo}</h5>
             <p class="text-[11px] opacity-90 mt-0.5">${mensaje}</p>
           </div>
           <button onclick="document.getElementById('${idNotif}').remove()" class="text-slate-400 hover:text-white dark:hover:text-slate-900 font-bold text-sm shrink-0">✕</button>
@@ -991,33 +949,38 @@
           elemento.classList.add('translate-y-2', 'opacity-0');
           setTimeout(() => elemento.remove(), 300);
         }
-      }, 7000);
+      }, 6000);
     }
 
+    // Canal Realtime corregido (limpieza de canales previos y orden de métodos)
     function inicializarSuscripcionPreciosRealtime() {
+      const canalExistente = _supabase.getChannels().find(c => c.topic === 'realtime:cambios-precios-productos');
+      if (canalExistente) {
+        _supabase.removeChannel(canalExistente);
+      }
+
       _supabase
         .channel('cambios-precios-productos')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'productos' },
+          { event: 'UPDATE', schema: 'public', table: 'productos' },
           (payload) => {
-            if (payload.eventType === 'UPDATE') {
-              const prodNuevo = payload.new;
-              const prodViejo = payload.old;
+            const prodNuevo = payload.new;
+            const prodViejo = payload.old;
 
-              const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
-              const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
+            const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
+            const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
 
-              if (cambioMinorista || cambioMayorista) {
-                let detalleCambios = [];
-                if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
-                if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+            if (cambioMinorista || cambioMayorista) {
+              let detalleCambios = [];
+              if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
+              if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
 
-                mostrarNotificacionFlotante(
-                  `📦 Precio Actualizado: ${prodNuevo.nombre}`,
-                  detalleCambios.join(' | ')
-                );
-              }
+              mostrarNotificacionFlotante(
+                `📦 Precio Actualizado: ${prodNuevo.nombre}`,
+                detalleCambios.join(' | ')
+              );
+
               cargarProductosSilencioso();
             }
           }
@@ -1040,17 +1003,12 @@
     }
 
     async function ejecutarAccionModulo(accion) {
-      const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
-      const esAdmin = emailLower.includes('admi');
+      document.getElementById('dropdownMenuAdmin').classList.add('hidden');
+
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
 
       if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores') && !esAdmin) {
         await validarAccionConAlerta(accion);
-        return;
-      }
-
-      if (accion === 'gestionarPermisos' && !esAdminEspecial) {
-        alert('⚠️ Módulo exclusivo para los administradores principales (admini@pos.com y admine@pos.com).');
         return;
       }
 
@@ -1078,7 +1036,7 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
-    // --- LOGIN STRICTO ---
+    // Login optimizado con try...catch...finally y control de bloqueo
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
@@ -1234,7 +1192,7 @@
       const emailLower = email.toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
       const esCualquierAdmin = emailLower.includes('admi');
-      const contenedorAdminSidebar = document.getElementById('contenedorMenuAdminSidebar');
+      const contenedorAdmin = document.getElementById('contenedorMenuAdmin');
 
       const botonesModulos = {
         'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
@@ -1248,7 +1206,7 @@
       };
 
       if (esCualquierAdmin) {
-        if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
+        contenedorAdmin.classList.remove('hidden');
         Object.keys(botonesModulos).forEach(key => {
           const btn = botonesModulos[key];
           if (btn) {
@@ -1267,7 +1225,6 @@
       if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
       if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
       if (botonesModulos['nuevoProducto']) botonesModulos['nuevoProducto'].classList.add('hidden');
-      if (botonesModulos['gestionarPermisos']) botonesModulos['gestionarPermisos'].classList.add('hidden');
 
       try {
         const { data } = await _supabase
@@ -1284,7 +1241,6 @@
           modulos.costosProveedores = false;
           modulos.modificarPrecios = false;
           modulos.nuevoProducto = false;
-          modulos.gestionarPermisos = false;
 
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
@@ -1298,22 +1254,18 @@
             }
           });
 
-          if (tieneAlgunPermiso) {
-            if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
-          } else {
-            if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
-          }
+          if (tieneAlgunPermiso) contenedorAdmin.classList.remove('hidden');
+          else contenedorAdmin.classList.add('hidden');
         } else {
-          if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
+          contenedorAdmin.classList.add('hidden');
         }
       } catch (e) {
-        if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
+        contenedorAdmin.classList.add('hidden');
       }
 
       document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
     }
 
-    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES ---
     function abrirModalCostosProveedores() {
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
@@ -1425,13 +1377,7 @@
       }
     }
 
-    // --- MODAL DE GESTIÓN DE USUARIOS Y LOGROS ---
     function abrirModalPermisos() {
-      const emailLower = (usuarioActualEmail || '').toLowerCase();
-      if (emailLower !== 'admini@pos.com' && emailLower !== 'admine@pos.com') {
-        alert('⚠️ Esta sección es exclusiva para los administradores principales (admini@pos.com y admine@pos.com).');
-        return;
-      }
       document.getElementById('modalPermisos').classList.remove('hidden');
       mostrarSubPestanaPermisos('crear');
     }
@@ -1561,24 +1507,23 @@
       document.getElementById('chk_exportarProductos').checked = !!modulos.exportarProductos;
       document.getElementById('chk_modificarPrecios').checked = !!modulos.modificarPrecios;
       document.getElementById('chk_reporteVentas').checked = !!modulos.reporteVentas;
-      document.getElementById('chk_edicionCuadricula').checked = !!modulos.edicionCuadricula;
 
       document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
     }
 
     async function guardarPermisosUsuario() {
       if (!usuarioEditandoPermisos) return;
-      
-      const { data: usuarioActualData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', usuarioEditandoPermisos).maybeSingle();
-      let modulosActuales = usuarioActualData ? usuarioActualData.modulos_activos || {} : {};
+      const modulosActivos = {
+        nuevoProducto: document.getElementById('chk_nuevoProducto').checked,
+        registrarCompra: false,
+        costosProveedores: false,
+        cargaMasiva: document.getElementById('chk_cargaMasiva').checked,
+        exportarProductos: document.getElementById('chk_exportarProductos').checked,
+        modificarPrecios: false,
+        reporteVentas: document.getElementById('chk_reporteVentas').checked
+      };
 
-      modulosActuales.nuevoProducto = document.getElementById('chk_nuevoProducto').checked;
-      modulosActuales.cargaMasiva = document.getElementById('chk_cargaMasiva').checked;
-      modulosActuales.exportarProductos = document.getElementById('chk_exportarProductos').checked;
-      modulosActuales.reporteVentas = document.getElementById('chk_reporteVentas').checked;
-      modulosActuales.edicionCuadricula = document.getElementById('chk_edicionCuadricula').checked;
-
-      await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActuales }).eq('email', usuarioEditandoPermisos);
+      await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActivos }).eq('email', usuarioEditandoPermisos);
       alert(`¡Módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
       document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
     }
@@ -1683,19 +1628,16 @@
       }
 
       localStorage.setItem('go_pos_productos', JSON.stringify(data));
-      todosLosProductos = data;
-      document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
-      filtrarProductos();
+      iniciarSesionExitosa(usuarioActualEmail, data);
     }
 
     function cargarProductosOffline() {
       const cached = localStorage.getItem('go_pos_productos');
       if (cached) {
-        todosLosProductos = JSON.parse(cached);
-        document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
-        filtrarProductos();
+        iniciarSesionExitosa(usuarioActualEmail, JSON.parse(cached));
       } else {
         document.getElementById('productosList').innerHTML = '<p class="text-red-500 text-sm text-center col-span-full">Sin internet y sin catálogo guardado.</p>';
+        iniciarSesionExitosa(usuarioActualEmail, []);
       }
     }
 
@@ -1706,6 +1648,11 @@
         return;
       }
 
+      const productosOrdenados = [...productos].sort((a, b) => {
+        return (b.en_oferta === true) - (a.en_oferta === true);
+      });
+
+      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
       const esLista = configActual.vista === 'list';
 
       contenedor.className = esLista 
@@ -1713,40 +1660,54 @@
         : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors";
 
       let htmlContent = '';
-      productos.forEach((prod, idx) => {
+      productosOrdenados.forEach((prod, idx) => {
         const codBarras = obtenerCodigoBarras(prod);
         const idUnico = prod.id || codBarras || idx;
         const codigoMostrado = codBarras || 'S/C';
         const fotoUrl = prod.imagen_url || prod.foto || '';
 
-        const precioMinorista = parseFloat(prod.precio || 0);
-        const precioMayorista = obtenerPrecioMayorista(prod);
-        const cMayor = obtenerCantMayorista(prod);
+        const enOferta = !!prod.en_oferta;
+        const precioOferta = parseFloat(prod.precio_oferta || 0);
+        const precioFinalVenta = (enOferta && precioOferta > 0) ? precioOferta : prod.precio;
 
-        const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+        const pMayor = obtenerPrecioMayorista(prod);
+        const cMayor = obtenerCantMayorista(prod);
+        const mayoristaTag = pMayor > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` : '';
         const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
 
-        const cardClass = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
+        const ofertaCardClass = enOferta 
+          ? "border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-b from-amber-50/80 to-white dark:from-amber-950/20 dark:to-slate-800 shadow-md" 
+          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
+        
+        const bannerOferta = enOferta 
+          ? `<div class="absolute top-1 left-1 bg-amber-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow tracking-wider uppercase flex items-center gap-0.5 z-10">🔥 ¡OFERTA!</div>` 
+          : '';
+
+        const precioDisplayHtml = enOferta && precioOferta > 0
+          ? `<div class="space-y-0.5"><span class="text-[11px] text-slate-400 line-through">$${prod.precio}</span><p class="text-amber-600 dark:text-amber-400 font-black text-sm">$${precioOferta}</p></div>`
+          : `<p class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">Min: $${prod.precio}</p>`;
 
         if (esLista) {
           const imagenTagList = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-12 h-12 object-contain rounded bg-white dark:bg-slate-800 p-0.5 shrink-0">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-slate-400 text-lg shrink-0">📦</div>`;
           htmlContent += `
-            <div class="relative ${cardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all">
-              <div class="flex items-center gap-3 overflow-hidden">
+            <div class="relative ${ofertaCardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3">
+              ${bannerOferta}
+              <div class="flex items-center gap-3 overflow-hidden ${enOferta ? 'pt-4 sm:pt-0' : ''}">
                 ${imagenTagList}
                 <div class="overflow-hidden">
-                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
+                  <p class="font-semibold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
                   <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
                 </div>
               </div>
               <div class="flex items-center gap-3 shrink-0">
-                <div class="text-right text-xs">
-                  <p class="text-blue-600 dark:text-blue-400 font-bold">Pcio Min: $${precioMinorista.toFixed(2)}</p>
-                  ${precioMayorista > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold">Pcio May: $${precioMayorista.toFixed(2)} (x${cMayor}+)</p>` : ''}
+                <div class="text-right">
+                  ${enOferta && precioOferta > 0 ? `<span class="text-[10px] text-slate-400 line-through">$${prod.precio}</span>` : ''}
+                  <p class="${enOferta ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-indigo-600 dark:text-indigo-400 font-bold'} text-xs">$${precioFinalVenta}</p>
+                  ${mayoristaTag}
                 </div>
                 <div class="flex items-center gap-1">
                   <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
+                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-medium">Agregar</button>
                   ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
                 </div>
               </div>
@@ -1754,21 +1715,22 @@
         } else {
           const imagenTagGrid = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white dark:bg-slate-800 p-1">` : `<div class="w-full h-24 bg-slate-200 dark:bg-slate-700 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
           htmlContent += `
-            <div class="relative ${cardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+            <div class="relative ${ofertaCardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+              ${bannerOferta}
               ${btnEditarHtml}
-              <div>
+              <div class="${enOferta ? 'pt-4' : ''}">
                 ${imagenTagGrid}
-                <p class="font-bold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
+                <p class="font-semibold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 space-y-0.5">
                   <p>Cód: <span class="font-medium text-slate-700 dark:text-slate-300">${codigoMostrado}</span></p>
                   <p>Stock: <span class="font-medium text-slate-700 dark:text-slate-300">${prod.stock || 0}</span></p>
-                  <p class="text-blue-600 dark:text-blue-400 font-bold">Pcio Min: $${precioMinorista.toFixed(2)}</p>
-                  ${precioMayorista > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold">Pcio May: $${precioMayorista.toFixed(2)} (x${cMayor}+)</p>` : ''}
+                  ${precioDisplayHtml}
+                  ${mayoristaTag}
                 </div>
               </div>
-              <div class="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
+              <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1">
                 <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1 rounded text-xs font-bold text-center shadow-sm">Agregar</button>
+                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="flex-1 ${enOferta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-1 rounded text-xs font-medium text-center">Agregar</button>
               </div>
             </div>
           `;
@@ -1791,7 +1753,7 @@
         carrito.push({ 
           idUnico: idUnico, 
           nombre: prodRef.nombre, 
-          precioMinorista: prodRef.precio,
+          precioMinorista: precioEspecial,
           precioMayorista: obtenerPrecioMayorista(prodRef),
           cantMayorista: obtenerCantMayorista(prodRef),
           unidadesBulto: obtenerUnidadesPorBulto(prodRef),
@@ -1884,7 +1846,6 @@
       actualizarCarritoVisual();
     }
 
-    // --- MÓDULO DE FACTURAS DE COMPRA ---
     function abrirModalCompra() {
       document.getElementById('compraProveedor').value = 'Wayra';
       document.getElementById('compraNroFactura').value = '';
@@ -2044,6 +2005,8 @@
       document.getElementById('editProductoId').value = '';
       document.getElementById('nuevoCodigo').value = '';
       document.getElementById('nuevoNombre').value = '';
+      document.getElementById('nuevoEnOferta').checked = false;
+      document.getElementById('nuevoPrecioOferta').value = '';
       document.getElementById('nuevoStock').value = '0';
       document.getElementById('nuevoCosto').value = '';
       document.getElementById('nuevoVenta').value = '';
@@ -2064,6 +2027,8 @@
       document.getElementById('editProductoId').value = prod.id;
       document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
+      document.getElementById('nuevoEnOferta').checked = !!prod.en_oferta;
+      document.getElementById('nuevoPrecioOferta').value = prod.precio_oferta || '';
       document.getElementById('nuevoStock').value = prod.stock || 0;
       document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
       document.getElementById('nuevoVenta').value = prod.precio || '';
@@ -2087,10 +2052,12 @@
       }
 
       const editId = document.getElementById('editProductoId').value;
-
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
         nombre: document.getElementById('nuevoNombre').value.trim(),
+        en_oferta: document.getElementById('nuevoEnOferta').checked,
+        precio_oferta: parseFloat(document.getElementById('nuevoPrecioOferta').value) || 0,
+        imagen_url: fotoBase64Actual,
         stock: parseInt(document.getElementById('nuevoStock').value) || 0,
         "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
         precio: parseFloat(document.getElementById('nuevoVenta').value) || 0,
@@ -2099,26 +2066,8 @@
         unidades_por_bulto: parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0,
         activo: true
       };
-
-      if (fotoBase64Actual) {
-        datos.imagen_url = fotoBase64Actual;
-      }
-
-      let errorSupabase = null;
-      if (editId) {
-        const { error } = await _supabase.from('productos').update(datos).eq('id', editId);
-        errorSupabase = error;
-      } else {
-        const { error } = await _supabase.from('productos').insert([datos]);
-        errorSupabase = error;
-      }
-
-      if (errorSupabase) {
-        alert('Error al guardar en Supabase: ' + errorSupabase.message);
-        return;
-      }
-
-      alert('¡Producto guardado correctamente en la base de datos!');
+      if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
+      else await _supabase.from('productos').insert([datos]);
       cerrarModalProducto();
       await cargarProductos();
     }
@@ -2274,13 +2223,8 @@
       if (!isNaN(nuevoMin)) datosUpdate.precio = nuevoMin;
       if (!isNaN(nuevoMay)) datosUpdate.precio_mayorista = nuevoMay;
 
-      const { error } = await _supabase.from('productos').update(datosUpdate).eq('id', id);
-      if (error) {
-        alert('Error al actualizar precios en Supabase: ' + error.message);
-        return;
-      }
-
-      alert('¡Precios actualizados con éxito en la base de datos!');
+      await _supabase.from('productos').update(datosUpdate).eq('id', id);
+      alert('¡Precios actualizados con éxito!');
       cerrarModalPrecios();
       await cargarProductos();
     }
