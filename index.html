@@ -614,21 +614,6 @@
             class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
-        <!-- SECCIÓN DE OFERTAS CON VENCIMIENTO -->
-        <div class="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800 space-y-2">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="nuevoEnOferta" onchange="toggleFormularioOferta(this.checked)" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
-            <span class="text-xs font-bold text-amber-800 dark:text-amber-300">🔥 Marcar este producto como OFERTA</span>
-          </label>
-          
-          <div id="contenedorFechaVencimientoOferta" class="hidden pt-1">
-            <label class="block text-[11px] font-semibold text-amber-900 dark:text-amber-200 mb-1">📅 Vencimiento de la Oferta (Fecha y Hora):</label>
-            <input type="datetime-local" id="nuevoFechaVencimientoOferta"
-              class="w-full px-3 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
-            <p class="text-[10px] text-amber-700 dark:text-amber-400 mt-1">Al llegar a esta fecha, el producto volverá a su estado normal automáticamente.</p>
-          </div>
-        </div>
-
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Stock Actual</label>
@@ -648,7 +633,7 @@
               class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
-            <label id="lblPrecioMayorista" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Precio Mayorista ($)</label>
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Precio Mayorista ($)</label>
             <input type="number" id="nuevoMayorista" step="0.01" placeholder="0.00"
               class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
@@ -801,7 +786,6 @@
     let productosParaCargarMasiva = [];
     let modoImpresionActual = 'bluetooth';
     let usuarioEditandoPermisos = '';
-    let tienePermisoEdicionCuadricula = false;
 
     let configActual = {
       tema: localStorage.getItem('go_config_tema') || 'light',
@@ -841,25 +825,6 @@
       } else {
         submenus.classList.add('hidden');
         flecha.style.transform = 'rotate(0deg)';
-      }
-    }
-
-    // --- ALTERNAR FORMULARIO DE OFERTA DENTRO DEL MODAL ---
-    function toggleFormularioOferta(estaEnOferta) {
-      const lblMayorista = document.getElementById('lblPrecioMayorista');
-      const inputMayorista = document.getElementById('nuevoMayorista');
-      const contenedorVencimiento = document.getElementById('contenedorFechaVencimientoOferta');
-
-      if (estaEnOferta) {
-        lblMayorista.textContent = "🔥 Precio Oferta ($) *";
-        lblMayorista.className = "block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1";
-        inputMayorista.placeholder = "Precio de la oferta";
-        contenedorVencimiento.classList.remove('hidden');
-      } else {
-        lblMayorista.textContent = "Precio Mayorista ($)";
-        lblMayorista.className = "block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1";
-        inputMayorista.placeholder = "0.00";
-        contenedorVencimiento.classList.add('hidden');
       }
     }
 
@@ -1040,34 +1005,17 @@
               const prodNuevo = payload.new;
               const prodViejo = payload.old;
 
-              const fueMarcaoOferta = prodNuevo.en_oferta && !prodViejo.en_oferta;
               const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
               const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
 
-              if (fueMarcaoOferta) {
-                mostrarNotificacionFlotante(
-                  `🔥 ¡NUEVA OFERTA DISPONIBLE!`,
-                  `${prodNuevo.nombre} en oferta a $${prodNuevo.precio_mayorista || prodNuevo.precio}`,
-                  true
-                );
-              } else if (cambioMinorista || cambioMayorista) {
+              if (cambioMinorista || cambioMayorista) {
                 let detalleCambios = [];
                 if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
-                if (cambioMayorista) detalleCambios.push(`Precio: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+                if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
 
                 mostrarNotificacionFlotante(
                   `📦 Precio Actualizado: ${prodNuevo.nombre}`,
                   detalleCambios.join(' | ')
-                );
-              }
-              cargarProductosSilencioso();
-            } else if (payload.eventType === 'INSERT') {
-              const prodNuevo = payload.new;
-              if (prodNuevo.en_oferta) {
-                mostrarNotificacionFlotante(
-                  `🔥 ¡NUEVO PRODUCTO EN OFERTA!`,
-                  `${prodNuevo.nombre} a $${prodNuevo.precio_mayorista || prodNuevo.precio}`,
-                  true
                 );
               }
               cargarProductosSilencioso();
@@ -1311,7 +1259,6 @@
             }
           }
         });
-        tienePermisoEdicionCuadricula = true;
         document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
         return;
       }
@@ -1339,8 +1286,6 @@
           modulos.nuevoProducto = false;
           modulos.gestionarPermisos = false;
 
-          tienePermisoEdicionCuadricula = !!modulos.edicionCuadricula;
-
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
             if (btn) {
@@ -1353,17 +1298,15 @@
             }
           });
 
-          if (tieneAlgunPermiso || tienePermisoEdicionCuadricula) {
+          if (tieneAlgunPermiso) {
             if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
           } else {
             if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
           }
         } else {
-          tienePermisoEdicionCuadricula = false;
           if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
         }
       } catch (e) {
-        tienePermisoEdicionCuadricula = false;
         if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
       }
 
@@ -1739,19 +1682,6 @@
         return;
       }
 
-      // Verificación de vencimientos de ofertas
-      const ahora = new Date();
-      data.forEach(p => {
-        if (p.en_oferta && p.fecha_vencimiento_oferta) {
-          const fechaVenc = new Date(p.fecha_vencimiento_oferta);
-          if (ahora > fechaVenc) {
-            p.en_oferta = false;
-            p.fecha_vencimiento_oferta = null;
-            _supabase.from('productos').update({ en_oferta: false, fecha_vencimiento_oferta: null }).eq('id', p.id);
-          }
-        }
-      });
-
       localStorage.setItem('go_pos_productos', JSON.stringify(data));
       iniciarSesionExitosa(usuarioActualEmail, data);
     }
@@ -1773,16 +1703,6 @@
         return;
       }
 
-      // ORDENAR: Primero productos en OFERTA activa al inicio
-      const productosOrdenados = [...productos].sort((a, b) => {
-        const aOferta = a.en_oferta ? 1 : 0;
-        const bOferta = b.en_oferta ? 1 : 0;
-        return bOferta - aOferta;
-      });
-
-      const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdmin = emailLower.includes('admi');
-      const puedeEditarDirecto = esAdmin || tienePermisoEdicionCuadricula;
       const esLista = configActual.vista === 'list';
 
       contenedor.className = esLista 
@@ -1790,162 +1710,68 @@
         : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors";
 
       let htmlContent = '';
-      productosOrdenados.forEach((prod, idx) => {
+      productos.forEach((prod, idx) => {
         const codBarras = obtenerCodigoBarras(prod);
         const idUnico = prod.id || codBarras || idx;
         const codigoMostrado = codBarras || 'S/C';
         const fotoUrl = prod.imagen_url || prod.foto || '';
 
-        const enOferta = !!prod.en_oferta;
-        const precioOferta = obtenerPrecioMayorista(prod);
-        const precioFinalVenta = (enOferta && precioOferta > 0) ? precioOferta : prod.precio;
-
-        const pMayor = obtenerPrecioMayorista(prod);
+        const precioMinorista = parseFloat(prod.precio || 0);
+        const precioMayorista = obtenerPrecioMayorista(prod);
         const cMayor = obtenerCantMayorista(prod);
-        const uBulto = obtenerUnidadesPorBulto(prod);
 
-        const mayoristaTag = (!enOferta && pMayor > 0) ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` : '';
+        const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
         const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
 
-        // ESTILO DESTACADO DE CUADRÍCULA PARA OFERTAS (Fondo distintivo)
-        const ofertaCardClass = enOferta 
-          ? "border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-100/90 via-amber-50 to-orange-100/80 dark:from-amber-950/60 dark:via-slate-800 dark:to-orange-950/40 shadow-lg" 
-          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
-        
-        const bannerOferta = enOferta 
-          ? `<div class="absolute top-1 left-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow tracking-wider uppercase flex items-center gap-0.5 z-10 animate-pulse">🔥 ¡OFERTA!</div>` 
-          : '';
-
-        // CAMPOS EDITABLES DIRECTAMENTE EN CUADRÍCULA SI TIENE PERMISO
-        let inputsEdicionCuadriculaHtml = '';
-        let precioDisplayHtml = '';
-
-        if (puedeEditarDirecto) {
-          inputsEdicionCuadriculaHtml = `
-            <div class="mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-700 space-y-1.5 text-[11px]">
-              <div class="flex justify-between items-center gap-1">
-                <span class="text-slate-500">Min ($):</span>
-                <input type="number" step="0.01" value="${prod.precio}" onchange="actualizarDatoCuadricula('${prod.id}', 'precio', this.value)" class="w-20 px-1 py-0.5 text-right font-bold border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-              </div>
-              <div class="flex justify-between items-center gap-1">
-                <span class="${enOferta ? 'text-amber-700 dark:text-amber-400 font-bold' : 'text-slate-500'}">${enOferta ? 'Oferta ($):' : 'Mayor ($):'}</span>
-                <input type="number" step="0.01" value="${pMayor}" onchange="actualizarDatoCuadricula('${prod.id}', 'precio_mayorista', this.value)" class="w-20 px-1 py-0.5 text-right font-bold border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-              </div>
-              <div class="flex justify-between items-center gap-1">
-                <span class="text-slate-500">Min. May / Bulto:</span>
-                <div class="flex gap-1">
-                  <input type="number" value="${cMayor}" onchange="actualizarDatoCuadricula('${prod.id}', 'cantidad_mayorista', this.value)" title="Cant mínima mayorista" class="w-9 px-0.5 py-0.5 text-center border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white" placeholder="Min">
-                  <input type="number" value="${uBulto}" onchange="actualizarDatoCuadricula('${prod.id}', 'unidades_por_bulto', this.value)" title="Unidades por bulto" class="w-9 px-0.5 py-0.5 text-center border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white" placeholder="Bulto">
-                </div>
-              </div>
-              <div class="flex justify-between items-center pt-1">
-                <label class="flex items-center gap-1 cursor-pointer font-bold text-amber-700 dark:text-amber-400">
-                  <input type="checkbox" ${enOferta ? 'checked' : ''} onchange="actualizarDatoCuadricula('${prod.id}', 'en_oferta', this.checked)" class="rounded text-amber-600"> Oferta
-                </label>
-                <label class="cursor-pointer text-indigo-600 dark:text-indigo-400 font-medium hover:underline text-[10px]">
-                  📷 Foto <input type="file" accept="image/*" onchange="actualizarFotoCuadricula('${prod.id}', event)" class="hidden">
-                </label>
-              </div>
-            </div>
-          `;
-        } else {
-          precioDisplayHtml = enOferta && precioOferta > 0
-            ? `<div class="space-y-0.5"><span class="text-[11px] text-slate-400 line-through">$${prod.precio}</span><p class="text-amber-700 dark:text-amber-400 font-black text-sm">$${precioOferta}</p></div>`
-            : `<p class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">Min: $${prod.precio}</p>`;
-        }
+        const cardClass = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
 
         if (esLista) {
           const imagenTagList = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-12 h-12 object-contain rounded bg-white dark:bg-slate-800 p-0.5 shrink-0">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-slate-400 text-lg shrink-0">📦</div>`;
           htmlContent += `
-            <div class="relative ${ofertaCardClass} p-2.5 rounded-xl shadow-sm flex flex-col gap-2 transition-all">
-              <div class="flex items-center justify-between gap-3">
-                ${bannerOferta}
-                <div class="flex items-center gap-3 overflow-hidden ${enOferta ? 'pt-4 sm:pt-0' : ''}">
-                  ${imagenTagList}
-                  <div class="overflow-hidden">
-                    <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-3 shrink-0">
-                  <div class="text-right">
-                    ${!puedeEditarDirecto ? (enOferta && precioOferta > 0 ? `<span class="text-[10px] text-slate-400 line-through">$${prod.precio}</span>` : '') : ''}
-                    ${!puedeEditarDirecto ? `<p class="${enOferta ? 'text-amber-700 dark:text-amber-400 font-black' : 'text-indigo-600 dark:text-indigo-400 font-bold'} text-xs">$${precioFinalVenta}</p>` : ''}
-                    ${!puedeEditarDirecto ? mayoristaTag : ''}
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                    <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="${enOferta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
-                    ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
-                  </div>
+            <div class="relative ${cardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all">
+              <div class="flex items-center gap-3 overflow-hidden">
+                ${imagenTagList}
+                <div class="overflow-hidden">
+                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
                 </div>
               </div>
-              ${inputsEdicionCuadriculaHtml}
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="text-right text-xs">
+                  <p class="text-blue-600 dark:text-blue-400 font-bold">Pcio Min: $${precioMinorista.toFixed(2)}</p>
+                  ${precioMayorista > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold">Pcio May: $${precioMayorista.toFixed(2)} (x${cMayor}+)</p>` : ''}
+                </div>
+                <div class="flex items-center gap-1">
+                  <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
+                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
+                  ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
+                </div>
+              </div>
             </div>`;
         } else {
           const imagenTagGrid = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white dark:bg-slate-800 p-1">` : `<div class="w-full h-24 bg-slate-200 dark:bg-slate-700 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
           htmlContent += `
-            <div class="relative ${ofertaCardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-              ${bannerOferta}
+            <div class="relative ${cardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
               ${btnEditarHtml}
-              <div class="${enOferta ? 'pt-4' : ''}">
+              <div>
                 ${imagenTagGrid}
                 <p class="font-bold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 space-y-0.5">
                   <p>Cód: <span class="font-medium text-slate-700 dark:text-slate-300">${codigoMostrado}</span></p>
                   <p>Stock: <span class="font-medium text-slate-700 dark:text-slate-300">${prod.stock || 0}</span></p>
-                  ${precioDisplayHtml}
-                  ${!puedeEditarDirecto ? mayoristaTag : ''}
+                  <p class="text-blue-600 dark:text-blue-400 font-bold">Pcio Min: $${precioMinorista.toFixed(2)}</p>
+                  ${precioMayorista > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold">Pcio May: $${precioMayorista.toFixed(2)} (x${cMayor}+)</p>` : ''}
                 </div>
-                ${inputsEdicionCuadriculaHtml}
               </div>
               <div class="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
                 <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="flex-1 ${enOferta ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-1 rounded text-xs font-bold text-center shadow-sm">Agregar</button>
+                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1 rounded text-xs font-bold text-center shadow-sm">Agregar</button>
               </div>
             </div>
           `;
         }
       });
       contenedor.innerHTML = htmlContent;
-    }
-
-    async function actualizarDatoCuadricula(idProducto, campo, valor) {
-      const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdmin = emailLower.includes('admi');
-      if (!esAdmin && !tienePermisoEdicionCuadricula) {
-        alert('⚠️ No cuenta con permisos para modificar datos en la cuadrícula.');
-        return;
-      }
-
-      let valorFinal = valor;
-      if (campo === 'precio' || campo === 'precio_mayorista') {
-        valorFinal = parseFloat(valor) || 0;
-      } else if (campo === 'cantidad_mayorista' || campo === 'unidades_por_bulto') {
-        valorFinal = parseInt(valor) || 0;
-      }
-
-      await _supabase.from('productos').update({ [campo]: valorFinal }).eq('id', idProducto);
-      await cargarProductosSilencioso();
-    }
-
-    async function actualizarFotoCuadricula(idProducto, event) {
-      const archivo = event.target.files[0];
-      if (!archivo) return;
-      const lector = new FileReader();
-      lector.onload = async function(e) {
-        const img = new Image();
-        img.onload = async function() {
-          const canvas = document.createElement('canvas');
-          canvas.width = 400; canvas.height = 400;
-          canvas.getContext('2d').drawImage(img, 0, 0, 400, 400);
-          const base64Foto = canvas.toDataURL('image/jpeg', 0.7);
-          await _supabase.from('productos').update({ imagen_url: base64Foto }).eq('id', idProducto);
-          await cargarProductosSilencioso();
-        };
-        img.src = e.target.result;
-      };
-      lector.readAsDataURL(archivo);
     }
 
     function agregarAlCarritoConPrecio(idUnico, precioEspecial) {
@@ -1962,7 +1788,7 @@
         carrito.push({ 
           idUnico: idUnico, 
           nombre: prodRef.nombre, 
-          precioMinorista: precioEspecial,
+          precioMinorista: prodRef.precio,
           precioMayorista: obtenerPrecioMayorista(prodRef),
           cantMayorista: obtenerCantMayorista(prodRef),
           unidadesBulto: obtenerUnidadesPorBulto(prodRef),
@@ -2215,9 +2041,6 @@
       document.getElementById('editProductoId').value = '';
       document.getElementById('nuevoCodigo').value = '';
       document.getElementById('nuevoNombre').value = '';
-      document.getElementById('nuevoEnOferta').checked = false;
-      document.getElementById('nuevoFechaVencimientoOferta').value = '';
-      toggleFormularioOferta(false);
       document.getElementById('nuevoStock').value = '0';
       document.getElementById('nuevoCosto').value = '';
       document.getElementById('nuevoVenta').value = '';
@@ -2238,20 +2061,6 @@
       document.getElementById('editProductoId').value = prod.id;
       document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
-      
-      const enOferta = !!prod.en_oferta;
-      document.getElementById('nuevoEnOferta').checked = enOferta;
-      
-      if (prod.fecha_vencimiento_oferta) {
-        const fechaObj = new Date(prod.fecha_vencimiento_oferta);
-        const isoString = new Date(fechaObj.getTime() - (fechaObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-        document.getElementById('nuevoFechaVencimientoOferta').value = isoString;
-      } else {
-        document.getElementById('nuevoFechaVencimientoOferta').value = '';
-      }
-
-      toggleFormularioOferta(enOferta);
-
       document.getElementById('nuevoStock').value = prod.stock || 0;
       document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
       document.getElementById('nuevoVenta').value = prod.precio || '';
@@ -2275,14 +2084,12 @@
       }
 
       const editId = document.getElementById('editProductoId').value;
-      const enOfertaBool = document.getElementById('nuevoEnOferta').checked;
-      const valFechaVenc = document.getElementById('nuevoFechaVencimientoOferta').value;
 
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
         nombre: document.getElementById('nuevoNombre').value.trim(),
-        en_oferta: enOfertaBool,
-        fecha_vencimiento_oferta: enOfertaBool && valFechaVenc ? new Date(valFechaVenc).toISOString() : null,
+        en_oferta: false,
+        fecha_vencimiento_oferta: null,
         imagen_url: fotoBase64Actual,
         stock: parseInt(document.getElementById('nuevoStock').value) || 0,
         "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
@@ -2428,7 +2235,7 @@
       const res = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(t)).slice(0, 10);
       let h = '';
       res.forEach(p => { 
-        h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';document.getElementById('nuevoPrecioMayoristaInput').value='${obtenerPrecioMayorista(p)}';" class="p-1.5 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer border-b">${p.nombre} - Min: $${p.precio} | May/Oferta: $${obtenerPrecioMayorista(p)}</div>`; 
+        h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';document.getElementById('nuevoPrecioMayoristaInput').value='${obtenerPrecioMayorista(p)}';" class="p-1.5 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer border-b">${p.nombre} - Min: $${p.precio} | May: $${obtenerPrecioMayorista(p)}</div>`; 
       });
       c.innerHTML = h;
     }
