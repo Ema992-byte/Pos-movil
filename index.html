@@ -325,6 +325,9 @@
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600"> 📦 Exportar Prod.</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modif. Precios</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Rep. Ventas</label>
+            <label class="col-span-2 flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded border border-indigo-200 dark:border-indigo-800">
+              <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600"> ✏️ **Editar Datos Directos en Cuadrícula** <span class="text-[10px] text-slate-500">(Precios, ofertas, fotos, bultos)</span>
+            </label>
           </div>
 
           <button onclick="guardarPermisosUsuario()" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
@@ -798,6 +801,7 @@
     let productosParaCargarMasiva = [];
     let modoImpresionActual = 'bluetooth';
     let usuarioEditandoPermisos = '';
+    let tienePermisoEdicionCuadricula = false;
 
     let configActual = {
       tema: localStorage.getItem('go_config_tema') || 'light',
@@ -1088,10 +1092,17 @@
     }
 
     async function ejecutarAccionModulo(accion) {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esAdmin = emailLower.includes('admi');
 
       if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores') && !esAdmin) {
         await validarAccionConAlerta(accion);
+        return;
+      }
+
+      if (accion === 'gestionarPermisos' && !esAdminEspecial) {
+        alert('⚠️ Módulo exclusivo para los administradores principales (admini@pos.com y admine@pos.com).');
         return;
       }
 
@@ -1300,6 +1311,7 @@
             }
           }
         });
+        tienePermisoEdicionCuadricula = true;
         document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
         return;
       }
@@ -1308,6 +1320,7 @@
       if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
       if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
       if (botonesModulos['nuevoProducto']) botonesModulos['nuevoProducto'].classList.add('hidden');
+      if (botonesModulos['gestionarPermisos']) botonesModulos['gestionarPermisos'].classList.add('hidden');
 
       try {
         const { data } = await _supabase
@@ -1324,6 +1337,9 @@
           modulos.costosProveedores = false;
           modulos.modificarPrecios = false;
           modulos.nuevoProducto = false;
+          modulos.gestionarPermisos = false;
+
+          tienePermisoEdicionCuadricula = !!modulos.edicionCuadricula;
 
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
@@ -1337,12 +1353,17 @@
             }
           });
 
-          if (tieneAlgunPermiso && contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
-          else if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
+          if (tieneAlgunPermiso || tienePermisoEdicionCuadricula) {
+            if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
+          } else {
+            if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
+          }
         } else {
+          tienePermisoEdicionCuadricula = false;
           if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
         }
       } catch (e) {
+        tienePermisoEdicionCuadricula = false;
         if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
       }
 
@@ -1463,6 +1484,11 @@
 
     // --- MODAL DE GESTIÓN DE USUARIOS Y LOGROS ---
     function abrirModalPermisos() {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      if (emailLower !== 'admini@pos.com' && emailLower !== 'admine@pos.com') {
+        alert('⚠️ Esta sección es exclusiva para los administradores principales (admini@pos.com y admine@pos.com).');
+        return;
+      }
       document.getElementById('modalPermisos').classList.remove('hidden');
       mostrarSubPestanaPermisos('crear');
     }
@@ -1592,23 +1618,24 @@
       document.getElementById('chk_exportarProductos').checked = !!modulos.exportarProductos;
       document.getElementById('chk_modificarPrecios').checked = !!modulos.modificarPrecios;
       document.getElementById('chk_reporteVentas').checked = !!modulos.reporteVentas;
+      document.getElementById('chk_edicionCuadricula').checked = !!modulos.edicionCuadricula;
 
       document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
     }
 
     async function guardarPermisosUsuario() {
       if (!usuarioEditandoPermisos) return;
-      const modulosActivos = {
-        nuevoProducto: document.getElementById('chk_nuevoProducto').checked,
-        registrarCompra: false,
-        costosProveedores: false,
-        cargaMasiva: document.getElementById('chk_cargaMasiva').checked,
-        exportarProductos: document.getElementById('chk_exportarProductos').checked,
-        modificarPrecios: false,
-        reporteVentas: document.getElementById('chk_reporteVentas').checked
-      };
+      
+      const { data: usuarioActualData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', usuarioEditandoPermisos).maybeSingle();
+      let modulosActuales = usuarioActualData ? usuarioActualData.modulos_activos || {} : {};
 
-      await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActivos }).eq('email', usuarioEditandoPermisos);
+      modulosActuales.nuevoProducto = document.getElementById('chk_nuevoProducto').checked;
+      modulosActuales.cargaMasiva = document.getElementById('chk_cargaMasiva').checked;
+      modulosActuales.exportarProductos = document.getElementById('chk_exportarProductos').checked;
+      modulosActuales.reporteVentas = document.getElementById('chk_reporteVentas').checked;
+      modulosActuales.edicionCuadricula = document.getElementById('chk_edicionCuadricula').checked;
+
+      await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActuales }).eq('email', usuarioEditandoPermisos);
       alert(`¡Módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
       document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
     }
@@ -1753,7 +1780,9 @@
         return bOferta - aOferta;
       });
 
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdmin = emailLower.includes('admi');
+      const puedeEditarDirecto = esAdmin || tienePermisoEdicionCuadricula;
       const esLista = configActual.vista === 'list';
 
       contenedor.className = esLista 
@@ -1773,6 +1802,8 @@
 
         const pMayor = obtenerPrecioMayorista(prod);
         const cMayor = obtenerCantMayorista(prod);
+        const uBulto = obtenerUnidadesPorBulto(prod);
+
         const mayoristaTag = (!enOferta && pMayor > 0) ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` : '';
         const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
 
@@ -1785,34 +1816,71 @@
           ? `<div class="absolute top-1 left-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow tracking-wider uppercase flex items-center gap-0.5 z-10 animate-pulse">🔥 ¡OFERTA!</div>` 
           : '';
 
-        const precioDisplayHtml = enOferta && precioOferta > 0
-          ? `<div class="space-y-0.5"><span class="text-[11px] text-slate-400 line-through">$${prod.precio}</span><p class="text-amber-700 dark:text-amber-400 font-black text-sm">$${precioOferta}</p></div>`
-          : `<p class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">Min: $${prod.precio}</p>`;
+        // CAMPOS EDITABLES DIRECTAMENTE EN CUADRÍCULA SI TIENE PERMISO
+        let inputsEdicionCuadriculaHtml = '';
+        let precioDisplayHtml = '';
+
+        if (puedeEditarDirecto) {
+          inputsEdicionCuadriculaHtml = `
+            <div class="mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-700 space-y-1.5 text-[11px]">
+              <div class="flex justify-between items-center gap-1">
+                <span class="text-slate-500">Min ($):</span>
+                <input type="number" step="0.01" value="${prod.precio}" onchange="actualizarDatoCuadricula('${prod.id}', 'precio', this.value)" class="w-20 px-1 py-0.5 text-right font-bold border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+              </div>
+              <div class="flex justify-between items-center gap-1">
+                <span class="${enOferta ? 'text-amber-700 dark:text-amber-400 font-bold' : 'text-slate-500'}">${enOferta ? 'Oferta ($):' : 'Mayor ($):'}</span>
+                <input type="number" step="0.01" value="${pMayor}" onchange="actualizarDatoCuadricula('${prod.id}', 'precio_mayorista', this.value)" class="w-20 px-1 py-0.5 text-right font-bold border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+              </div>
+              <div class="flex justify-between items-center gap-1">
+                <span class="text-slate-500">Min. May / Bulto:</span>
+                <div class="flex gap-1">
+                  <input type="number" value="${cMayor}" onchange="actualizarDatoCuadricula('${prod.id}', 'cantidad_mayorista', this.value)" title="Cant mínima mayorista" class="w-9 px-0.5 py-0.5 text-center border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white" placeholder="Min">
+                  <input type="number" value="${uBulto}" onchange="actualizarDatoCuadricula('${prod.id}', 'unidades_por_bulto', this.value)" title="Unidades por bulto" class="w-9 px-0.5 py-0.5 text-center border rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-white" placeholder="Bulto">
+                </div>
+              </div>
+              <div class="flex justify-between items-center pt-1">
+                <label class="flex items-center gap-1 cursor-pointer font-bold text-amber-700 dark:text-amber-400">
+                  <input type="checkbox" ${enOferta ? 'checked' : ''} onchange="actualizarDatoCuadricula('${prod.id}', 'en_oferta', this.checked)" class="rounded text-amber-600"> Oferta
+                </label>
+                <label class="cursor-pointer text-indigo-600 dark:text-indigo-400 font-medium hover:underline text-[10px]">
+                  📷 Foto <input type="file" accept="image/*" onchange="actualizarFotoCuadricula('${prod.id}', event)" class="hidden">
+                </label>
+              </div>
+            </div>
+          `;
+        } else {
+          precioDisplayHtml = enOferta && precioOferta > 0
+            ? `<div class="space-y-0.5"><span class="text-[11px] text-slate-400 line-through">$${prod.precio}</span><p class="text-amber-700 dark:text-amber-400 font-black text-sm">$${precioOferta}</p></div>`
+            : `<p class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">Min: $${prod.precio}</p>`;
+        }
 
         if (esLista) {
           const imagenTagList = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-12 h-12 object-contain rounded bg-white dark:bg-slate-800 p-0.5 shrink-0">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-slate-400 text-lg shrink-0">📦</div>`;
           htmlContent += `
-            <div class="relative ${ofertaCardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all">
-              ${bannerOferta}
-              <div class="flex items-center gap-3 overflow-hidden ${enOferta ? 'pt-4 sm:pt-0' : ''}">
-                ${imagenTagList}
-                <div class="overflow-hidden">
-                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
+            <div class="relative ${ofertaCardClass} p-2.5 rounded-xl shadow-sm flex flex-col gap-2 transition-all">
+              <div class="flex items-center justify-between gap-3">
+                ${bannerOferta}
+                <div class="flex items-center gap-3 overflow-hidden ${enOferta ? 'pt-4 sm:pt-0' : ''}">
+                  ${imagenTagList}
+                  <div class="overflow-hidden">
+                    <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <div class="text-right">
+                    ${!puedeEditarDirecto ? (enOferta && precioOferta > 0 ? `<span class="text-[10px] text-slate-400 line-through">$${prod.precio}</span>` : '') : ''}
+                    ${!puedeEditarDirecto ? `<p class="${enOferta ? 'text-amber-700 dark:text-amber-400 font-black' : 'text-indigo-600 dark:text-indigo-400 font-bold'} text-xs">$${precioFinalVenta}</p>` : ''}
+                    ${!puedeEditarDirecto ? mayoristaTag : ''}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
+                    <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="${enOferta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
+                    ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
+                  </div>
                 </div>
               </div>
-              <div class="flex items-center gap-3 shrink-0">
-                <div class="text-right">
-                  ${enOferta && precioOferta > 0 ? `<span class="text-[10px] text-slate-400 line-through">$${prod.precio}</span>` : ''}
-                  <p class="${enOferta ? 'text-amber-700 dark:text-amber-400 font-black' : 'text-indigo-600 dark:text-indigo-400 font-bold'} text-xs">$${precioFinalVenta}</p>
-                  ${mayoristaTag}
-                </div>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="${enOferta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
-                  ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
-                </div>
-              </div>
+              ${inputsEdicionCuadriculaHtml}
             </div>`;
         } else {
           const imagenTagGrid = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white dark:bg-slate-800 p-1">` : `<div class="w-full h-24 bg-slate-200 dark:bg-slate-700 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
@@ -1827,8 +1895,9 @@
                   <p>Cód: <span class="font-medium text-slate-700 dark:text-slate-300">${codigoMostrado}</span></p>
                   <p>Stock: <span class="font-medium text-slate-700 dark:text-slate-300">${prod.stock || 0}</span></p>
                   ${precioDisplayHtml}
-                  ${mayoristaTag}
+                  ${!puedeEditarDirecto ? mayoristaTag : ''}
                 </div>
+                ${inputsEdicionCuadriculaHtml}
               </div>
               <div class="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
                 <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
@@ -1839,6 +1908,44 @@
         }
       });
       contenedor.innerHTML = htmlContent;
+    }
+
+    async function actualizarDatoCuadricula(idProducto, campo, valor) {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdmin = emailLower.includes('admi');
+      if (!esAdmin && !tienePermisoEdicionCuadricula) {
+        alert('⚠️ No cuenta con permisos para modificar datos en la cuadrícula.');
+        return;
+      }
+
+      let valorFinal = valor;
+      if (campo === 'precio' || campo === 'precio_mayorista') {
+        valorFinal = parseFloat(valor) || 0;
+      } else if (campo === 'cantidad_mayorista' || campo === 'unidades_por_bulto') {
+        valorFinal = parseInt(valor) || 0;
+      }
+
+      await _supabase.from('productos').update({ [campo]: valorFinal }).eq('id', idProducto);
+      await cargarProductosSilencioso();
+    }
+
+    async function actualizarFotoCuadricula(idProducto, event) {
+      const archivo = event.target.files[0];
+      if (!archivo) return;
+      const lector = new FileReader();
+      lector.onload = async function(e) {
+        const img = new Image();
+        img.onload = async function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = 400; canvas.height = 400;
+          canvas.getContext('2d').drawImage(img, 0, 0, 400, 400);
+          const base64Foto = canvas.toDataURL('image/jpeg', 0.7);
+          await _supabase.from('productos').update({ imagen_url: base64Foto }).eq('id', idProducto);
+          await cargarProductosSilencioso();
+        };
+        img.src = e.target.result;
+      };
+      lector.readAsDataURL(archivo);
     }
 
     function agregarAlCarritoConPrecio(idUnico, precioEspecial) {
@@ -2355,7 +2462,7 @@
       let csv = "ID;Fecha;Cliente;Total\n";
       data.forEach(v => { csv += `"${v.id}";"${v.fecha} ${v.hora}";"${v.cliente}";"${v.total}"\n`; });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.getElementById("a"); link.href = URL.createObjectURL(blob); link.download = "ventas.csv"; link.click();
+      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "ventas.csv"; link.click();
     }
 
     async function cerrarSesion() {
