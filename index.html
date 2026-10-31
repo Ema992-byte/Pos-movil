@@ -76,9 +76,8 @@
         </div>
       </div>
 
-      <!-- SECCIÓN DERECHA DE LA BARRA SUPERIOR (Limpia, sin botones repetidos) -->
+      <!-- SECCIÓN DERECHA DE LA BARRA SUPERIOR -->
       <div class="flex gap-2 flex-wrap items-center">
-        <!-- Indicador rápido o estado libre opcional -->
       </div>
     </div>
 
@@ -145,7 +144,7 @@
     
     <div class="p-3 flex-grow overflow-y-auto space-y-2 text-sm">
       
-      <!-- a) MÓDULO ADMINISTRACIÓN (Acordeón desplegable para herramientas admin) -->
+      <!-- a) MÓDULO ADMINISTRACIÓN (Acordeón desplegable) -->
       <div id="contenedorMenuAdminSidebar" class="hidden border dark:border-slate-700 rounded-xl overflow-hidden">
         <button onclick="toggleAcordeonAdmin()" class="w-full text-left px-3.5 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-between">
           <span class="flex items-center gap-2"><span>⚙️</span> Módulo Administración</span>
@@ -253,13 +252,12 @@
           </div>
         </div>
 
-        <!-- TOGGLE DE NOTIFICACIONES DE PRECIOS -->
         <div class="border-t dark:border-slate-700 pt-3">
           <label class="flex items-center justify-between cursor-pointer">
-            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio y Ofertas</span>
             <input type="checkbox" id="toggleNotifPrecios" onchange="cambiarEstadoNotificaciones(this.checked)" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
           </label>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualice el precio de un producto.</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualicen precios o se lancen ofertas.</p>
         </div>
       </div>
 
@@ -279,7 +277,6 @@
         <button onclick="cerrarModalPermisos()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
-      <!-- Pestañas internas -->
       <div class="flex gap-2 mb-4 border-b dark:border-slate-700 pb-2 flex-wrap">
         <button onclick="mostrarSubPestanaPermisos('crear')" id="tabCrearUser" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white">
           ➕ Crear Vendedor
@@ -292,7 +289,6 @@
         </button>
       </div>
 
-      <!-- SECCIÓN 1: CREAR USUARIO -->
       <div id="secCrearUsuario" class="space-y-3 text-sm">
         <div>
           <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Correo Electrónico *</label>
@@ -315,13 +311,11 @@
         </button>
       </div>
 
-      <!-- SECCIÓN 2: LISTA DE USUARIOS Y MÓDULOS -->
       <div id="secListaUsuarios" class="hidden space-y-3 text-sm">
         <div id="contenedorListaUsuariosPos" class="space-y-2 max-h-60 overflow-y-auto pr-1">
           <p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>
         </div>
 
-        <!-- Editor de Permisos para Usuario Seleccionado -->
         <div id="contenedorCheckboxesModulos" class="space-y-2 border-t dark:border-slate-700 pt-3 hidden">
           <p class="font-bold text-xs text-indigo-600 dark:text-indigo-400 mb-1" id="lblUsuarioEditando">Editando Módulos:</p>
           <div class="grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
@@ -339,7 +333,6 @@
         </div>
       </div>
 
-      <!-- SECCIÓN 3: HABILITAR / DESHABILITAR LOGROS -->
       <div id="secAdminLogros" class="hidden space-y-2 text-sm">
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Active o pause los logros disponibles para todo el equipo:</p>
         <div id="listaAdminLogros" class="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -618,16 +611,18 @@
             class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
-        <!-- SECCIÓN DE OFERTAS -->
+        <!-- SECCIÓN DE OFERTAS CON VENCIMIENTO -->
         <div class="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800 space-y-2">
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="nuevoEnOferta" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
+            <input type="checkbox" id="nuevoEnOferta" onchange="toggleFormularioOferta(this.checked)" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
             <span class="text-xs font-bold text-amber-800 dark:text-amber-300">🔥 Marcar este producto como OFERTA</span>
           </label>
-          <div>
-            <label class="block text-[11px] font-medium text-slate-600 dark:text-slate-300 mb-1">Precio de Oferta ($)</label>
-            <input type="number" id="nuevoPrecioOferta" step="0.01" placeholder="0.00"
-              class="w-full px-3 py-1.5 border dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+          
+          <div id="contenedorFechaVencimientoOferta" class="hidden pt-1">
+            <label class="block text-[11px] font-semibold text-amber-900 dark:text-amber-200 mb-1">📅 Vencimiento de la Oferta (Fecha y Hora):</label>
+            <input type="datetime-local" id="nuevoFechaVencimientoOferta"
+              class="w-full px-3 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <p class="text-[10px] text-amber-700 dark:text-amber-400 mt-1">Al llegar a esta fecha, el producto volverá a su estado normal automáticamente.</p>
           </div>
         </div>
 
@@ -650,7 +645,7 @@
               class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Precio Mayorista ($)</label>
+            <label id="lblPrecioMayorista" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Precio Mayorista ($)</label>
             <input type="number" id="nuevoMayorista" step="0.01" placeholder="0.00"
               class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
@@ -845,6 +840,25 @@
       }
     }
 
+    // --- ALTERNAR FORMULARIO DE OFERTA DENTRO DEL MODAL ---
+    function toggleFormularioOferta(estaEnOferta) {
+      const lblMayorista = document.getElementById('lblPrecioMayorista');
+      const inputMayorista = document.getElementById('nuevoMayorista');
+      const contenedorVencimiento = document.getElementById('contenedorFechaVencimientoOferta');
+
+      if (estaEnOferta) {
+        lblMayorista.textContent = "🔥 Precio Oferta ($) *";
+        lblMayorista.className = "block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1";
+        inputMayorista.placeholder = "Precio de la oferta";
+        contenedorVencimiento.classList.remove('hidden');
+      } else {
+        lblMayorista.textContent = "Precio Mayorista ($)";
+        lblMayorista.className = "block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1";
+        inputMayorista.placeholder = "0.00";
+        contenedorVencimiento.classList.add('hidden');
+      }
+    }
+
     function aplicarConfiguracionGlobal() {
       const htmlEl = document.documentElement;
       if (configActual.tema === 'dark') {
@@ -972,18 +986,22 @@
     }
 
     // --- SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
-    function mostrarNotificacionFlotante(titulo, mensaje) {
+    function mostrarNotificacionFlotante(titulo, mensaje, esOferta = false) {
       if (!configActual.notifPrecios) return;
 
       const contenedor = document.getElementById('contenedorNotificaciones');
       if (!contenedor) return;
 
       const idNotif = 'notif_' + Date.now();
+      const icono = esOferta ? '🔥' : '🔔';
+      const borderClass = esOferta ? 'border-amber-500 shadow-amber-500/20' : 'border-indigo-500/30';
+      const bgHeader = esOferta ? 'text-amber-400 font-extrabold' : 'font-bold';
+
       const htmlNotif = `
-        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border border-indigo-500/30 flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0">
-          <div class="text-xl shrink-0 mt-0.5">🔔</div>
+        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border ${borderClass} flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0">
+          <div class="text-xl shrink-0 mt-0.5">${icono}</div>
           <div class="flex-grow text-xs">
-            <h5 class="font-bold tracking-wide">${titulo}</h5>
+            <h5 class="${bgHeader} tracking-wide">${titulo}</h5>
             <p class="text-[11px] opacity-90 mt-0.5">${mensaje}</p>
           </div>
           <button onclick="document.getElementById('${idNotif}').remove()" class="text-slate-400 hover:text-white dark:hover:text-slate-900 font-bold text-sm shrink-0">✕</button>
@@ -1004,7 +1022,7 @@
           elemento.classList.add('translate-y-2', 'opacity-0');
           setTimeout(() => elemento.remove(), 300);
         }
-      }, 6000);
+      }, 7000);
     }
 
     function inicializarSuscripcionPreciosRealtime() {
@@ -1012,24 +1030,42 @@
         .channel('cambios-precios-productos')
         .on(
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'productos' },
+          { event: '*', schema: 'public', table: 'productos' },
           (payload) => {
-            const prodNuevo = payload.new;
-            const prodViejo = payload.old;
+            if (payload.eventType === 'UPDATE') {
+              const prodNuevo = payload.new;
+              const prodViejo = payload.old;
 
-            const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
-            const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
+              const fueMarcaoOferta = prodNuevo.en_oferta && !prodViejo.en_oferta;
+              const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
+              const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
 
-            if (cambioMinorista || cambioMayorista) {
-              let detalleCambios = [];
-              if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
-              if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+              if (fueMarcaoOferta) {
+                mostrarNotificacionFlotante(
+                  `🔥 ¡NUEVA OFERTA DISPONIBLE!`,
+                  `${prodNuevo.nombre} en oferta a $${prodNuevo.precio_mayorista || prodNuevo.precio}`,
+                  true
+                );
+              } else if (cambioMinorista || cambioMayorista) {
+                let detalleCambios = [];
+                if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
+                if (cambioMayorista) detalleCambios.push(`Precio: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
 
-              mostrarNotificacionFlotante(
-                `📦 Precio Actualizado: ${prodNuevo.nombre}`,
-                detalleCambios.join(' | ')
-              );
-
+                mostrarNotificacionFlotante(
+                  `📦 Precio Actualizado: ${prodNuevo.nombre}`,
+                  detalleCambios.join(' | ')
+                );
+              }
+              cargarProductosSilencioso();
+            } else if (payload.eventType === 'INSERT') {
+              const prodNuevo = payload.new;
+              if (prodNuevo.en_oferta) {
+                mostrarNotificacionFlotante(
+                  `🔥 ¡NUEVO PRODUCTO EN OFERTA!`,
+                  `${prodNuevo.nombre} a $${prodNuevo.precio_mayorista || prodNuevo.precio}`,
+                  true
+                );
+              }
               cargarProductosSilencioso();
             }
           }
@@ -1676,6 +1712,19 @@
         return;
       }
 
+      // Verificación de vencimientos de ofertas
+      const ahora = new Date();
+      data.forEach(p => {
+        if (p.en_oferta && p.fecha_vencimiento_oferta) {
+          const fechaVenc = new Date(p.fecha_vencimiento_oferta);
+          if (ahora > fechaVenc) {
+            p.en_oferta = false;
+            p.fecha_vencimiento_oferta = null;
+            _supabase.from('productos').update({ en_oferta: false, fecha_vencimiento_oferta: null }).eq('id', p.id);
+          }
+        }
+      });
+
       localStorage.setItem('go_pos_productos', JSON.stringify(data));
       iniciarSesionExitosa(usuarioActualEmail, data);
     }
@@ -1697,8 +1746,11 @@
         return;
       }
 
+      // ORDENAR: Primero productos en OFERTA activa al inicio
       const productosOrdenados = [...productos].sort((a, b) => {
-        return (b.en_oferta === true) - (a.en_oferta === true);
+        const aOferta = a.en_oferta ? 1 : 0;
+        const bOferta = b.en_oferta ? 1 : 0;
+        return bOferta - aOferta;
       });
 
       const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
@@ -1716,47 +1768,48 @@
         const fotoUrl = prod.imagen_url || prod.foto || '';
 
         const enOferta = !!prod.en_oferta;
-        const precioOferta = parseFloat(prod.precio_oferta || 0);
+        const precioOferta = obtenerPrecioMayorista(prod);
         const precioFinalVenta = (enOferta && precioOferta > 0) ? precioOferta : prod.precio;
 
         const pMayor = obtenerPrecioMayorista(prod);
         const cMayor = obtenerCantMayorista(prod);
-        const mayoristaTag = pMayor > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` : '';
+        const mayoristaTag = (!enOferta && pMayor > 0) ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Mayor (x${cMayor}+): $${pMayor}</p>` : '';
         const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
 
+        // ESTILO DESTACADO DE CUADRÍCULA PARA OFERTAS (Fondo distintivo)
         const ofertaCardClass = enOferta 
-          ? "border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-b from-amber-50/80 to-white dark:from-amber-950/20 dark:to-slate-800 shadow-md" 
+          ? "border-2 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-100/90 via-amber-50 to-orange-100/80 dark:from-amber-950/60 dark:via-slate-800 dark:to-orange-950/40 shadow-lg" 
           : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
         
         const bannerOferta = enOferta 
-          ? `<div class="absolute top-1 left-1 bg-amber-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow tracking-wider uppercase flex items-center gap-0.5 z-10">🔥 ¡OFERTA!</div>` 
+          ? `<div class="absolute top-1 left-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow tracking-wider uppercase flex items-center gap-0.5 z-10 animate-pulse">🔥 ¡OFERTA!</div>` 
           : '';
 
         const precioDisplayHtml = enOferta && precioOferta > 0
-          ? `<div class="space-y-0.5"><span class="text-[11px] text-slate-400 line-through">$${prod.precio}</span><p class="text-amber-600 dark:text-amber-400 font-black text-sm">$${precioOferta}</p></div>`
+          ? `<div class="space-y-0.5"><span class="text-[11px] text-slate-400 line-through">$${prod.precio}</span><p class="text-amber-700 dark:text-amber-400 font-black text-sm">$${precioOferta}</p></div>`
           : `<p class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">Min: $${prod.precio}</p>`;
 
         if (esLista) {
           const imagenTagList = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-12 h-12 object-contain rounded bg-white dark:bg-slate-800 p-0.5 shrink-0">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-slate-400 text-lg shrink-0">📦</div>`;
           htmlContent += `
-            <div class="relative ${ofertaCardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3">
+            <div class="relative ${ofertaCardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all">
               ${bannerOferta}
               <div class="flex items-center gap-3 overflow-hidden ${enOferta ? 'pt-4 sm:pt-0' : ''}">
                 ${imagenTagList}
                 <div class="overflow-hidden">
-                  <p class="font-semibold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
+                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
                   <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
                 </div>
               </div>
               <div class="flex items-center gap-3 shrink-0">
                 <div class="text-right">
                   ${enOferta && precioOferta > 0 ? `<span class="text-[10px] text-slate-400 line-through">$${prod.precio}</span>` : ''}
-                  <p class="${enOferta ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-indigo-600 dark:text-indigo-400 font-bold'} text-xs">$${precioFinalVenta}</p>
+                  <p class="${enOferta ? 'text-amber-700 dark:text-amber-400 font-black' : 'text-indigo-600 dark:text-indigo-400 font-bold'} text-xs">$${precioFinalVenta}</p>
                   ${mayoristaTag}
                 </div>
                 <div class="flex items-center gap-1">
                   <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-medium">Agregar</button>
+                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="${enOferta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
                   ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
                 </div>
               </div>
@@ -1764,12 +1817,12 @@
         } else {
           const imagenTagGrid = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white dark:bg-slate-800 p-1">` : `<div class="w-full h-24 bg-slate-200 dark:bg-slate-700 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
           htmlContent += `
-            <div class="relative ${ofertaCardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div class="relative ${ofertaCardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
               ${bannerOferta}
               ${btnEditarHtml}
               <div class="${enOferta ? 'pt-4' : ''}">
                 ${imagenTagGrid}
-                <p class="font-semibold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
+                <p class="font-bold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 space-y-0.5">
                   <p>Cód: <span class="font-medium text-slate-700 dark:text-slate-300">${codigoMostrado}</span></p>
                   <p>Stock: <span class="font-medium text-slate-700 dark:text-slate-300">${prod.stock || 0}</span></p>
@@ -1777,9 +1830,9 @@
                   ${mayoristaTag}
                 </div>
               </div>
-              <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1">
+              <div class="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
                 <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="flex-1 ${enOferta ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-1 rounded text-xs font-medium text-center">Agregar</button>
+                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioFinalVenta})" class="flex-1 ${enOferta ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-1 rounded text-xs font-bold text-center shadow-sm">Agregar</button>
               </div>
             </div>
           `;
@@ -2056,7 +2109,8 @@
       document.getElementById('nuevoCodigo').value = '';
       document.getElementById('nuevoNombre').value = '';
       document.getElementById('nuevoEnOferta').checked = false;
-      document.getElementById('nuevoPrecioOferta').value = '';
+      document.getElementById('nuevoFechaVencimientoOferta').value = '';
+      toggleFormularioOferta(false);
       document.getElementById('nuevoStock').value = '0';
       document.getElementById('nuevoCosto').value = '';
       document.getElementById('nuevoVenta').value = '';
@@ -2077,8 +2131,20 @@
       document.getElementById('editProductoId').value = prod.id;
       document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
-      document.getElementById('nuevoEnOferta').checked = !!prod.en_oferta;
-      document.getElementById('nuevoPrecioOferta').value = prod.precio_oferta || '';
+      
+      const enOferta = !!prod.en_oferta;
+      document.getElementById('nuevoEnOferta').checked = enOferta;
+      
+      if (prod.fecha_vencimiento_oferta) {
+        const fechaObj = new Date(prod.fecha_vencimiento_oferta);
+        const isoString = new Date(fechaObj.getTime() - (fechaObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        document.getElementById('nuevoFechaVencimientoOferta').value = isoString;
+      } else {
+        document.getElementById('nuevoFechaVencimientoOferta').value = '';
+      }
+
+      toggleFormularioOferta(enOferta);
+
       document.getElementById('nuevoStock').value = prod.stock || 0;
       document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
       document.getElementById('nuevoVenta').value = prod.precio || '';
@@ -2102,11 +2168,14 @@
       }
 
       const editId = document.getElementById('editProductoId').value;
+      const enOfertaBool = document.getElementById('nuevoEnOferta').checked;
+      const valFechaVenc = document.getElementById('nuevoFechaVencimientoOferta').value;
+
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
         nombre: document.getElementById('nuevoNombre').value.trim(),
-        en_oferta: document.getElementById('nuevoEnOferta').checked,
-        precio_oferta: parseFloat(document.getElementById('nuevoPrecioOferta').value) || 0,
+        en_oferta: enOfertaBool,
+        fecha_vencimiento_oferta: enOfertaBool && valFechaVenc ? new Date(valFechaVenc).toISOString() : null,
         imagen_url: fotoBase64Actual,
         stock: parseInt(document.getElementById('nuevoStock').value) || 0,
         "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
@@ -2116,8 +2185,10 @@
         unidades_por_bulto: parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0,
         activo: true
       };
+
       if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
       else await _supabase.from('productos').insert([datos]);
+      
       cerrarModalProducto();
       await cargarProductos();
     }
@@ -2250,7 +2321,7 @@
       const res = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(t)).slice(0, 10);
       let h = '';
       res.forEach(p => { 
-        h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';document.getElementById('nuevoPrecioMayoristaInput').value='${obtenerPrecioMayorista(p)}';" class="p-1.5 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer border-b">${p.nombre} - Min: $${p.precio} | May: $${obtenerPrecioMayorista(p)}</div>`; 
+        h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';document.getElementById('nuevoPrecioMayoristaInput').value='${obtenerPrecioMayorista(p)}';" class="p-1.5 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer border-b">${p.nombre} - Min: $${p.precio} | May/Oferta: $${obtenerPrecioMayorista(p)}</div>`; 
       });
       c.innerHTML = h;
     }
@@ -2284,7 +2355,7 @@
       let csv = "ID;Fecha;Cliente;Total\n";
       data.forEach(v => { csv += `"${v.id}";"${v.fecha} ${v.hora}";"${v.cliente}";"${v.total}"\n`; });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "ventas.csv"; link.click();
+      const link = document.getElementById("a"); link.href = URL.createObjectURL(blob); link.download = "ventas.csv"; link.click();
     }
 
     async function cerrarSesion() {
