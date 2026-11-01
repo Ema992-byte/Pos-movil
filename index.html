@@ -2724,10 +2724,38 @@
 
     async function descargarReporteCSV() {
       const { data } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
-      let csv = "ID;Fecha;Cliente;Total\n";
-      data.forEach(v => { csv += `"${v.id}";"${v.fecha} ${v.hora}";"${v.cliente}";"${v.total}"\n`; });
+      if (!data || data.length === 0) {
+        alert('No hay ventas registradas para exportar.');
+        return;
+      }
+
+      let csv = "ID Venta;Fecha;Hora;Atendido por;Producto;Cantidad;Precio Unit.;Subtotal\n";
+      
+      data.forEach(v => {
+        const idVenta = v.id || '';
+        const fecha = v.fecha || '';
+        const hora = v.hora || '';
+        const atendidoPor = v.atendido_por || '';
+        const detalles = v.detalles || [];
+
+        if (detalles.length > 0) {
+          detalles.forEach(item => {
+            const producto = (item.nombre || '').replace(/"/g, '""');
+            const cantidad = item.cantidad || 1;
+            const precioUnit = item.precio || 0;
+            const subtotal = cantidad * precioUnit;
+            csv += `"${idVenta}";"${fecha}";"${hora}";"${atendidoPor}";"${producto}";"${cantidad}";"${precioUnit}";"${subtotal}"\n`;
+          });
+        } else {
+          csv += `"${idVenta}";"${fecha}";"${hora}";"${atendidoPor}";"Venta general";"1";"${v.total || 0}";"${v.total || 0}"\n`;
+        }
+      });
+
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "ventas.csv"; link.click();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "reporte_ventas_detallado.csv";
+      link.click();
     }
 
     async function cerrarSesion() {
