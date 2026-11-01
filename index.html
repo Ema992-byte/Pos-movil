@@ -2075,19 +2075,40 @@
 
     function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
 
+    // --- FUNCIÓN GUARDAR PRODUCTO CORREGIDA E INTEGRADA ---
     async function guardarProducto() {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-      if (!esAdmin) {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower.includes('admi');
+
+      let tienePermisoEdicion = esAdminEspecial;
+      if (!tienePermisoEdicion) {
+        try {
+          const { data: userData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
+          if (userData && userData.modulos_activos && userData.modulos_activos.edicionCuadricula) {
+            tienePermisoEdicion = true;
+          }
+        } catch (e) {
+          console.error("Error al verificar permisos de edición:", e);
+        }
+      }
+
+      if (!tienePermisoEdicion) {
         await validarAccionConAlerta('guardar_producto');
         cerrarModalProducto();
         return;
       }
 
       const editId = document.getElementById('editProductoId').value;
+      const nombreProducto = document.getElementById('nuevoNombre').value.trim();
+
+      if (!nombreProducto) {
+        alert('⚠️ El nombre del producto es obligatorio.');
+        return;
+      }
 
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
-        nombre: document.getElementById('nuevoNombre').value.trim(),
+        nombre: nombreProducto,
         en_oferta: false,
         fecha_vencimiento_oferta: null,
         imagen_url: fotoBase64Actual,
@@ -2100,11 +2121,28 @@
         activo: true
       };
 
-      if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
-      else await _supabase.from('productos').insert([datos]);
-      
-      cerrarModalProducto();
-      await cargarProductos();
+      try {
+        let errorSupabase = null;
+
+        if (editId && editId !== "") {
+          const { error } = await _supabase.from('productos').update(datos).eq('id', editId);
+          errorSupabase = error;
+        } else {
+          const { error } = await _supabase.from('productos').insert([datos]);
+          errorSupabase = error;
+        }
+
+        if (errorSupabase) {
+          throw errorSupabase;
+        }
+
+        alert('¡Cambios guardados exitosamente en la base de datos!');
+        cerrarModalProducto();
+        await cargarProductos();
+      } catch (err) {
+        console.error('Error al guardar el producto en Supabase:', err);
+        alert('❌ Error al guardar los cambios: ' + (err.message || JSON.stringify(err)));
+      }
     }
 
     function filtrarProductosDebounced() { clearTimeout(timerBusqueda); timerBusqueda = setTimeout(filtrarProductos, 120); }
