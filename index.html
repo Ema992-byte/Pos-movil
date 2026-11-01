@@ -32,7 +32,7 @@
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Correo Electrónico</label>
-        <input type="email" id="email" required placeholder="admi@pos.com ó vendedor@pos.com"
+        <input type="email" id="email" required placeholder="admini@pos.com ó vendedor@pos.com"
           class="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
       </div>
       <div>
@@ -300,11 +300,11 @@
     </div>
   </div>
 
-  <!-- MODAL DE GESTIÓN Y ALTA DE USUARIOS / PERMISOS -->
+  <!-- MODAL DE GESTIÓN Y ALTA DE USUARIOS / PERMISOS (EXCLUSIVO ADMINI & ADMINE) -->
   <div id="modalPermisos" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-xl overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white">🛡️ Gestión de Usuarios y Logros</h3>
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">🛡️ Gestión de Usuarios y Permisos</h3>
         <button onclick="cerrarModalPermisos()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
@@ -313,7 +313,7 @@
           ➕ Crear Vendedor
         </button>
         <button onclick="mostrarSubPestanaPermisos('lista')" id="tabListaUser" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-          👥 Lista y Estado
+          👥 Lista y Permisos
         </button>
         <button onclick="mostrarSubPestanaPermisos('logros')" id="tabLogrosAdmin" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
           🏆 Habilitar Logros
@@ -357,7 +357,7 @@
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modif. Precios</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Rep. Ventas</label>
             <label class="col-span-2 flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded border border-indigo-200 dark:border-indigo-800">
-              <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600"> ✏️ **Editar Datos Directos en Cuadrícula** <span class="text-[10px] text-slate-500">(Precios, ofertas, fotos, bultos)</span>
+              <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600"> ✏️ **Permiso para Editar Datos Directos en Cuadrícula** <span class="text-[10px] text-slate-500">(Precios, ofertas, fotos, bultos)</span>
             </label>
           </div>
 
@@ -888,9 +888,8 @@
     let productosParaCargarMasiva = [];
     let modoImpresionActual = 'bluetooth';
     let usuarioEditandoPermisos = '';
-    let tipoPrecioCatalogoWeb = 'minorista'; // Variable global para el tipo de lista del catálogo web ('minorista' o 'mayorista')
+    let tipoPrecioCatalogoWeb = 'minorista';
     
-    // HISTORIAL DE NOTIFICACIONES EN MEMORIA / LOCALSTORAGE
     let historialNotificaciones = JSON.parse(localStorage.getItem('go_historial_notif') || '[]');
 
     let configActual = {
@@ -905,7 +904,6 @@
       actualizarContadorBadgeNotif();
     });
 
-    // --- FUNCIÓN PARA CONTROLAR EL MENÚ LATERAL (SIDEBAR DRAWER) ---
     function toggleSidebarMenu() {
       const sidebar = document.getElementById('sidebarMenu');
       const overlay = document.getElementById('sidebarOverlay');
@@ -920,7 +918,6 @@
       }
     }
 
-    // --- ACORDEÓN PARA DESPLEGAR EL MÓDULO ADMINISTRACIÓN DENTRO DEL SIDEBAR ---
     function toggleAcordeonAdmin() {
       const submenus = document.getElementById('submenusAdminSidebar');
       const flecha = document.getElementById('flechaAcordeonAdmin');
@@ -1036,7 +1033,6 @@
       }
     });
 
-    // --- SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
     async function registrarIntentoNoAutorizado(emailUsuario, accionIntentada) {
       try {
         const { fechaStr, horaStr } = obtenerFechaHoraLocal();
@@ -1045,23 +1041,30 @@
           accion_intentada: accionIntentada,
           fecha: fechaStr,
           hora: horaStr,
-          detalle: 'Intento de alteración o acceso no autorizado por vendedor'
+          detalle: 'Intento de alteración o acceso no autorizado'
         }]);
       } catch (e) {
-        console.error('Error al registrar auditoría de seguridad', e);
+        console.error('Error al registrar auditoría', e);
       }
     }
 
     async function validarAccionConAlerta(accion) {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-      if (esAdmin) return true;
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      if (esAdminEspecial) return true;
+
+      try {
+        const { data: userData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
+        if (userData && userData.modulos_activos && userData.modulos_activos[accion] === true) {
+          return true;
+        }
+      } catch(e) {}
 
       await registrarIntentoNoAutorizado(usuarioActualEmail, accion);
-      alert(`⚠️ ALERTA DE SEGURIDAD: El usuario ${usuarioActualEmail} ha intentado alterar o ejecutar una acción restringida (${accion}). El evento ha sido reportado al sistema.`);
+      alert(`⚠️ ALERTA DE SEGURIDAD: El usuario ${usuarioActualEmail} ha intentado ejecutar una acción restringida (${accion}). El evento ha sido reportado.`);
       return false;
     }
 
-    // --- GESTIÓN DE HISTORIAL Y CAMPANITA DE NOTIFICACIONES ---
     function registrarNotificacionHistorial(titulo, mensaje, esOferta = false) {
       const { fechaStr, horaStr } = obtenerFechaHoraLocal();
       const nuevaNotif = {
@@ -1146,7 +1149,6 @@
       }
     }
 
-    // --- SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
     function mostrarNotificacionFlotante(titulo, mensaje, esOferta = false) {
       registrarNotificacionHistorial(titulo, mensaje, esOferta);
 
@@ -1174,12 +1176,7 @@
       contenedor.insertAdjacentHTML('beforeend', htmlNotif);
       const elemento = document.getElementById(idNotif);
       
-      setTimeout(() => {
-        if (elemento) {
-          elemento.classList.remove('translate-y-2', 'opacity-0');
-        }
-      }, 10);
-
+      setTimeout(() => { if (elemento) elemento.classList.remove('translate-y-2', 'opacity-0'); }, 10);
       setTimeout(() => {
         if (elemento) {
           elemento.classList.add('translate-y-2', 'opacity-0');
@@ -1205,25 +1202,49 @@
               if (estabaEnCatalogo && !ahoraEnCatalogo) {
                 mostrarNotificacionFlotante(
                   `📖 Catálogo Actualizado`,
-                  `El producto "${prodNuevo.nombre}" ya no está disponible en el catálogo virtual.`,
+                  `El producto "${prodNuevo.nombre}" fue retirado del catálogo virtual.`,
+                  false
+                );
+              } else if (!estabaEnCatalogo && ahoraEnCatalogo) {
+                mostrarNotificacionFlotante(
+                  `📖 Catálogo Actualizado`,
+                  `El producto "${prodNuevo.nombre}" fue agregado al catálogo virtual.`,
                   false
                 );
               } else {
                 const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
                 const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
+                const cambioStock = prodNuevo.stock !== prodViejo.stock;
 
-                if (cambioMinorista || cambioMayorista) {
-                  let detalleCambios = [];
-                  if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
-                  if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+                let detalleCambios = [];
+                let tituloNotif = `📦 Actualización: ${prodNuevo.nombre}`;
 
+                if (cambioMinorista) {
+                  detalleCambios.push(`Precio Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
+                }
+                if (cambioMayorista) {
+                  detalleCambios.push(`Precio Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+                }
+                if (cambioStock) {
+                  detalleCambios.push(`Stock: ${prodViejo.stock || 0} ➔ ${prodNuevo.stock || 0} u.`);
+                  tituloNotif = `📦 Cambio de Stock: ${prodNuevo.nombre}`;
+                }
+
+                if (detalleCambios.length > 0) {
                   mostrarNotificacionFlotante(
-                    `📦 Precio Actualizado: ${prodNuevo.nombre}`,
+                    tituloNotif,
                     detalleCambios.join(' | '),
-                    true
+                    cambioMinorista || cambioMayorista
                   );
                 }
               }
+            } else if (payload.eventType === 'INSERT') {
+              const pNew = payload.new;
+              mostrarNotificacionFlotante(
+                `➕ Nuevo Producto Registrado`,
+                `Se agregó "${pNew.nombre}" al inventario ($${pNew.precio}).`,
+                false
+              );
             }
             cargarProductosSilencioso();
           }
@@ -1235,10 +1256,10 @@
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
         const emailLower = (usuarioActualEmail || '').toLowerCase();
-        const esAdmin = emailLower.includes('admi');
+        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
 
         let productosValidos = data;
-        if (!esAdmin) {
+        if (!esAdminEspecial) {
           productosValidos = data.filter(p => p.en_catalogo_virtual !== false);
         }
 
@@ -1257,16 +1278,19 @@
     async function ejecutarAccionModulo(accion) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
-      const esAdmin = emailLower.includes('admi');
 
-      if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores' || accion === 'catalogoVirtual') && !esAdmin) {
-        await validarAccionConAlerta(accion);
+      if (accion === 'gestionarPermisos') {
+        if (!esAdminEspecial) {
+          alert('⚠️ Módulo exclusivo para los administradores principales (admini@pos.com y admine@pos.com).');
+          return;
+        }
+        abrirModalPermisos();
         return;
       }
 
-      if (accion === 'gestionarPermisos' && !esAdminEspecial) {
-        alert('⚠️ Módulo exclusivo para los administradores principales (admini@pos.com y admine@pos.com).');
-        return;
+      if (!esAdminEspecial) {
+        const tienePermiso = await validarAccionConAlerta(accion);
+        if (!tienePermiso) return;
       }
 
       if (accion === 'nuevoProducto') abrirModalProducto();
@@ -1277,7 +1301,6 @@
       else if (accion === 'modificarPrecios') abrirModalPrecios();
       else if (accion === 'catalogoVirtual') abrirModalCatalogoVirtual();
       else if (accion === 'reporteVentas') descargarReporteCSV();
-      else if (accion === 'gestionarPermisos') abrirModalPermisos();
     }
 
     function actualizarEstadoRed() {
@@ -1294,7 +1317,6 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
-    // --- LOGIN STRICTO ---
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
@@ -1311,7 +1333,7 @@
         });
 
         if (authError) {
-          alert('Acceso denegado: Credenciales incorrectas o el usuario fue eliminado de Supabase Auth.');
+          alert('Acceso denegado: Credenciales incorrectas.');
           return;
         }
 
@@ -1323,7 +1345,7 @@
 
         if (userData && userData.estado === 'congelado') {
           await _supabase.auth.signOut();
-          alert('🚫 CUENTA CONGELADA: Su usuario se encuentra deshabilitado temporalmente por el Administrador.');
+          alert('🚫 CUENTA CONGELADA: Su usuario se encuentra deshabilitado.');
           return;
         }
 
@@ -1345,7 +1367,6 @@
       const emailLower = (email || '').toLowerCase();
       if (emailLower.includes('admini')) return 'I.S.';
       if (emailLower.includes('admine')) return 'E.S.';
-      if (emailLower.includes('admi')) return 'E.J';
       let nombre = emailLower.split('@')[0];
       return nombre.charAt(0).toUpperCase() + nombre.slice(1);
     }
@@ -1413,12 +1434,7 @@
 
     async function sumarExperienciaVendedor(email, cantidadXp) {
       try {
-        let { data: userConfig } = await _supabase
-          .from('usuarios_pos')
-          .select('fecha_inicio_actividad')
-          .eq('email', email)
-          .maybeSingle();
-
+        let { data: userConfig } = await _supabase.from('usuarios_pos').select('fecha_inicio_actividad').eq('email', email).maybeSingle();
         if (userConfig && userConfig.fecha_inicio_actividad) {
           const fechaInicio = new Date(userConfig.fecha_inicio_actividad);
           const hoy = new Date();
@@ -1449,7 +1465,6 @@
     async function verificarYAplicarPermisos(email) {
       const emailLower = email.toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
-      const esCualquierAdmin = emailLower.includes('admi');
       const contenedorAdminSidebar = document.getElementById('contenedorMenuAdminSidebar');
 
       const botonesModulos = {
@@ -1464,28 +1479,19 @@
         'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
       };
 
-      if (esCualquierAdmin) {
+      if (esAdminEspecial) {
         if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
         Object.keys(botonesModulos).forEach(key => {
-          const btn = botonesModulos[key];
-          if (btn) {
-            if (key === 'gestionarPermisos' && !esAdminEspecial) {
-              btn.classList.add('hidden');
-            } else {
-              btn.classList.remove('hidden');
-            }
-          }
+          if (botonesModulos[key]) botonesModulos[key].classList.remove('hidden');
         });
-        document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
+        document.getElementById('usuarioRol').textContent = `Perfil: Administrador Principal (${obtenerAtendidoPor(email)})`;
         return;
       }
 
-      if (botonesModulos['registrarCompra']) botonesModulos['registrarCompra'].classList.add('hidden');
-      if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
-      if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
-      if (botonesModulos['nuevoProducto']) botonesModulos['nuevoProducto'].classList.add('hidden');
-      if (botonesModulos['catalogoVirtual']) botonesModulos['catalogoVirtual'].classList.add('hidden');
-      if (botonesModulos['gestionarPermisos']) botonesModulos['gestionarPermisos'].classList.add('hidden');
+      // Si es vendedor común, ocultamos por defecto y revisamos permisos otorgados
+      Object.keys(botonesModulos).forEach(key => {
+        if (botonesModulos[key]) botonesModulos[key].classList.add('hidden');
+      });
 
       try {
         const { data } = await _supabase
@@ -1498,21 +1504,12 @@
           const modulos = data.modulos_activos;
           let tieneAlgunPermiso = false;
 
-          modulos.registrarCompra = false;
-          modulos.costosProveedores = false;
-          modulos.modificarPrecios = false;
-          modulos.nuevoProducto = false;
-          modulos.catalogoVirtual = false;
-          modulos.gestionarPermisos = false;
-
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
-            if (btn) {
+            if (btn && key !== 'gestionarPermisos') { // Gestionar permisos prohibido para no admins
               if (modulos[key] === true) {
                 btn.classList.remove('hidden');
                 tieneAlgunPermiso = true;
-              } else {
-                btn.classList.add('hidden');
               }
             }
           });
@@ -1529,10 +1526,9 @@
         if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
       }
 
-      document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
+      document.getElementById('usuarioRol').textContent = `Perfil: Vendedor (${obtenerAtendidoPor(email)})`;
     }
 
-    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES ---
     function abrirModalCostosProveedores() {
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
@@ -1606,7 +1602,7 @@
         }
 
         if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">No hay registros de compras anteriores para este producto.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">No hay registros de compras anteriores.</td></tr>';
           return;
         }
 
@@ -1640,11 +1636,10 @@
 
         tbody.innerHTML = html;
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-rose-500">Error al consultar los costos de proveedores.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-rose-500">Error al consultar los costos.</td></tr>';
       }
     }
 
-    // --- MÓDULO CATÁLOGO VIRTUAL / REVISTA ---
     function abrirModalCatalogoVirtual() {
       document.getElementById('modalCatalogoVirtual').classList.remove('hidden');
       renderizarListaCatalogoVirtual(todosLosProductos);
@@ -1825,11 +1820,10 @@
       win.document.close();
     }
 
-    // --- MODAL DE GESTIÓN DE USUARIOS Y LOGROS ---
     function abrirModalPermisos() {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       if (emailLower !== 'admini@pos.com' && emailLower !== 'admine@pos.com') {
-        alert('⚠️ Esta sección es exclusiva para los administradores principales (admini@pos.com y admine@pos.com).');
+        alert('⚠️ Esta sección es exclusiva para admini@pos.com y admine@pos.com.');
         return;
       }
       document.getElementById('modalPermisos').classList.remove('hidden');
@@ -1931,7 +1925,7 @@
                 <input type="date" value="${u.fecha_inicio_actividad || ''}" onchange="actualizarFechaInicio('${u.email}', this.value)" class="px-1.5 py-0.5 border rounded text-[11px] bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
               </div>
               ${btnEstado}
-              <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded font-bold">⚙️ Módulos</button>
+              <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded font-bold">⚙️ Permisos</button>
             </div>
           </div>
         `;
@@ -1950,7 +1944,7 @@
 
     async function seleccionarUsuarioParaModulos(email) {
       usuarioEditandoPermisos = email;
-      document.getElementById('lblUsuarioEditando').textContent = `Editando Módulos de: ${email}`;
+      document.getElementById('lblUsuarioEditando').textContent = `Editando Permisos de: ${email}`;
 
       const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', email).maybeSingle();
       const modulos = data ? data.modulos_activos || {} : {};
@@ -1973,13 +1967,15 @@
       let modulosActuales = usuarioActualData ? usuarioActualData.modulos_activos || {} : {};
 
       modulosActuales.nuevoProducto = document.getElementById('chk_nuevoProducto').checked;
+      modulosActuales.registrarCompra = document.getElementById('chk_registrarCompra').checked;
       modulosActuales.cargaMasiva = document.getElementById('chk_cargaMasiva').checked;
       modulosActuales.exportarProductos = document.getElementById('chk_exportarProductos').checked;
+      modulosActuales.modificarPrecios = document.getElementById('chk_modificarPrecios').checked;
       modulosActuales.reporteVentas = document.getElementById('chk_reporteVentas').checked;
       modulosActuales.edicionCuadricula = document.getElementById('chk_edicionCuadricula').checked;
 
       await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActuales }).eq('email', usuarioEditandoPermisos);
-      alert(`¡Módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
+      alert(`¡Permisos y módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
       document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
     }
 
@@ -2083,10 +2079,10 @@
       }
 
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdmin = emailLower.includes('admi');
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
 
       let productosFiltrados = data;
-      if (!esAdmin) {
+      if (!esAdminEspecial) {
         productosFiltrados = data.filter(p => p.en_catalogo_virtual !== false);
       }
 
@@ -2128,8 +2124,14 @@
         const precioMayorista = obtenerPrecioMayorista(prod);
         const cMayor = obtenerCantMayorista(prod);
 
-        const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-        const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
+        const emailLower = (usuarioActualEmail || '').toLowerCase();
+        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+        
+        let puedeEditarCuadricula = esAdminEspecial;
+        // Nota: la validación real de edicionCuadricula se realiza antes de guardar, 
+        // pero mostramos el botón de editar si es admin o si el flujo lo permite.
+
+        const btnEditarHtml = `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>`;
 
         const cardClass = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
 
@@ -2152,7 +2154,7 @@
                 <div class="flex items-center gap-1">
                   <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
                   <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
-                  ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
+                  <button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>
                 </div>
               </div>
             </div>`;
@@ -2220,7 +2222,8 @@
 
       contenedor.innerHTML = '';
       let total = 0;
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
 
       carrito.forEach((item, index) => {
         let precioAplicado = item.precioMinorista;
@@ -2239,7 +2242,7 @@
         const badgeMayorista = (esMayorista && item.precioPersonalizado === null) ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded ml-1">MAYORISTA</span>` : '';
         const badgePersonalizado = item.precioPersonalizado !== null ? `<span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded ml-1">EDITADO</span>` : '';
 
-        const campoPrecioHtml = esAdmin
+        const campoPrecioHtml = esAdminEspecial
           ? `<div class="flex items-center gap-0.5">
                <span class="text-xs text-slate-400">$</span>
                <input type="number" step="0.01" min="0" value="${precioAplicado}" onchange="modificarPrecioPersonalizadoDirecto(${index}, this.value)" class="w-16 px-1 py-0.5 text-right font-semibold border border-amber-300 bg-amber-50 dark:bg-slate-900 rounded text-xs text-amber-900 dark:text-amber-300">
@@ -2267,8 +2270,9 @@
     }
 
     async function modificarPrecioPersonalizadoDirecto(index, nuevoPrecio) {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-      if (!esAdmin) {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      if (!esAdminEspecial) {
         await validarAccionConAlerta('modificar_precio_carrito');
         actualizarCarritoVisual();
         return;
@@ -2289,7 +2293,6 @@
       actualizarCarritoVisual();
     }
 
-    // --- MÓDULO DE FACTURAS DE COMPRA ---
     function abrirModalCompra() {
       document.getElementById('compraProveedor').value = 'Wayra';
       document.getElementById('compraNroFactura').value = '';
@@ -2485,22 +2488,20 @@
 
     async function guardarProducto() {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower.includes('admi');
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
 
       let tienePermisoEdicion = esAdminEspecial;
       if (!tienePermisoEdicion) {
         try {
           const { data: userData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
-          if (userData && userData.modulos_activos && userData.modulos_activos.edicionCuadricula) {
+          if (userData && userData.modulos_activos && userData.modulos_activos.edicionCuadricula === true) {
             tienePermisoEdicion = true;
           }
-        } catch (e) {
-          console.error("Error al verificar permisos de edición:", e);
-        }
+        } catch (e) {}
       }
 
       if (!tienePermisoEdicion) {
-        await validarAccionConAlerta('guardar_producto');
+        await validarAccionConAlerta('edicionCuadricula');
         cerrarModalProducto();
         return;
       }
@@ -2537,22 +2538,18 @@
           errorSupabase = error;
         }
 
-        if (errorSupabase) {
-          throw errorSupabase;
-        }
+        if (errorSupabase) throw errorSupabase;
 
         alert('¡Cambios guardados exitosamente en la base de datos!');
         cerrarModalProducto();
         await cargarProductos();
       } catch (err) {
-        console.error('Error al guardar el producto en Supabase:', err);
         alert('❌ Error al guardar los cambios: ' + (err.message || JSON.stringify(err)));
       }
     }
 
     function filtrarProductosDebounced() { clearTimeout(timerBusqueda); timerBusqueda = setTimeout(filtrarProductos, 120); }
     
-    // --- BUSCADOR INTELIGENTE (PALABRAS CORTADAS Y EN DISTINTO ORDEN) ---
     function normalizarTexto(texto) {
       return (texto || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
@@ -2702,11 +2699,11 @@
     }
 
     async function guardarNuevosPreciosAdmin() {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-      if (!esAdmin) {
-        await validarAccionConAlerta('guardar_nuevos_precios');
-        cerrarModalPrecios();
-        return;
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      if (!esAdminEspecial) {
+        const tienePermiso = await validarAccionConAlerta('modificarPrecios');
+        if (!tienePermiso) { cerrarModalPrecios(); return; }
       }
 
       const id = document.getElementById('prodSeleccionadoId').value;
