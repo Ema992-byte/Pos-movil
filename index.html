@@ -2075,7 +2075,7 @@
 
     function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
 
-    // --- FUNCIÓN GUARDAR PRODUCTO CORREGIDA E INTEGRADA ---
+    // --- FUNCIÓN GUARDAR PRODUCTO CORREGIDA (SIN COLUMNAS DE OFERTAS INEXISTENTES) ---
     async function guardarProducto() {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower.includes('admi');
@@ -2109,8 +2109,6 @@
       const datos = {
         codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
         nombre: nombreProducto,
-        en_oferta: false,
-        fecha_vencimiento_oferta: null,
         imagen_url: fotoBase64Actual,
         stock: parseInt(document.getElementById('nuevoStock').value) || 0,
         "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
