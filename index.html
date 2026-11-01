@@ -171,6 +171,9 @@
           <button id="menuBtn_exportarProductos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2">
             <span>📦</span> Exportar Productos
           </button>
+          <button id="menuBtn_catalogoRevista" onclick="toggleSidebarMenu(); ejecutarAccionModulo('catalogoRevista')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-pink-700 dark:text-pink-400 font-medium flex items-center gap-2">
+            <span>📖</span> Generar Catálogo Revista
+          </button>
           <button id="menuBtn_modificarPrecios" onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2">
             <span>✏️</span> Modificar Precios
           </button>
@@ -207,6 +210,52 @@
 
     </div>
   </aside>
+
+  <!-- MODAL DE GENERADOR DE CATÁLOGO REVISTA -->
+  <div id="modalCatalogoRevista" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><span>📖</span> Generador de Catálogo / Revista</h3>
+        <button onclick="cerrarModalCatalogoRevista()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Selecciona los productos que deseas incluir en el catálogo tipo revista o selecciónalos todos:</p>
+
+      <div class="flex gap-2 mb-3 items-center">
+        <button onclick="seleccionarTodosRevista(true)" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs font-bold px-3 py-1.5 rounded-lg">Seleccionar Todos</button>
+        <button onclick="seleccionarTodosRevista(false)" class="bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg">Deseleccionar Todos</button>
+        <span id="contadorSeleccionRevista" class="text-xs font-semibold text-slate-600 dark:text-slate-400 ml-auto">0 seleccionados</span>
+      </div>
+
+      <div id="listaProductosRevista" class="border dark:border-slate-700 rounded-lg max-h-72 overflow-y-auto p-2 space-y-1.5 text-xs mb-4">
+        <p class="text-slate-400 text-center py-4">Cargando productos...</p>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t dark:border-slate-700 pt-3">
+        <button onclick="generarYDescargarRevistaPDF()" class="bg-pink-600 hover:bg-pink-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow flex items-center gap-1.5">
+          <span>📥</span> Descargar Revista PDF
+        </button>
+        <button onclick="cerrarModalCatalogoRevista()" class="bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 text-slate-800 dark:text-white px-4 py-2.5 rounded-lg text-xs font-medium">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANTILLA DE REVISTA / CATÁLOGO PARA IMPRESIÓN O PDF -->
+  <div id="plantillaRevistaPDF" class="hidden p-8 bg-white text-slate-900 max-w-[210mm] mx-auto font-sans">
+    <div class="text-center border-b-2 border-indigo-600 pb-4 mb-6">
+      <h1 class="text-4xl font-black text-indigo-700 tracking-wider">GO! SHOPPING 🛒</h1>
+      <p class="text-sm font-semibold text-slate-600 mt-1">Catálogo Exclusivo de Productos - Edición Especial</p>
+      <p id="fechaRevistaGenerada" class="text-xs text-slate-400 mt-0.5">Fecha: --/--/----</p>
+    </div>
+
+    <div id="gridProductosRevistaPDF" class="grid grid-cols-3 gap-6"></div>
+
+    <div class="mt-10 pt-4 border-t border-slate-300 text-center text-xs text-slate-500">
+      <p>Precios sujetos a modificación sin previo aviso. ¡Gracias por elegirnos!</p>
+    </div>
+  </div>
 
   <!-- MODAL DE HISTORIAL DE NOTIFICACIONES -->
   <div id="modalHistorialNotificaciones" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -642,6 +691,18 @@
             class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
+        <!-- SELECTOR DE VISIBILIDAD EN CATÁLOGO -->
+        <div class="bg-indigo-50 dark:bg-indigo-950/40 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-indigo-900 dark:text-indigo-300">Visibilidad en Catálogo</p>
+            <p class="text-[10px] text-indigo-700 dark:text-indigo-400">Si se oculta, no aparecerá en la caja ni en las búsquedas.</p>
+          </div>
+          <select id="nuevoEstadoActivo" class="px-3 py-1.5 bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-white">
+            <option value="true">🟢 Activo / Visible</option>
+            <option value="false">🔴 Oculto del Catálogo</option>
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Stock Actual</label>
@@ -683,7 +744,7 @@
           <button type="button" onclick="guardarProducto()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold shadow">
             Guardar Cambios
           </button>
-          <button type="button" onclick="cerrarModalProducto()" class="bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button type="button" onclick="cerrarModalProducto()" class="bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
             Cancelar
           </button>
         </div>
@@ -696,13 +757,13 @@
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-lg">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
         <h3 class="text-xl font-bold text-slate-800 dark:text-white">Historial de Ventas 📜</h3>
-        <button onclick="cerrarModalHistorial()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg">✕</button>
+        <button onclick="cerrarModalHistorial()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       <div id="listaHistorialVentas" class="max-h-80 overflow-y-auto space-y-2 pr-1 text-sm">
         <p class="text-slate-400 text-center py-4">Cargando ventas recientes...</p>
       </div>
       <div class="mt-4 pt-3 border-t dark:border-slate-700 text-right">
-        <button onclick="cerrarModalHistorial()" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
+        <button onclick="cerrarModalHistorial()" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
           Cerrar
         </button>
       </div>
@@ -742,7 +803,7 @@
           <button onclick="guardarNuevosPreciosAdmin()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium">
             Actualizar Precios en BD
           </button>
-          <button onclick="cerrarModalPrecios()" class="bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button onclick="cerrarModalPrecios()" class="bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 text-slate-800 dark:text-white px-4 py-2 rounded-lg text-sm font-medium">
             Cancelar
           </button>
         </div>
@@ -815,7 +876,7 @@
     let modoImpresionActual = 'bluetooth';
     let usuarioEditandoPermisos = '';
     
-    // HISTORIAL DE NOTIFICACIONES EN MEMORIA / LOCALSTORAGE
+    // HISTORIAL DE NOTIFICACIONES
     let historialNotificaciones = JSON.parse(localStorage.getItem('go_historial_notif') || '[]');
 
     let configActual = {
@@ -830,7 +891,6 @@
       actualizarContadorBadgeNotif();
     });
 
-    // --- FUNCIÓN PARA CONTROLAR EL MENÚ LATERAL (SIDEBAR DRAWER) ---
     function toggleSidebarMenu() {
       const sidebar = document.getElementById('sidebarMenu');
       const overlay = document.getElementById('sidebarOverlay');
@@ -845,7 +905,6 @@
       }
     }
 
-    // --- ACORDEÓN PARA DESPLEGAR EL MÓDULO ADMINISTRACIÓN DENTRO DEL SIDEBAR ---
     function toggleAcordeonAdmin() {
       const submenus = document.getElementById('submenusAdminSidebar');
       const flecha = document.getElementById('flechaAcordeonAdmin');
@@ -948,20 +1007,6 @@
     window.addEventListener('online', actualizarEstadoRed);
     window.addEventListener('offline', actualizarEstadoRed);
 
-    document.addEventListener('click', function(event) {
-      const resCompra = document.getElementById('listaResultadosCompra');
-      const inputCompra = document.getElementById('buscadorCompraProd');
-      if (resCompra && inputCompra && !inputCompra.contains(event.target) && !resCompra.contains(event.target)) {
-        resCompra.classList.add('hidden');
-      }
-      const resCostos = document.getElementById('listaResultadosCostos');
-      const inputCostos = document.getElementById('buscadorProductoCostos');
-      if (resCostos && inputCostos && !inputCostos.contains(event.target) && !resCostos.contains(event.target)) {
-        resCostos.classList.add('hidden');
-      }
-    });
-
-    // --- SISTEMA DE AUDITORÍA Y ALERTA DE SEGURIDAD ---
     async function registrarIntentoNoAutorizado(emailUsuario, accionIntentada) {
       try {
         const { fechaStr, horaStr } = obtenerFechaHoraLocal();
@@ -970,23 +1015,122 @@
           accion_intentada: accionIntentada,
           fecha: fechaStr,
           hora: horaStr,
-          detalle: 'Intento de alteración o acceso no autorizado por vendedor'
+          detalle: 'Intento de alteración o acceso no autorizado'
         }]);
-      } catch (e) {
-        console.error('Error al registrar auditoría de seguridad', e);
-      }
+      } catch (e) {}
     }
 
     async function validarAccionConAlerta(accion) {
       const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
       if (esAdmin) return true;
-
       await registrarIntentoNoAutorizado(usuarioActualEmail, accion);
-      alert(`⚠️ ALERTA DE SEGURIDAD: El usuario ${usuarioActualEmail} ha intentado alterar o ejecutar una acción restringida (${accion}). El evento ha sido reportado al sistema.`);
+      alert(`⚠️ ALERTA: Acción restringida (${accion}).`);
       return false;
     }
 
-    // --- GESTIÓN DE HISTORIAL Y CAMPANITA DE NOTIFICACIONES ---
+    // --- MÓDULO CATÁLOGO REVISTA ---
+    function abrirModalCatalogoRevista() {
+      const contenedor = document.getElementById('listaProductosRevista');
+      if (!todosLosProductos || todosLosProductos.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-4">No hay productos cargados.</p>';
+        document.getElementById('modalCatalogoRevista').classList.remove('hidden');
+        return;
+      }
+
+      let html = '';
+      todosLosProductos.forEach(p => {
+        const idProd = p.id || obtenerCodigoBarras(p);
+        html += `
+          <label class="flex items-center justify-between p-2 rounded border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 cursor-pointer hover:bg-indigo-50/50">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" value="${idProd}" class="checkbox-revista w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" checked onchange="actualizarContadorRevista()">
+              <span class="font-medium text-slate-800 dark:text-white">${p.nombre}</span>
+            </div>
+            <span class="text-xs text-indigo-600 font-bold">$${parseFloat(p.precio || 0).toFixed(2)}</span>
+          </label>
+        `;
+      });
+      contenedor.innerHTML = html;
+      actualizarContadorRevista();
+      document.getElementById('modalCatalogoRevista').classList.remove('hidden');
+    }
+
+    function cerrarModalCatalogoRevista() {
+      document.getElementById('modalCatalogoRevista').classList.add('hidden');
+    }
+
+    function seleccionarTodosRevista(marcar) {
+      document.querySelectorAll('.checkbox-revista').forEach(chk => chk.checked = marcar);
+      actualizarContadorRevista();
+    }
+
+    function actualizarContadorRevista() {
+      const seleccionados = document.querySelectorAll('.checkbox-revista:checked').length;
+      document.getElementById('contadorSeleccionRevista').textContent = `${seleccionados} seleccionados`;
+    }
+
+    function generarYDescargarRevistaPDF() {
+      const checkboxes = document.querySelectorAll('.checkbox-revista:checked');
+      if (checkboxes.length === 0) {
+        alert('⚠️ Seleccione al menos un producto para generar la revista.');
+        return;
+      }
+
+      const idsSeleccionados = Array.from(checkboxes).map(chk => chk.value);
+      const productosFiltrados = todosLosProductos.filter(p => idsSeleccionados.includes(String(p.id)) || idsSeleccionados.includes(String(obtenerCodigoBarras(p))));
+
+      const d = new Date();
+      document.getElementById('fechaRevistaGenerada').textContent = `Fecha de emisión: ${d.toLocaleDateString()}`;
+
+      const gridContainer = document.getElementById('gridProductosRevistaPDF');
+      let htmlGrid = '';
+
+      productosFiltrados.forEach(prod => {
+        const foto = prod.imagen_url || '';
+        const precioMin = parseFloat(prod.precio || 0).toFixed(2);
+        const precioMay = parseFloat(prod.precio_mayorista || 0);
+        const imgTag = foto ? `<img src="${foto}" class="w-full h-36 object-contain mb-2 bg-slate-50 rounded p-1">` : `<div class="w-full h-36 bg-slate-100 rounded flex items-center justify-center text-slate-300 text-3xl mb-2">📦</div>`;
+
+        htmlGrid += `
+          <div class="border border-slate-200 rounded-xl p-3 bg-white shadow-sm flex flex-col justify-between">
+            <div>
+              ${imgTag}
+              <h4 class="font-bold text-slate-800 text-sm line-clamp-2 mb-1">${prod.nombre}</h4>
+              <p class="text-[10px] text-slate-500">Cód: ${obtenerCodigoBarras(prod) || 'S/C'}</p>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-100">
+              <p class="text-indigo-600 font-extrabold text-base">$${precioMin}</p>
+              ${precioMay > 0 ? `<p class="text-emerald-600 font-semibold text-xs">Mayorista: $${precioMay.toFixed(2)}</p>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      gridContainer.innerHTML = htmlGrid;
+
+      const contenidoPlantilla = document.getElementById('plantillaRevistaPDF').innerHTML;
+      const ventanaImpresion = window.open('', '_blank', 'width=800,height=900');
+      if (ventanaImpresion) {
+        ventanaImpresion.document.write(`
+          <html>
+            <head>
+              <title>Catálogo Revista - GO!</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-white p-6">
+              ${contenidoPlantilla}
+              <script>
+                window.onload = function() { setTimeout(() => window.print(), 500); }
+              </script>
+            </body>
+          </html>
+        `);
+        ventanaImpresion.document.close();
+      }
+      cerrarModalCatalogoRevista();
+    }
+
+    // --- CAMPANITA DE HISTORIAL ---
     function registrarNotificacionHistorial(titulo, mensaje, esOferta = false) {
       const { fechaStr, horaStr } = obtenerFechaHoraLocal();
       const nuevaNotif = {
@@ -997,9 +1141,8 @@
         esOferta: esOferta,
         leida: false
       };
-
       historialNotificaciones.unshift(nuevaNotif);
-      if (historialNotificaciones.length > 50) historialNotificaciones.pop(); // Máximo 50 guardadas
+      if (historialNotificaciones.length > 50) historialNotificaciones.pop();
       localStorage.setItem('go_historial_notif', JSON.stringify(historialNotificaciones));
       actualizarContadorBadgeNotif();
     }
@@ -1007,7 +1150,6 @@
     function actualizarContadorBadgeNotif() {
       const badge = document.getElementById('badgeContadorNotif');
       if (!badge) return;
-
       const noLeidas = historialNotificaciones.filter(n => !n.leida).length;
       if (noLeidas > 0) {
         badge.textContent = noLeidas;
@@ -1020,9 +1162,7 @@
     function toggleModalHistorialNotificaciones() {
       const modal = document.getElementById('modalHistorialNotificaciones');
       if (!modal) return;
-
       if (modal.classList.contains('hidden')) {
-        // Al abrir, marcamos todas como leídas
         historialNotificaciones.forEach(n => n.leida = true);
         localStorage.setItem('go_historial_notif', JSON.stringify(historialNotificaciones));
         actualizarContadorBadgeNotif();
@@ -1036,20 +1176,15 @@
     function renderizarListaHistorialNotificaciones() {
       const contenedor = document.getElementById('listaHistorialNotificaciones');
       if (!contenedor) return;
-
       if (historialNotificaciones.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-center py-6 text-xs">No hay notificaciones registradas en el historial.</p>';
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-6 text-xs">No hay notificaciones registradas.</p>';
         return;
       }
-
       let html = '';
       historialNotificaciones.forEach(n => {
-        const icono = n.esOferta ? '🔥' : '🔔';
-        const borderClass = n.esOferta ? 'border-amber-300 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900';
-        
         html += `
-          <div class="p-3 rounded-xl border ${borderClass} text-xs flex gap-3 items-start">
-            <span class="text-lg shrink-0">${icono}</span>
+          <div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs flex gap-3 items-start">
+            <span class="text-lg shrink-0">🔔</span>
             <div class="flex-grow">
               <div class="flex justify-between items-center mb-0.5">
                 <span class="font-bold text-slate-800 dark:text-white">${n.titulo}</span>
@@ -1064,7 +1199,7 @@
     }
 
     function limpiarHistorialNotificaciones() {
-      if (confirm('¿Desea vaciar todo el historial de notificaciones?')) {
+      if (confirm('¿Vaciar historial de notificaciones?')) {
         historialNotificaciones = [];
         localStorage.setItem('go_historial_notif', JSON.stringify(historialNotificaciones));
         actualizarContadorBadgeNotif();
@@ -1072,106 +1207,54 @@
       }
     }
 
-    // --- SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL ---
     function mostrarNotificacionFlotante(titulo, mensaje, esOferta = false) {
-      // Guardar automáticamente en el historial de la campanita
       registrarNotificacionHistorial(titulo, mensaje, esOferta);
-
       if (!configActual.notifPrecios) return;
-
       const contenedor = document.getElementById('contenedorNotificaciones');
       if (!contenedor) return;
-
       const idNotif = 'notif_' + Date.now();
-      const icono = esOferta ? '🔥' : '🔔';
-      const borderClass = esOferta ? 'border-amber-500 shadow-amber-500/20' : 'border-indigo-500/30';
-      const bgHeader = esOferta ? 'text-amber-400 font-extrabold' : 'font-bold';
-
       const htmlNotif = `
-        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border ${borderClass} flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0">
-          <div class="text-xl shrink-0 mt-0.5">${icono}</div>
+        <div id="${idNotif}" class="pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-3.5 rounded-xl shadow-2xl border flex items-start gap-3 transition-all duration-300">
+          <div class="text-xl shrink-0 mt-0.5">🔔</div>
           <div class="flex-grow text-xs">
-            <h5 class="${bgHeader} tracking-wide">${titulo}</h5>
+            <h5 class="font-bold">${titulo}</h5>
             <p class="text-[11px] opacity-90 mt-0.5">${mensaje}</p>
           </div>
-          <button onclick="document.getElementById('${idNotif}').remove()" class="text-slate-400 hover:text-white dark:hover:text-slate-900 font-bold text-sm shrink-0">✕</button>
+          <button onclick="document.getElementById('${idNotif}').remove()" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
         </div>
       `;
-
       contenedor.insertAdjacentHTML('beforeend', htmlNotif);
-      const elemento = document.getElementById(idNotif);
-      
-      setTimeout(() => {
-        if (elemento) {
-          elemento.classList.remove('translate-y-2', 'opacity-0');
-        }
-      }, 10);
-
-      setTimeout(() => {
-        if (elemento) {
-          elemento.classList.add('translate-y-2', 'opacity-0');
-          setTimeout(() => elemento.remove(), 300);
-        }
-      }, 7000);
+      setTimeout(() => { const el = document.getElementById(idNotif); if(el) el.remove(); }, 7000);
     }
 
     function inicializarSuscripcionPreciosRealtime() {
-      _supabase
-        .channel('cambios-precios-productos')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'productos' },
-          (payload) => {
-            if (payload.eventType === 'UPDATE') {
-              const prodNuevo = payload.new;
-              const prodViejo = payload.old;
-
-              const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
-              const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
-
-              if (cambioMinorista || cambioMayorista) {
-                let detalleCambios = [];
-                if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
-                if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
-
-                mostrarNotificacionFlotante(
-                  `📦 Precio Actualizado: ${prodNuevo.nombre}`,
-                  detalleCambios.join(' | ')
-                );
-              }
-              cargarProductosSilencioso();
-            }
+      _supabase.channel('cambios-precios-productos').on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          const prodNuevo = payload.new;
+          const prodViejo = payload.old;
+          if (prodNuevo.precio !== prodViejo.precio) {
+            mostrarNotificacionFlotante(`📦 Precio Actualizado: ${prodNuevo.nombre}`, `Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
           }
-        )
-        .subscribe();
+          cargarProductosSilencioso();
+        }
+      }).subscribe();
     }
 
     async function cargarProductosSilencioso() {
-      const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
+      const { data } = await _supabase.from('productos').select('*').range(0, 1999);
       if (data) {
         todosLosProductos = data;
         localStorage.setItem('go_pos_productos', JSON.stringify(data));
-        const textoBusq = document.getElementById('buscador').value.trim();
-        if (!textoBusq) {
-          mostrarProductos(todosLosProductos.slice(0, 40));
-        } else {
-          filtrarProductos();
-        }
+        filtrarProductos();
       }
     }
 
     async function ejecutarAccionModulo(accion) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
       const esAdmin = emailLower.includes('admi');
 
-      if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores') && !esAdmin) {
+      if ((accion === 'registrarCompra' || accion === 'modificarPrecios' || accion === 'nuevoProducto' || accion === 'costosProveedores' || accion === 'catalogoRevista') && !esAdmin) {
         await validarAccionConAlerta(accion);
-        return;
-      }
-
-      if (accion === 'gestionarPermisos' && !esAdminEspecial) {
-        alert('⚠️ Módulo exclusivo para los administradores principales (admini@pos.com y admine@pos.com).');
         return;
       }
 
@@ -1180,6 +1263,7 @@
       else if (accion === 'costosProveedores') abrirModalCostosProveedores();
       else if (accion === 'cargaMasiva') abrirModalCargaMasiva();
       else if (accion === 'exportarProductos') descargarReporteProductosCSV();
+      else if (accion === 'catalogoRevista') abrirModalCatalogoRevista();
       else if (accion === 'modificarPrecios') abrirModalPrecios();
       else if (accion === 'reporteVentas') descargarReporteCSV();
       else if (accion === 'gestionarPermisos') abrirModalPermisos();
@@ -1189,7 +1273,7 @@
       const banner = document.getElementById('estadoRed');
       if (navigator.onLine) {
         banner.className = 'w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded bg-emerald-100 text-emerald-800';
-        banner.textContent = '🟢 Conectado a Internet (Sincronizado)';
+        banner.textContent = '🟢 Conectado a Internet';
         banner.classList.remove('hidden');
       } else {
         banner.className = 'w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded bg-amber-100 text-amber-800';
@@ -1199,7 +1283,6 @@
     }
     setTimeout(actualizarEstadoRed, 500);
 
-    // --- LOGIN STRICTO ---
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim().toLowerCase();
@@ -1210,36 +1293,14 @@
       btnLogin.disabled = true;
 
       try {
-        const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
-
-        if (authError) {
-          alert('Acceso denegado: Credenciales incorrectas o el usuario fue eliminado de Supabase Auth.');
-          return;
-        }
-
-        const { data: userData } = await _supabase
-          .from('usuarios_pos')
-          .select('estado')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (userData && userData.estado === 'congelado') {
-          await _supabase.auth.signOut();
-          alert('🚫 CUENTA CONGELADA: Su usuario se encuentra deshabilitado temporalmente por el Administrador.');
-          return;
-        }
+        const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({ email, password });
+        if (authError) { alert('Credenciales incorrectas'); return; }
 
         usuarioActualEmail = authData.user.email;
         await cargarProductos();
-        await cargarProgresoVendedor(usuarioActualEmail);
-        
         inicializarSuscripcionPreciosRealtime();
-
       } catch (err) {
-        alert('Error al intentar ingresar: ' + (err.message || err));
+        alert('Error: ' + err.message);
       } finally {
         btnLogin.textContent = 'Ingresar al POS GO!';
         btnLogin.disabled = false;
@@ -1250,891 +1311,192 @@
       const emailLower = (email || '').toLowerCase();
       if (emailLower.includes('admini')) return 'I.S.';
       if (emailLower.includes('admine')) return 'E.S.';
-      if (emailLower.includes('admi')) return 'E.J';
-      let nombre = emailLower.split('@')[0];
-      return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+      return emailLower.split('@')[0];
     }
 
     function obtenerCodigoBarras(prod) { return prod.codigo_barras || prod.codigo_barra || ''; }
-    function obtenerPrecioMayorista(prod) { return parseFloat(prod.precio_mayorista || prod.precio_mayorist || 0); }
-    function obtenerCantMayorista(prod) { return parseInt(prod.cantidad_mayorista || prod.cantidad_mayor || 6); }
-    function obtenerUnidadesPorBulto(prod) { return parseInt(prod.unidades_por_bulto || prod.unidades_bulto || 0); }
-
-    async function iniciarSesionExitosa(email, productosData) {
-      usuarioActualEmail = email;
-      document.getElementById('loginSection').classList.add('hidden');
-      document.getElementById('posSection').classList.remove('hidden');
-
-      todosLosProductos = productosData;
-      document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
-
-      await verificarYAplicarPermisos(email);
-      await cargarProgresoVendedor(email);
-
-      mostrarProductos(todosLosProductos.slice(0, 40));
-    }
-
-    async function cargarProgresoVendedor(email) {
-      try {
-        let { data } = await _supabase.from('vendedor_niveles').select('*').eq('email', email).maybeSingle();
-        if (!data) {
-          const inicial = { email: email, experiencia_total: 0, nivel_actual: 1 };
-          await _supabase.from('vendedor_niveles').insert([inicial]);
-          data = inicial;
-        }
-        actualizarBarraNivelVisual(data.experiencia_total);
-      } catch(e) {}
-    }
-
-    function calcularNivelYProgreso(xpTotal) {
-      let nivel = 1;
-      let xpRequeridaNivelSiguiente = 400;
-      
-      while (xpTotal >= xpRequeridaNivelSiguiente && nivel < 100) {
-        xpTotal -= xpRequeridaNivelSiguiente;
-        nivel++;
-        xpRequeridaNivelSiguiente = Math.floor(xpRequeridaNivelSiguiente * 1.10);
-      }
-
-      if (nivel >= 100) {
-        nivel = 100;
-        xpTotal = xpRequeridaNivelSiguiente;
-      }
-
-      return {
-        nivel: nivel,
-        xpActual: xpTotal,
-        xpNecesaria: xpRequeridaNivelSiguiente,
-        porcentaje: Math.min(100, Math.floor((xpTotal / xpRequeridaNivelSiguiente) * 100))
-      };
-    }
-
-    function actualizarBarraNivelVisual(xpTotal) {
-      const info = calcularNivelYProgreso(xpTotal);
-      document.getElementById('labelNivelBadge').textContent = `Nivel ${info.nivel}`;
-      document.getElementById('labelXpTexto').textContent = `${info.xpActual} / ${info.xpNecesaria} XP`;
-      document.getElementById('barraXpProgreso').style.width = info.porcentaje + '%';
-    }
-
-    async function sumarExperienciaVendedor(email, cantidadXp) {
-      try {
-        let { data: userConfig } = await _supabase
-          .from('usuarios_pos')
-          .select('fecha_inicio_actividad')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (userConfig && userConfig.fecha_inicio_actividad) {
-          const fechaInicio = new Date(userConfig.fecha_inicio_actividad);
-          const hoy = new Date();
-          fechaInicio.setHours(0, 0, 0, 0);
-          hoy.setHours(0, 0, 0, 0);
-          if (hoy < fechaInicio) return;
-        }
-
-        let { data } = await _supabase.from('vendedor_niveles').select('*').eq('email', email).maybeSingle();
-        let xpActual = data ? data.experiencia_total : 0;
-        let nuevoTotal = xpActual + cantidadXp;
-
-        let infoAnt = calcularNivelYProgreso(xpActual);
-        let infoNueva = calcularNivelYProgreso(nuevoTotal);
-
-        await _supabase.from('vendedor_niveles').upsert({ email: email, experiencia_total: nuevoTotal, nivel_actual: infoNueva.nivel });
-        
-        if (email.toLowerCase() === usuarioActualEmail.toLowerCase()) {
-          actualizarBarraNivelVisual(nuevoTotal);
-        }
-
-        if (infoNueva.nivel > infoAnt.nivel) {
-          alert(`🎉 ¡FELICIDADES! Has subido al Nivel ${infoNueva.nivel} 🎉`);
-        }
-      } catch(e) {}
-    }
-
-    async function verificarYAplicarPermisos(email) {
-      const emailLower = email.toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
-      const esCualquierAdmin = emailLower.includes('admi');
-      const contenedorAdminSidebar = document.getElementById('contenedorMenuAdminSidebar');
-
-      const botonesModulos = {
-        'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
-        'registrarCompra': document.getElementById('menuBtn_registrarCompra'),
-        'costosProveedores': document.getElementById('menuBtn_costosProveedores'),
-        'cargaMasiva': document.getElementById('menuBtn_cargaMasiva'),
-        'exportarProductos': document.getElementById('menuBtn_exportarProductos'),
-        'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
-        'reporteVentas': document.getElementById('menuBtn_reporteVentas'),
-        'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
-      };
-
-      if (esCualquierAdmin) {
-        if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
-        Object.keys(botonesModulos).forEach(key => {
-          const btn = botonesModulos[key];
-          if (btn) {
-            if (key === 'gestionarPermisos' && !esAdminEspecial) {
-              btn.classList.add('hidden');
-            } else {
-              btn.classList.remove('hidden');
-            }
-          }
-        });
-        document.getElementById('usuarioRol').textContent = `Perfil: Administrador (${obtenerAtendidoPor(email)})`;
-        return;
-      }
-
-      if (botonesModulos['registrarCompra']) botonesModulos['registrarCompra'].classList.add('hidden');
-      if (botonesModulos['costosProveedores']) botonesModulos['costosProveedores'].classList.add('hidden');
-      if (botonesModulos['modificarPrecios']) botonesModulos['modificarPrecios'].classList.add('hidden');
-      if (botonesModulos['nuevoProducto']) botonesModulos['nuevoProducto'].classList.add('hidden');
-      if (botonesModulos['gestionarPermisos']) botonesModulos['gestionarPermisos'].classList.add('hidden');
-
-      try {
-        const { data } = await _supabase
-          .from('usuarios_pos')
-          .select('modulos_activos')
-          .eq('email', emailLower)
-          .maybeSingle();
-
-        if (data && data.modulos_activos) {
-          const modulos = data.modulos_activos;
-          let tieneAlgunPermiso = false;
-
-          modulos.registrarCompra = false;
-          modulos.costosProveedores = false;
-          modulos.modificarPrecios = false;
-          modulos.nuevoProducto = false;
-          modulos.gestionarPermisos = false;
-
-          Object.keys(botonesModulos).forEach(key => {
-            const btn = botonesModulos[key];
-            if (btn) {
-              if (modulos[key] === true) {
-                btn.classList.remove('hidden');
-                tieneAlgunPermiso = true;
-              } else {
-                btn.classList.add('hidden');
-              }
-            }
-          });
-
-          if (tieneAlgunPermiso) {
-            if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
-          } else {
-            if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
-          }
-        } else {
-          if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
-        }
-      } catch (e) {
-        if (contenedorAdminSidebar) contenedorAdminSidebar.classList.add('hidden');
-      }
-
-      document.getElementById('usuarioRol').textContent = `Perfil: ${obtenerAtendidoPor(email)}`;
-    }
-
-    // --- MÓDULO ANÁLISIS DE COSTOS Y PROVEEDORES ---
-    function abrirModalCostosProveedores() {
-      document.getElementById('buscadorProductoCostos').value = '';
-      document.getElementById('detalleComparativaProveedores').classList.add('hidden');
-      document.getElementById('modalCostosProveedores').classList.remove('hidden');
-    }
-
-    function cerrarModalCostosProveedores() {
-      document.getElementById('modalCostosProveedores').classList.add('hidden');
-    }
-
-    function filtrarProductosParaCostos() {
-      const texto = document.getElementById('buscadorProductoCostos').value.trim().toLowerCase();
-      const contenedor = document.getElementById('listaResultadosCostos');
-      if (!texto || texto.length < 2) { contenedor.classList.add('hidden'); return; }
-
-      const palabras = texto.split(/\s+/);
-      const encontrados = todosLosProductos.filter(p => {
-        const nombreProd = (p.nombre || '').toLowerCase();
-        const codigoProd = String(obtenerCodigoBarras(p)).toLowerCase();
-        const textoCompleto = `${nombreProd} ${codigoProd}`;
-        return palabras.every(w => textoCompleto.includes(w));
-      }).slice(0, 10);
-
-      if (encontrados.length === 0) {
-        contenedor.innerHTML = '<div class="p-2 text-slate-400 text-center">No se encontró producto</div>';
-        contenedor.classList.remove('hidden');
-        return;
-      }
-
-      let html = '';
-      encontrados.forEach(p => {
-        const codProd = obtenerCodigoBarras(p);
-        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
-        const costoActual = parseFloat(p["Precio Costo"] || 0);
-        html += `
-          <div onclick="seleccionarProductoParaCostos('${codProd}', '${nombreSeguro}', ${costoActual})" 
-               class="p-2 hover:bg-indigo-50 dark:hover:bg-slate-700 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200">
-            <span>[${codProd || 'S/C'}] ${p.nombre}</span>
-            <span class="text-indigo-600 dark:text-indigo-400 font-semibold">$${costoActual.toFixed(2)}</span>
-          </div>`;
-      });
-      contenedor.innerHTML = html;
-      contenedor.classList.remove('hidden');
-    }
-
-    async function seleccionarProductoParaCostos(codigo, nombre, costoActual) {
-      document.getElementById('listaResultadosCostos').classList.add('hidden');
-      document.getElementById('buscadorProductoCostos').value = nombre;
-      document.getElementById('tituloProductoSeleccionadoCostos').textContent = `Producto: ${nombre} (Cód: ${codigo || 'S/C'})`;
-      document.getElementById('lblCostoActualInventario').textContent = '$' + costoActual.toFixed(2);
-      
-      const tbody = document.getElementById('tablaProveedoresCosto');
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">Consultando historial de proveedores...</td></tr>';
-      document.getElementById('detalleComparativaProveedores').classList.remove('hidden');
-
-      try {
-        let query = _supabase
-          .from('compras_detalles')
-          .select('precio_costo_unitario, cantidad, compras_facturas(proveedor, created_at)')
-          .eq('codigo_barras', codigo);
-
-        let { data } = await query;
-
-        if ((!data || data.length === 0) && codigo) {
-          let queryNombre = _supabase
-            .from('compras_detalles')
-            .select('precio_costo_unitario, cantidad, compras_facturas(proveedor, created_at)')
-            .ilike('nombre_producto', `%${nombre}%`);
-          let resNombre = await queryNombre;
-          data = resNombre.data;
-        }
-
-        if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">No hay registros de compras anteriores para este producto.</td></tr>';
-          return;
-        }
-
-        let proveedoresList = data.map(item => {
-          const proveedorNombre = (item.compras_facturas && item.compras_facturas.proveedor) ? item.compras_facturas.proveedor : 'Proveedor General';
-          const fechaCompra = (item.compras_facturas && item.compras_facturas.created_at) ? new Date(item.compras_facturas.created_at).toLocaleDateString() : 'Fecha no registrada';
-          return {
-            proveedor: proveedorNombre,
-            fecha: fechaCompra,
-            cantidad: item.cantidad || 1,
-            costo: parseFloat(item.precio_costo_unitario || 0)
-          };
-        });
-
-        proveedoresList.sort((a, b) => a.costo - b.costo);
-
-        let html = '';
-        proveedoresList.forEach((p, idx) => {
-          const highlightClass = idx === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 font-bold' : '';
-          const badgeMejor = idx === 0 ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-[9px] px-1.5 py-0.5 rounded ml-1">⭐ Mejor Precio</span>` : '';
-          
-          html += `
-            <tr class="${highlightClass}">
-              <td class="p-2.5 text-slate-800 dark:text-white">${p.proveedor} ${badgeMejor}</td>
-              <td class="p-2.5 text-slate-600 dark:text-slate-400">${p.fecha}</td>
-              <td class="p-2.5 text-center text-slate-600 dark:text-slate-400">${p.cantidad}</td>
-              <td class="p-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${p.costo.toFixed(2)}</td>
-            </tr>
-          `;
-        });
-
-        tbody.innerHTML = html;
-      } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-rose-500">Error al consultar los costos de proveedores.</td></tr>';
-      }
-    }
-
-    // --- MODAL DE GESTIÓN DE USUARIOS Y LOGROS ---
-    function abrirModalPermisos() {
-      const emailLower = (usuarioActualEmail || '').toLowerCase();
-      if (emailLower !== 'admini@pos.com' && emailLower !== 'admine@pos.com') {
-        alert('⚠️ Esta sección es exclusiva para los administradores principales (admini@pos.com y admine@pos.com).');
-        return;
-      }
-      document.getElementById('modalPermisos').classList.remove('hidden');
-      mostrarSubPestanaPermisos('crear');
-    }
-
-    function cerrarModalPermisos() {
-      document.getElementById('modalPermisos').classList.add('hidden');
-    }
-
-    function mostrarSubPestanaPermisos(pestana) {
-      const btnCrear = document.getElementById('tabCrearUser');
-      const btnLista = document.getElementById('tabListaUser');
-      const btnLogros = document.getElementById('tabLogrosAdmin');
-      
-      const secCrear = document.getElementById('secCrearUsuario');
-      const secLista = document.getElementById('secListaUsuarios');
-      const secLogros = document.getElementById('secAdminLogros');
-
-      btnCrear.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
-      btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
-      btnLogros.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
-
-      secCrear.classList.add('hidden');
-      secLista.classList.add('hidden');
-      secLogros.classList.add('hidden');
-
-      if (pestana === 'crear') {
-        btnCrear.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
-        secCrear.classList.remove('hidden');
-      } else if (pestana === 'lista') {
-        btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
-        secLista.classList.remove('hidden');
-        cargarListaUsuariosPOS();
-      } else if (pestana === 'logros') {
-        btnLogros.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
-        secLogros.classList.remove('hidden');
-        cargarCatalogoLogrosAdmin();
-      }
-    }
-
-    async function registrarNuevoUsuarioPOS() {
-      const email = document.getElementById('nuevoUserEmail').value.trim().toLowerCase();
-      const password = document.getElementById('nuevoUserPass').value.trim();
-      const nombre = document.getElementById('nuevoUserNombre').value.trim() || email.split('@')[0];
-
-      if (!email || !password) {
-        alert('El correo y la contraseña son obligatorios.');
-        return;
-      }
-
-      try {
-        const { error: authErr } = await _supabase.auth.signUp({ email: email, password: password });
-        if (authErr) throw authErr;
-
-        const { error: dbErr } = await _supabase
-          .from('usuarios_pos')
-          .upsert({ email: email, nombre: nombre, rol: 'vendedor', estado: 'activo' }, { onConflict: 'email' });
-
-        if (dbErr) throw dbErr;
-
-        alert(`¡Usuario vendedor "${email}" creado exitosamente!`);
-        document.getElementById('nuevoUserEmail').value = '';
-        document.getElementById('nuevoUserPass').value = '';
-        document.getElementById('nuevoUserNombre').value = '';
-        mostrarSubPestanaPermisos('lista');
-      } catch (err) {
-        alert('Error al crear usuario: ' + (err.message || err));
-      }
-    }
-
-    async function cargarListaUsuariosPOS() {
-      const contenedor = document.getElementById('contenedorListaUsuariosPos');
-      contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>';
-
-      const { data, error } = await _supabase.from('usuarios_pos').select('*').order('id', { ascending: true });
-      if (error || !data || data.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay usuarios registrados.</p>';
-        return;
-      }
-
-      let html = '';
-      data.forEach(u => {
-        const esCongelado = u.estado === 'congelado';
-        const badgeEstado = esCongelado ? `<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">❄️ Congelado</span>` : `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">🟢 Activo</span>`;
-        const btnEstado = esCongelado
-          ? `<button onclick="alternarEstadoUsuario('${u.email}', 'activo')" class="bg-emerald-600 text-white text-[10px] px-2 py-1 rounded font-bold">Activar</button>`
-          : `<button onclick="alternarEstadoUsuario('${u.email}', 'congelado')" class="bg-rose-500 text-white text-[10px] px-2 py-1 rounded font-bold">Congelar</button>`;
-
-        html += `
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs gap-2">
-            <div>
-              <p class="font-bold text-slate-800 dark:text-white">${u.email} ${badgeEstado}</p>
-              <p class="text-[10px] text-slate-500">${u.nombre || 'Sin nombre'}</p>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <div class="flex items-center gap-1">
-                <span class="text-[10px] text-slate-500">Activo desde:</span>
-                <input type="date" value="${u.fecha_inicio_actividad || ''}" onchange="actualizarFechaInicio('${u.email}', this.value)" class="px-1.5 py-0.5 border rounded text-[11px] bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
-              </div>
-              ${btnEstado}
-              <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded font-bold">⚙️ Módulos</button>
-            </div>
-          </div>
-        `;
-      });
-      contenedor.innerHTML = html;
-    }
-
-    async function actualizarFechaInicio(email, nuevaFecha) {
-      await _supabase.from('usuarios_pos').update({ fecha_inicio_actividad: nuevaFecha || null }).eq('email', email);
-    }
-
-    async function alternarEstadoUsuario(email, nuevoEstado) {
-      await _supabase.from('usuarios_pos').update({ estado: nuevoEstado }).eq('email', email);
-      cargarListaUsuariosPOS();
-    }
-
-    async function seleccionarUsuarioParaModulos(email) {
-      usuarioEditandoPermisos = email;
-      document.getElementById('lblUsuarioEditando').textContent = `Editando Módulos de: ${email}`;
-
-      const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', email).maybeSingle();
-      const modulos = data ? data.modulos_activos || {} : {};
-      
-      document.getElementById('chk_nuevoProducto').checked = !!modulos.nuevoProducto;
-      document.getElementById('chk_registrarCompra').checked = !!modulos.registrarCompra;
-      document.getElementById('chk_cargaMasiva').checked = !!modulos.cargaMasiva;
-      document.getElementById('chk_exportarProductos').checked = !!modulos.exportarProductos;
-      document.getElementById('chk_modificarPrecios').checked = !!modulos.modificarPrecios;
-      document.getElementById('chk_reporteVentas').checked = !!modulos.reporteVentas;
-      document.getElementById('chk_edicionCuadricula').checked = !!modulos.edicionCuadricula;
-
-      document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
-    }
-
-    async function guardarPermisosUsuario() {
-      if (!usuarioEditandoPermisos) return;
-      
-      const { data: usuarioActualData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', usuarioEditandoPermisos).maybeSingle();
-      let modulosActuales = usuarioActualData ? usuarioActualData.modulos_activos || {} : {};
-
-      modulosActuales.nuevoProducto = document.getElementById('chk_nuevoProducto').checked;
-      modulosActuales.cargaMasiva = document.getElementById('chk_cargaMasiva').checked;
-      modulosActuales.exportarProductos = document.getElementById('chk_exportarProductos').checked;
-      modulosActuales.reporteVentas = document.getElementById('chk_reporteVentas').checked;
-      modulosActuales.edicionCuadricula = document.getElementById('chk_edicionCuadricula').checked;
-
-      await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActuales }).eq('email', usuarioEditandoPermisos);
-      alert(`¡Módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
-      document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
-    }
-
-    async function cargarCatalogoLogrosAdmin() {
-      const contenedor = document.getElementById('listaAdminLogros');
-      contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando logros...</p>';
-
-      const { data } = await _supabase.from('logros_catalogo').select('*').order('id', { ascending: true });
-      if (!data || data.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay logros registrados.</p>';
-        return;
-      }
-
-      let html = '';
-      data.forEach(l => {
-        const checkHabilitado = l.habilitado ? 'checked' : '';
-        html += `
-          <div class="flex justify-between items-center p-2 rounded border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
-            <div>
-              <p class="font-bold text-slate-800 dark:text-white">${l.icono || '🏆'} ${l.titulo} <span class="text-indigo-600 font-semibold">(+${l.experiencia_xp} XP)</span></p>
-              <p class="text-[10px] text-slate-500">${l.descripcion}</p>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" ${checkHabilitado} onchange="toggleHabilitarLogro('${l.codigo}', this.checked)" class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-            </label>
-          </div>
-        `;
-      });
-      contenedor.innerHTML = html;
-    }
-
-    async function toggleHabilitarLogro(codigo, estado) {
-      await _supabase.from('logros_catalogo').update({ habilitado: estado }).eq('codigo', codigo);
-    }
-
-    async function abrirModalMisLogros() {
-      document.getElementById('modalMisLogros').classList.remove('hidden');
-      const contenedor = document.getElementById('gridLogrosVendedor');
-      contenedor.innerHTML = '<p class="text-slate-400 text-center py-4 col-span-full text-xs">Consultando tus conquistas...</p>';
-
-      try {
-        const { data: catalogo } = await _supabase.from('logros_catalogo').select('*').eq('habilitado', true).order('id', { ascending: true });
-        const { data: conseguidos } = await _supabase.from('vendedor_logros').select('codigo_logro, fecha_obtenido').eq('email_vendedor', usuarioActualEmail);
-        
-        const codigosConseguidos = new Set((conseguidos || []).map(l => l.codigo_logro));
-
-        if (!catalogo || catalogo.length === 0) {
-          contenedor.innerHTML = '<p class="text-slate-400 text-center py-4 col-span-full text-xs">No hay logros disponibles.</p>';
-          return;
-        }
-
-        let html = '';
-        catalogo.forEach(logro => {
-          const obtenido = codigosConseguidos.has(logro.codigo);
-          const cardClass = obtenido 
-            ? "bg-gradient-to-r from-amber-50 to-indigo-50 dark:from-slate-700 dark:to-indigo-950/40 border-amber-300 dark:border-indigo-500 shadow-sm" 
-            : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60 grayscale";
-          const badgeEstado = obtenido 
-            ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">✓ ¡Conseguido!</span>` 
-            : `<span class="bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-medium px-2 py-0.5 rounded-full">🔒 Bloqueado</span>`;
-
-          html += `
-            <div class="flex items-start gap-3 p-3 rounded-xl border ${cardClass} transition-all">
-              <div class="text-3xl p-2 bg-white dark:bg-slate-800 rounded-lg shadow-inner shrink-0 flex items-center justify-center w-12 h-12">
-                ${logro.icono || '🏆'}
-              </div>
-              <div class="flex-grow">
-                <div class="flex justify-between items-start gap-1">
-                  <h4 class="font-bold text-slate-800 dark:text-white text-xs">${logro.titulo}</h4>
-                  ${badgeEstado}
-                </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${logro.descripcion}</p>
-                <p class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1.5">+${logro.experiencia_xp} XP</p>
-              </div>
-            </div>
-          `;
-        });
-        contenedor.innerHTML = html;
-      } catch (err) {
-        contenedor.innerHTML = '<p class="text-rose-500 text-center py-4 col-span-full text-xs">Error al cargar los logros.</p>';
-      }
-    }
-
-    function cerrarModalMisLogros() {
-      document.getElementById('modalMisLogros').classList.add('hidden');
-    }
+    function obtenerPrecioMayorista(prod) { return parseFloat(prod.precio_mayorista || 0); }
+    function obtenerCantMayorista(prod) { return parseInt(prod.cantidad_mayorista || 6); }
+    function obtenerEstadoActivo(prod) { return prod.activo !== false; }
 
     async function cargarProductos() {
-      const contenedor = document.getElementById('productosList');
-      if (!navigator.onLine) {
-        cargarProductosOffline();
-        return;
-      }
-
-      contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4 col-span-full">Actualizando catálogo...</p>';
-      const { data, error } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
-      if (error || !data) {
-        cargarProductosOffline();
-        return;
-      }
-
-      localStorage.setItem('go_pos_productos', JSON.stringify(data));
-      iniciarSesionExitosa(usuarioActualEmail, data);
-    }
-
-    function cargarProductosOffline() {
-      const cached = localStorage.getItem('go_pos_productos');
-      if (cached) {
-        iniciarSesionExitosa(usuarioActualEmail, JSON.parse(cached));
+      const { data } = await _supabase.from('productos').select('*').range(0, 1999);
+      if (data) {
+        todosLosProductos = data;
+        localStorage.setItem('go_pos_productos', JSON.stringify(data));
       } else {
-        document.getElementById('productosList').innerHTML = '<p class="text-red-500 text-sm text-center col-span-full">Sin internet y sin catálogo guardado.</p>';
-        iniciarSesionExitosa(usuarioActualEmail, []);
+        todosLosProductos = JSON.parse(localStorage.getItem('go_pos_productos') || '[]');
       }
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('posSection').classList.remove('hidden');
+      document.getElementById('usuarioRol',).textContent = `Perfil: ${obtenerAtendidoPor(usuarioActualEmail)}`;
+      filtrarProductos();
     }
 
     function mostrarProductos(productos) {
       const contenedor = document.getElementById('productosList');
-      if (!productos || productos.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4 col-span-full">No se encontraron productos.</p>';
+      // Filtramos únicamente los activos para la caja/POS principal
+      const activos = productos.filter(p => obtenerEstadoActivo(p));
+
+      document.getElementById('cantProductos').textContent = `${activos.length} activos`;
+      if (activos.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4 col-span-full">No hay productos activos.</p>';
         return;
       }
 
       const esLista = configActual.vista === 'list';
-
       contenedor.className = esLista 
-        ? "space-y-2 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors"
-        : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors";
+        ? "space-y-2 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900"
+        : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900";
 
-      let htmlContent = '';
-      productos.forEach((prod, idx) => {
-        const codBarras = obtenerCodigoBarras(prod);
-        const idUnico = prod.id || codBarras || idx;
-        const codigoMostrado = codBarras || 'S/C';
-        const fotoUrl = prod.imagen_url || prod.foto || '';
-
-        const precioMinorista = parseFloat(prod.precio || 0);
-        const precioMayorista = obtenerPrecioMayorista(prod);
-        const cMayor = obtenerCantMayorista(prod);
-
+      let html = '';
+      activos.forEach((prod, idx) => {
+        const idUnico = prod.id || obtenerCodigoBarras(prod) || idx;
+        const fotoUrl = prod.imagen_url || '';
+        const precioMin = parseFloat(prod.precio || 0);
+        const precioMay = obtenerPrecioMayorista(prod);
         const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-        const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
 
-        const cardClass = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
+        const btnEditarHtml = esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 p-1 rounded-full shadow text-xs z-10">✏️</button>` : '';
 
         if (esLista) {
-          const imagenTagList = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-12 h-12 object-contain rounded bg-white dark:bg-slate-800 p-0.5 shrink-0">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-slate-400 text-lg shrink-0">📦</div>`;
-          htmlContent += `
-            <div class="relative ${cardClass} p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3 transition-all">
+          html += `
+            <div class="relative bg-white dark:bg-slate-800 p-2.5 rounded-xl shadow-sm flex items-center justify-between gap-3">
               <div class="flex items-center gap-3 overflow-hidden">
-                ${imagenTagList}
+                <img src="${fotoUrl || ''}" onerror="this.style.display='none'" class="w-12 h-12 object-contain rounded bg-white shrink-0">
                 <div class="overflow-hidden">
-                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate" title="${prod.nombre}">${prod.nombre}</p>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400">Cód: ${codigoMostrado} | Stock: ${prod.stock || 0}</p>
+                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate">${prod.nombre}</p>
+                  <p class="text-[11px] text-slate-500">Cód: ${obtenerCodigoBarras(prod) || 'S/C'} | Stock: ${prod.stock || 0}</p>
                 </div>
               </div>
               <div class="flex items-center gap-3 shrink-0">
                 <div class="text-right text-xs">
-                  <p class="text-blue-600 dark:text-blue-400 font-bold">Pcio Min: $${precioMinorista.toFixed(2)}</p>
-                  ${precioMayorista > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold">Pcio May: $${precioMayorista.toFixed(2)} (x${cMayor}+)</p>` : ''}
+                  <p class="text-blue-600 font-bold">$${precioMin.toFixed(2)}</p>
                 </div>
-                <div class="flex items-center gap-1">
-                  <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                  <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
-                  ${esAdmin ? `<button onclick="abrirModalEditarProducto('${idUnico}')" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 p-1.5 rounded shadow text-xs">✏️</button>` : ''}
-                </div>
+                <button onclick="agregarAlCarrito('${idUnico}', ${precioMin})" class="bg-indigo-600 text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
               </div>
             </div>`;
         } else {
-          const imagenTagGrid = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-full h-24 object-contain rounded-md bg-white dark:bg-slate-800 p-1">` : `<div class="w-full h-24 bg-slate-200 dark:bg-slate-700 rounded-md flex items-center justify-center text-slate-400 text-2xl">📦</div>`;
-          htmlContent += `
-            <div class="relative ${cardClass} p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+          html += `
+            <div class="relative bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm flex flex-col justify-between">
               ${btnEditarHtml}
               <div>
-                ${imagenTagGrid}
-                <p class="font-bold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 space-y-0.5">
-                  <p>Cód: <span class="font-medium text-slate-700 dark:text-slate-300">${codigoMostrado}</span></p>
-                  <p>Stock: <span class="font-medium text-slate-700 dark:text-slate-300">${prod.stock || 0}</span></p>
-                  <p class="text-blue-600 dark:text-blue-400 font-bold">Pcio Min: $${precioMinorista.toFixed(2)}</p>
-                  ${precioMayorista > 0 ? `<p class="text-emerald-600 dark:text-emerald-400 font-semibold">Pcio May: $${precioMayorista.toFixed(2)} (x${cMayor}+)</p>` : ''}
+                <img src="${fotoUrl || ''}" onerror="this.style.display='none'" class="w-full h-24 object-contain rounded bg-white p-1 mb-1">
+                <p class="font-bold text-slate-800 dark:text-white text-xs line-clamp-2 h-8">${prod.nombre}</p>
+                <div class="text-[11px] text-slate-500 mt-1">
+                  <p class="text-blue-600 font-bold">$${precioMin.toFixed(2)}</p>
                 </div>
               </div>
-              <div class="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
-                <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-                <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1 rounded text-xs font-bold text-center shadow-sm">Agregar</button>
+              <div class="mt-3 pt-2 border-t flex items-center gap-1">
+                <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border rounded text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                <button onclick="agregarAlCarrito('${idUnico}', ${precioMin})" class="flex-1 bg-indigo-600 text-white py-1 rounded text-xs font-bold">Agregar</button>
               </div>
-            </div>
-          `;
+            </div>`;
         }
       });
-      contenedor.innerHTML = htmlContent;
+      contenedor.innerHTML = html;
     }
 
-    function agregarAlCarritoConPrecio(idUnico, precioEspecial) {
-      const prodRef = todosLosProductos.find(p => String(p.id) === String(idUnico) || String(obtenerCodigoBarras(p)) === String(idUnico));
-      if (!prodRef) return;
-
+    function agregarAlCarrito(idUnico, precioEspecial) {
+      const prod = todosLosProductos.find(p => String(p.id) === String(idUnico) || String(obtenerCodigoBarras(p)) === String(idUnico));
+      if (!prod) return;
       const inputQty = document.getElementById(`qty_input_${idUnico}`);
-      const cantidadAAgregar = parseInt(inputQty ? inputQty.value : 1) || 1;
-      const itemExistente = carrito.find(item => item.idUnico === idUnico);
+      const cant = parseInt(inputQty ? inputQty.value : 1) || 1;
       
-      if (itemExistente) {
-        itemExistente.cantidad += cantidadAAgregar;
-      } else {
-        carrito.push({ 
-          idUnico: idUnico, 
-          nombre: prodRef.nombre, 
-          precioMinorista: prodRef.precio,
-          precioMayorista: obtenerPrecioMayorista(prodRef),
-          cantMayorista: obtenerCantMayorista(prodRef),
-          unidadesBulto: obtenerUnidadesPorBulto(prodRef),
-          precioPersonalizado: null,
-          cantidad: cantidadAAgregar 
-        });
-      }
-      if (inputQty) inputQty.value = 1;
+      const existente = carrito.find(i => i.idUnico === idUnico);
+      if (existente) existente.cantidad += cant;
+      else carrito.push({ idUnico, nombre: prod.nombre, precioMinorista: prod.precio, precioMayorista: obtenerPrecioMayorista(prod), cantMayorista: obtenerCantMayorista(prod), precioPersonalizado: null, cantidad: cant });
       actualizarCarritoVisual();
     }
 
     function actualizarCarritoVisual() {
       const contenedor = document.getElementById('carritoList');
       const totalSpan = document.getElementById('totalVenta');
-
-      if (carrito.length === 0) {
-        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>';
-        totalSpan.textContent = '$0.00';
-        return;
-      }
-
-      contenedor.innerHTML = '';
-      let total = 0;
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-
-      carrito.forEach((item, index) => {
-        let precioAplicado = item.precioMinorista;
-        let esMayorista = false;
-
-        if (item.precioPersonalizado !== null && !isNaN(item.precioPersonalizado)) {
-          precioAplicado = item.precioPersonalizado;
-        } else if (item.precioMayorista > 0 && item.cantidad >= item.cantMayorista) {
-          precioAplicado = item.precioMayorista;
-          esMayorista = true;
-        }
-
-        let subtotal = precioAplicado * item.cantidad;
+      if (carrito.length === 0) { contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>'; totalSpan.textContent = '$0.00'; return; }
+      
+      let total = 0; let html = '';
+      carrito.forEach((item, idx) => {
+        let p = item.precioPersonalizado !== null ? item.precioPersonalizado : item.precioMinorista;
+        let subtotal = p * item.cantidad;
         total += subtotal;
-
-        const badgeMayorista = (esMayorista && item.precioPersonalizado === null) ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1 rounded ml-1">MAYORISTA</span>` : '';
-        const badgePersonalizado = item.precioPersonalizado !== null ? `<span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded ml-1">EDITADO</span>` : '';
-
-        const campoPrecioHtml = esAdmin
-          ? `<div class="flex items-center gap-0.5">
-               <span class="text-xs text-slate-400">$</span>
-               <input type="number" step="0.01" min="0" value="${precioAplicado}" onchange="modificarPrecioPersonalizadoDirecto(${index}, this.value)" class="w-16 px-1 py-0.5 text-right font-semibold border border-amber-300 bg-amber-50 dark:bg-slate-900 rounded text-xs text-amber-900 dark:text-amber-300">
-             </div>`
-          : `<p class="text-xs text-slate-500 dark:text-slate-400">$${precioAplicado.toFixed(2)} c/u</p>`;
-
-        contenedor.innerHTML += `
-          <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded border dark:border-slate-700 text-sm shadow-sm gap-2">
-            <div class="flex-grow">
-              <p class="font-medium text-slate-800 dark:text-white">${item.nombre} ${badgeMayorista}${badgePersonalizado}</p>
-              ${campoPrecioHtml}
+        html += `
+          <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-2.5 rounded border text-sm gap-2">
+            <div>
+              <p class="font-medium text-slate-800 dark:text-white text-xs">${item.nombre}</p>
+              <p class="text-[11px] text-slate-500">$${p.toFixed(2)} c/u</p>
             </div>
-            <div class="flex items-center gap-1">
-              <span class="text-xs text-slate-400">Cant:</span>
-              <input type="number" min="1" value="${item.cantidad}" onchange="modificarCantidadDirecta(${index}, this.value)" class="w-14 px-1 py-1 text-center font-semibold border dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded text-xs">
-            </div>
-            <div class="text-right min-w-[60px]">
-              <span class="font-semibold text-slate-700 dark:text-slate-300 text-xs">$${subtotal.toFixed(2)}</span>
-            </div>
-            <button onclick="removerDelCarrito(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-1 ml-1">✕</button>
-          </div>
-        `;
+            <input type="number" min="1" value="${item.cantidad}" onchange="carrito[${idx}].cantidad=parseInt(this.value)||1;actualizarCarritoVisual()" class="w-12 text-center border rounded text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+            <span class="font-semibold text-xs">$${subtotal.toFixed(2)}</span>
+            <button onclick="carrito.splice(${idx},1);actualizarCarritoVisual()" class="text-rose-500 font-bold">✕</button>
+          </div>`;
       });
+      contenedor.innerHTML = html;
       totalSpan.textContent = '$' + total.toFixed(2);
     }
 
-    async function modificarPrecioPersonalizadoDirecto(index, nuevoPrecio) {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-      if (!esAdmin) {
-        await validarAccionConAlerta('modificar_precio_carrito');
-        actualizarCarritoVisual();
-        return;
-      }
-      const p = parseFloat(nuevoPrecio);
-      carrito[index].precioPersonalizado = (!isNaN(p) && p >= 0) ? p : null;
-      actualizarCarritoVisual();
+    function abrirModalProducto() {
+      document.getElementById('modalProductoTitulo').textContent = 'Agregar Nuevo Producto 📦';
+      document.getElementById('btnEliminarProductoModal').classList.add('hidden');
+      document.getElementById('editProductoId').value = '';
+      document.getElementById('nuevoCodigo').value = '';
+      document.getElementById('nuevoNombre').value = '';
+      document.getElementById('nuevoStock').value = '0';
+      document.getElementById('nuevoCosto').value = '';
+      document.getElementById('nuevoVenta').value = '';
+      document.getElementById('nuevoMayorista').value = '';
+      document.getElementById('nuevoEstadoActivo').value = 'true';
+      fotoBase64Actual = '';
+      document.getElementById('previewFoto').classList.add('hidden');
+      document.getElementById('placeholderFoto').classList.remove('hidden');
+      document.getElementById('modalProducto').classList.remove('hidden');
     }
 
-    function modificarCantidadDirecta(index, nuevaCantidad) {
-      const cant = parseInt(nuevaCantidad);
-      if (isNaN(cant) || cant <= 0) removerDelCarrito(index);
-      else { carrito[index].cantidad = cant; actualizarCarritoVisual(); }
+    function abrirModalEditarProducto(id) {
+      const prod = todosLosProductos.find(p => String(p.id) === String(id));
+      if (!prod) return;
+      document.getElementById('modalProductoTitulo').textContent = 'Editar Producto ✏️';
+      document.getElementById('btnEliminarProductoModal').classList.remove('hidden');
+      document.getElementById('editProductoId').value = prod.id;
+      document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
+      document.getElementById('nuevoNombre').value = prod.nombre || '';
+      document.getElementById('nuevoStock').value = prod.stock || 0;
+      document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
+      document.getElementById('nuevoVenta').value = prod.precio || '';
+      document.getElementById('nuevoMayorista').value = obtenerPrecioMayorista(prod) || '';
+      document.getElementById('nuevoEstadoActivo').value = String(obtenerEstadoActivo(prod));
+      fotoBase64Actual = prod.imagen_url || '';
+      const p = document.getElementById('previewFoto');
+      if (fotoBase64Actual) { p.src = fotoBase64Actual; p.classList.remove('hidden'); document.getElementById('placeholderFoto').classList.add('hidden'); }
+      document.getElementById('modalProducto').classList.remove('hidden');
     }
 
-    function removerDelCarrito(index) {
-      carrito.splice(index, 1);
-      actualizarCarritoVisual();
-    }
+    function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
 
-    // --- MÓDULO DE FACTURAS DE COMPRA ---
-    function abrirModalCompra() {
-      document.getElementById('compraProveedor').value = 'Wayra';
-      document.getElementById('compraNroFactura').value = '';
-      document.getElementById('buscadorCompraProd').value = '';
-      itemsCompraActual = [];
-      actualizarTablaCompraVisual();
-      document.getElementById('modalCompra').classList.remove('hidden');
-    }
-
-    function cerrarModalCompra() { document.getElementById('modalCompra').classList.add('hidden'); }
-
-    function procesarFacturaConIA(event) {
-      const archivo = event.target.files[0];
-      if (!archivo) return;
-      document.getElementById('textoEstadoTicket').textContent = `✓ Ticket adjuntado (${archivo.name}).`;
-      event.target.value = '';
-    }
-
-    function filtrarProductosCompra() {
-      const texto = document.getElementById('buscadorCompraProd').value.trim().toLowerCase();
-      const contenedor = document.getElementById('listaResultadosCompra');
-      if (!texto || texto.length < 2) { contenedor.classList.add('hidden'); return; }
-
-      const encontrados = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(texto) || String(obtenerCodigoBarras(p)).toLowerCase().includes(texto)).slice(0, 10);
-      if (encontrados.length === 0) { contenedor.innerHTML = '<div class="p-2 text-slate-400 text-center">No se encontró producto</div>'; contenedor.classList.remove('hidden'); return; }
-
-      let html = '';
-      encontrados.forEach(p => {
-        const codProd = obtenerCodigoBarras(p);
-        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
-        const costoActual = parseFloat(p["Precio Costo"] || 0);
-        html += `<div onclick="agregarItemCompraManual('${codProd}', '${nombreSeguro}', ${costoActual})" class="p-2 hover:bg-emerald-50 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200"><span>[${codProd || 'S/C'}] ${p.nombre}</span><span class="text-emerald-700 font-semibold">$${costoActual}</span></div>`;
-      });
-      contenedor.innerHTML = html;
-      contenedor.classList.remove('hidden');
-    }
-
-    function agregarItemCompraManual(codigo, nombre, costoActual) {
-      document.getElementById('listaResultadosCompra').classList.add('hidden');
-      document.getElementById('buscadorCompraProd').value = '';
-      const existente = itemsCompraActual.find(i => String(i.codigo) === String(codigo) && codigo !== "");
-      if (existente) existente.cantidad += 1;
-      else itemsCompraActual.push({ codigo: codigo || '', nombre: nombre, cantidad: 1, costoUnitario: costoActual });
-      actualizarTablaCompraVisual();
-    }
-
-    function actualizarTablaCompraVisual() {
-      const tbody = document.getElementById('tablaItemsCompra');
-      const totalSpan = document.getElementById('compraTotalGeneral');
-      if (itemsCompraActual.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">Usa el buscador</td></tr>'; totalSpan.textContent = '$0.00'; return; }
-
-      let html = ''; let totalFactura = 0;
-      itemsCompraActual.forEach((item, idx) => {
-        let subtotal = item.cantidad * item.costoUnitario;
-        totalFactura += subtotal;
-        html += `<tr><td class="p-2"><input type="text" value="${item.codigo}" onchange="itemsCompraActual[${idx}].codigo=this.value" class="w-20 px-1 py-1 border rounded text-xs bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white"></td><td class="p-2 font-medium text-slate-800 dark:text-white">${item.nombre}</td><td class="p-2 text-center"><input type="number" min="1" value="${item.cantidad}" onchange="itemsCompraActual[${idx}].cantidad=parseInt(this.value)||1;actualizarTablaCompraVisual()" class="w-16 px-1 py-1 text-center border rounded text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></td><td class="p-2 text-right"><input type="number" step="0.01" value="${item.costoUnitario}" onchange="itemsCompraActual[${idx}].costoUnitario=parseFloat(this.value)||0;actualizarTablaCompraVisual()" class="w-24 px-1 py-1 text-right border rounded text-xs bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></td><td class="p-2 text-right font-semibold">$${subtotal.toFixed(2)}</td><td class="p-2 text-center"><button onclick="itemsCompraActual.splice(${idx},1);actualizarTablaCompraVisual()" class="text-rose-500 font-bold">✕</button></td></tr>`;
-      });
-      tbody.innerHTML = html;
-      totalSpan.textContent = '$' + totalFactura.toFixed(2);
-    }
-
-    async function guardarFacturaCompra() {
-      const proveedor = document.getElementById('compraProveedor').value.trim();
-      if (!proveedor || itemsCompraActual.length === 0) { alert('Complete proveedor e ítems.'); return; }
-      
-      let totalFactura = itemsCompraActual.reduce((acc, item) => acc + (item.cantidad * item.costoUnitario), 0);
-      const { data: compraData } = await _supabase.from('compras_facturas').insert([{ proveedor: proveedor, total: totalFactura }]).select();
-      const compraId = compraData[0].id;
-
-      for (let item of itemsCompraActual) {
-        let prodRef = item.codigo ? todosLosProductos.find(p => String(obtenerCodigoBarras(p)).trim() === String(item.codigo).trim()) : null;
-        let nuevoStock = prodRef ? (parseInt(prodRef.stock) || 0) + item.cantidad : item.cantidad;
-        await _supabase.from('compras_detalles').insert([{ compra_id: compraId, codigo_barras: item.codigo, nombre_producto: item.nombre, cantidad: item.cantidad, precio_costo_unitario: item.costoUnitario, subtotal: item.cantidad * item.costoUnitario }]);
-        if (prodRef) await _supabase.from('productos').update({ "Precio Costo": item.costoUnitario, stock: nuevoStock }).eq('id', prodRef.id);
-      }
-
-      alert('¡Factura registrada y stock actualizado!');
-      cerrarModalCompra();
-      await cargarProductos();
-      await sumarExperienciaVendedor(usuarioActualEmail, 110);
-    }
-
-    function solicitarConfirmacionEliminar() { document.getElementById('modalConfirmarEliminar').classList.remove('hidden'); }
-    function cerrarModalConfirmacion() { document.getElementById('modalConfirmarEliminar').classList.add('hidden'); }
-    async function confirmarEliminacionFinal() {
+    async function guardarProducto() {
       const editId = document.getElementById('editProductoId').value;
-      cerrarModalConfirmacion();
-      await _supabase.from('productos').update({ activo: false }).eq('id', editId);
+      const nombre = document.getElementById('nuevoNombre').value.trim();
+      if (!nombre) { alert('El nombre es obligatorio.'); return; }
+
+      const datos = {
+        codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
+        nombre: nombre,
+        imagen_url: fotoBase64Actual,
+        stock: parseInt(document.getElementById('nuevoStock').value) || 0,
+        "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
+        precio: parseFloat(document.getElementById('nuevoVenta').value) || 0,
+        precio_mayorista: parseFloat(document.getElementById('nuevoMayorista').value) || null,
+        activo: document.getElementById('nuevoEstadoActivo').value === 'true'
+      };
+
+      if (editId) {
+        await _supabase.from('productos').update(datos).eq('id', editId);
+      } else {
+        await _supabase.from('productos').insert([datos]);
+      }
+
+      alert('¡Producto guardado con éxito!');
       cerrarModalProducto();
       await cargarProductos();
-    }
-
-    function abrirModalCargaMasiva() { document.getElementById('modalCargaMasiva').classList.remove('hidden'); }
-    function cerrarModalCargaMasiva() { document.getElementById('modalCargaMasiva').classList.add('hidden'); }
-
-    function procesarArchivoCSV(event) {
-      const archivo = event.target.files[0];
-      if (!archivo) return;
-      const lector = new FileReader();
-      lector.onload = function(e) {
-        const lineas = e.target.result.split(/\r\n|\n/);
-        productosParaCargarMasiva = [];
-        for (let i = 1; i < lineas.length; i++) {
-          if (!lineas[i].trim()) continue;
-          const v = lineas[i].split(';').map(x => x.trim().replace(/^"|"$/g, ''));
-          if (v[1] && parseFloat(v[2]) > 0) {
-            productosParaCargarMasiva.push({ codigo_barras: v[0] || null, nombre: v[1], precio: parseFloat(v[2]) || 0, stock: parseInt(v[6]) || 0, activo: true });
-          }
-        }
-        if (productosParaCargarMasiva.length > 0) {
-          document.getElementById('btnEjecutarCarga').disabled = false;
-          document.getElementById('btnEjecutarCarga').className = "flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm font-bold shadow";
-          alert(`✓ ${productosParaCargarMasiva.length} productos listos.`);
-        }
-      };
-      lector.readAsText(archivo, 'UTF-8');
-    }
-
-    async function ejecutarImportacionInteligente() {
-      for (let item of productosParaCargarMasiva) {
-        await _supabase.from('productos').insert([item]);
-      }
-      alert('¡Carga masiva completada!');
-      cerrarModalCargaMasiva();
-      await cargarProductos();
-    }
-
-    function descargarReporteProductosCSV() {
-      let csv = "codigo;nombre;precio;stock\n";
-      todosLosProductos.forEach(p => { csv += `"${obtenerCodigoBarras(p)}";"${p.nombre}";"${p.precio}";"${p.stock || 0}"\n`; });
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "catalogo.csv"; link.click();
     }
 
     function capturarFotoCamara(event) {
@@ -2156,144 +1518,13 @@
       lector.readAsDataURL(archivo);
     }
 
-    function abrirModalProducto() {
-      document.getElementById('modalProductoTitulo').textContent = 'Agregar Producto 📦';
-      document.getElementById('btnEliminarProductoModal').classList.add('hidden');
-      document.getElementById('editProductoId').value = '';
-      document.getElementById('nuevoCodigo').value = '';
-      document.getElementById('nuevoNombre').value = '';
-      document.getElementById('nuevoStock').value = '0';
-      document.getElementById('nuevoCosto').value = '';
-      document.getElementById('nuevoVenta').value = '';
-      document.getElementById('nuevoMayorista').value = '';
-      document.getElementById('nuevoCantMayor').value = '6';
-      document.getElementById('nuevoUnidadesBulto').value = '';
-      fotoBase64Actual = '';
-      document.getElementById('previewFoto').classList.add('hidden');
-      document.getElementById('placeholderFoto').classList.remove('hidden');
-      document.getElementById('modalProducto').classList.remove('hidden');
-    }
-
-    function abrirModalEditarProducto(id) {
-      const prod = todosLosProductos.find(p => String(p.id) === String(id));
-      if (!prod) return;
-      document.getElementById('modalProductoTitulo').textContent = 'Editar Producto ✏️';
-      document.getElementById('btnEliminarProductoModal').classList.remove('hidden');
-      document.getElementById('editProductoId').value = prod.id;
-      document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
-      document.getElementById('nuevoNombre').value = prod.nombre || '';
-      document.getElementById('nuevoStock').value = prod.stock || 0;
-      document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
-      document.getElementById('nuevoVenta').value = prod.precio || '';
-      document.getElementById('nuevoMayorista').value = obtenerPrecioMayorista(prod) || '';
-      document.getElementById('nuevoCantMayor').value = obtenerCantMayorista(prod);
-      document.getElementById('nuevoUnidadesBulto').value = obtenerUnidadesPorBulto(prod) || '';
-      fotoBase64Actual = prod.imagen_url || '';
-      const p = document.getElementById('previewFoto');
-      if (fotoBase64Actual) { p.src = fotoBase64Actual; p.classList.remove('hidden'); document.getElementById('placeholderFoto').classList.add('hidden'); }
-      document.getElementById('modalProducto').classList.remove('hidden');
-    }
-
-    function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
-
-    // --- FUNCIÓN GUARDAR PRODUCTO CORREGIDA (SIN COLUMNAS DE OFERTAS INEXISTENTES) ---
-    async function guardarProducto() {
-      const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower.includes('admi');
-
-      let tienePermisoEdicion = esAdminEspecial;
-      if (!tienePermisoEdicion) {
-        try {
-          const { data: userData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
-          if (userData && userData.modulos_activos && userData.modulos_activos.edicionCuadricula) {
-            tienePermisoEdicion = true;
-          }
-        } catch (e) {
-          console.error("Error al verificar permisos de edición:", e);
-        }
-      }
-
-      if (!tienePermisoEdicion) {
-        await validarAccionConAlerta('guardar_producto');
-        cerrarModalProducto();
-        return;
-      }
-
-      const editId = document.getElementById('editProductoId').value;
-      const nombreProducto = document.getElementById('nuevoNombre').value.trim();
-
-      if (!nombreProducto) {
-        alert('⚠️ El nombre del producto es obligatorio.');
-        return;
-      }
-
-      const datos = {
-        codigo_barras: document.getElementById('nuevoCodigo').value.trim() || null,
-        nombre: nombreProducto,
-        imagen_url: fotoBase64Actual,
-        stock: parseInt(document.getElementById('nuevoStock').value) || 0,
-        "Precio Costo": parseFloat(document.getElementById('nuevoCosto').value) || 0,
-        precio: parseFloat(document.getElementById('nuevoVenta').value) || 0,
-        precio_mayorista: parseFloat(document.getElementById('nuevoMayorista').value) || null,
-        cantidad_mayorista: parseInt(document.getElementById('nuevoCantMayor').value) || 6,
-        unidades_por_bulto: parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0,
-        activo: true
-      };
-
-      try {
-        let errorSupabase = null;
-
-        if (editId && editId !== "") {
-          const { error } = await _supabase.from('productos').update(datos).eq('id', editId);
-          errorSupabase = error;
-        } else {
-          const { error } = await _supabase.from('productos').insert([datos]);
-          errorSupabase = error;
-        }
-
-        if (errorSupabase) {
-          throw errorSupabase;
-        }
-
-        alert('¡Cambios guardados exitosamente en la base de datos!');
-        cerrarModalProducto();
-        await cargarProductos();
-      } catch (err) {
-        console.error('Error al guardar el producto en Supabase:', err);
-        alert('❌ Error al guardar los cambios: ' + (err.message || JSON.stringify(err)));
-      }
-    }
-
     function filtrarProductosDebounced() { clearTimeout(timerBusqueda); timerBusqueda = setTimeout(filtrarProductos, 120); }
     function filtrarProductos() {
       const texto = document.getElementById('buscador').value.trim().toLowerCase();
-      if (!texto) { mostrarProductos(todosLosProductos.slice(0, 40)); return; }
-      const palabras = texto.split(/\s+/);
-      const filtrados = todosLosProductos.filter(p => palabras.every(w => `${(p.nombre || '').toLowerCase()} ${obtenerCodigoBarras(p)}`.includes(w))).slice(0, 40);
+      if (!texto) { mostrarProductos(todosLosProductos); return; }
+      const filtrados = todosLosProductos.filter(p => `${(p.nombre || '').toLowerCase()} ${obtenerCodigoBarras(p)}`.includes(texto));
       mostrarProductos(filtrados);
     }
-
-    function detectarEnterEscaneo(e) {
-      if (e.key === 'Enter') {
-        const c = document.getElementById('buscador').value.trim();
-        const p = todosLosProductos.find(x => obtenerCodigoBarras(x).toLowerCase() === c.toLowerCase());
-        if (p) { agregarAlCarritoConPrecio(p.id || obtenerCodigoBarras(p), p.precio); document.getElementById('buscador').value = ''; mostrarProductos(todosLosProductos.slice(0, 40)); }
-      }
-    }
-
-    function abrirScannerCamara() {
-      document.getElementById('modalScanner').classList.remove('hidden');
-      scannerActivo = true;
-      Quagga.init({ inputStream: { name: "Live", type: "LiveStream", target: document.querySelector('#interactive'), constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader", "code_128_reader"] } }, err => { if (!err) Quagga.start(); });
-      Quagga.onDetected(result => {
-        if (!scannerActivo) return;
-        const code = result.codeResult.code;
-        const p = todosLosProductos.find(x => obtenerCodigoBarras(x) === code);
-        if (p) { agregarAlCarritoConPrecio(p.id || code, p.precio); cerrarScannerCamara(); }
-      });
-    }
-
-    function cerrarScannerCamara() { scannerActivo = false; try { Quagga.stop(); } catch(e){} document.getElementById('modalScanner').classList.add('hidden'); }
 
     function obtenerFechaHoraLocal() {
       const d = new Date();
@@ -2303,132 +1534,45 @@
     function iniciarProcesoCobro(modo) {
       if (carrito.length === 0) { alert('Carrito vacío'); return; }
       modoImpresionActual = modo;
-      document.getElementById('nombreClienteInput').value = '';
       document.getElementById('modalClienteCobro').classList.remove('hidden');
     }
 
-    function detectarEnterCliente(e) { if (e.key === 'Enter') confirmarCobroVenta(); }
-    function confirmarCobroVenta(om) {
+    async function confirmarCobroVenta(nombre) {
       document.getElementById('modalClienteCobro').classList.add('hidden');
-      cobrarVentaFinal(om || document.getElementById('nombreClienteInput').value.trim() || 'Consumidor Final');
-    }
-
-    async function cobrarVentaFinal(clienteNombre) {
-      let total = 0;
-      const detalles = carrito.map(i => {
-        let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
-        total += p * i.cantidad;
-        return { idUnico: i.idUnico, nombre: i.nombre, precio: p, cantidad: i.cantidad, unidadesBulto: i.unidadesBulto || 0 };
-      });
-
+      const cliente = nombre || document.getElementById('nombreClienteInput').value.trim() || 'Consumidor Final';
+      let total = carrito.reduce((acc, i) => acc + (i.precioMinorista * i.cantidad), 0);
       const { fechaStr, horaStr } = obtenerFechaHoraLocal();
-      const operador = obtenerAtendidoPor(usuarioActualEmail);
-
-      const { data: vData } = await _supabase.from('ventas').insert([{ total: total, cliente: clienteNombre, atendido_por: operador, fecha: fechaStr, hora: horaStr, detalles: detalles }]).select();
-      const ventaId = vData ? vData[0].id : 1;
-
+      
+      await _supabase.from('ventas').insert([{ total, cliente, atendido_por: obtenerAtendidoPor(usuarioActualEmail), fecha: fechaStr, hora: horaStr, detalles: carrito }]);
       alert('¡Venta registrada con éxito!');
-      await sumarExperienciaVendedor(usuarioActualEmail, 35);
-
-      if (modoImpresionActual === 'bluetooth') imprimirTicketBluetooth(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operador);
-      else imprimirTicketConOperadorFijo(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${ventaId}`, clienteNombre, operador);
-
       carrito = [];
       actualizarCarritoVisual();
     }
 
-    async function imprimirTicketBluetooth(items, total, fecha, ticket, cliente, operador) {
-      if (!navigator.bluetooth) { imprimirTicketConOperadorFijo(items, total, fecha, ticket, cliente, operador); return; }
-      try {
-        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] });
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-        const char = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-        const enc = new TextEncoder();
-        await char.writeValue(enc.encode(`GO! POS\n${ticket}\nTotal: $${total}\n¡GRACIAS!\n\n`));
-        alert('Impreso por Bluetooth');
-      } catch(e) { imprimirTicketConOperadorFijo(items, total, fecha, ticket, cliente, operador); }
-    }
-
-    function imprimirTicketConOperadorFijo(items, total, fecha, ticket, cliente, operador) {
-      document.getElementById('ticketFecha').textContent = fecha;
-      document.getElementById('ticketIdVenta').textContent = ticket;
-      document.getElementById('ticketAtendidoPor').textContent = operador;
-      document.getElementById('ticketCliente').textContent = cliente;
-      const c = document.getElementById('ticketItems'); c.innerHTML = '';
-      items.forEach(i => { c.innerHTML += `<div class="flex justify-between"><span>${i.cantidad}x ${i.nombre}</span><span>$${(i.precio*i.cantidad).toFixed(2)}</span></div>`; });
-      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
-      const w = window.open('', '_blank', 'width=380,height=600');
-      if (w) { w.document.write(`<html><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); w.document.close(); setTimeout(() => w.print(), 300); }
-    }
-
-    async function abrirModalHistorial() {
-      document.getElementById('modalHistorial').classList.remove('hidden');
-      const c = document.getElementById('listaHistorialVentas');
-      c.innerHTML = 'Cargando...';
-      const { data } = await _supabase.from('ventas').select('*').order('id', { ascending: false }).limit(20);
-      if (!data || data.length === 0) { c.innerHTML = 'Sin ventas recientes'; return; }
-      let h = '';
-      data.forEach(v => {
-        h += `<div class="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-2 rounded border dark:border-slate-700 text-xs"><div><b>Ticket #${v.id}</b> - $${v.total}</div><button onclick="reimprimirTicketAnterior(${v.id}, '${v.fecha} ${v.hora}', ${v.total}, '${v.cliente}')" class="bg-sky-600 text-white px-2 py-1 rounded">🖨️ Reimprimir</button></div>`;
-      });
-      c.innerHTML = h;
-    }
-
+    function abrirModalHistorial() { document.getElementById('modalHistorial').classList.remove('hidden'); }
     function cerrarModalHistorial() { document.getElementById('modalHistorial').classList.add('hidden'); }
-
-    async function reimprimirTicketAnterior(id, fecha, total, cliente) {
-      const { data } = await _supabase.from('ventas').select('detalles, atendido_por').eq('id', id).single();
-      imprimirTicketConOperadorFijo(data.detalles || [], total, fecha, `Ticket #${id}`, cliente, data.atendido_por || 'E.J');
-    }
-
     function abrirModalPrecios() { document.getElementById('modalPrecios').classList.remove('hidden'); }
     function cerrarModalPrecios() { document.getElementById('modalPrecios').classList.add('hidden'); }
-
-    function filtrarProductosAdmin() {
-      const t = document.getElementById('buscadorAdmin').value.trim().toLowerCase();
-      const c = document.getElementById('listaAdminPrecios');
-      if (t.length < 2) { c.innerHTML = ''; return; }
-      const res = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(t)).slice(0, 10);
-      let h = '';
-      res.forEach(p => { 
-        h += `<div onclick="document.getElementById('prodSeleccionadoId').value='${p.id}';document.getElementById('prodSeleccionadoNombre').value='${p.nombre}';document.getElementById('nuevoPrecioInput').value='${p.precio}';document.getElementById('nuevoPrecioMayoristaInput').value='${obtenerPrecioMayorista(p)}';" class="p-1.5 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer border-b">${p.nombre} - Min: $${p.precio} | May: $${obtenerPrecioMayorista(p)}</div>`; 
-      });
-      c.innerHTML = h;
-    }
-
-    async function guardarNuevosPreciosAdmin() {
-      const esAdmin = (usuarioActualEmail || '').toLowerCase().includes('admi');
-      if (!esAdmin) {
-        await validarAccionConAlerta('guardar_nuevos_precios');
-        cerrarModalPrecios();
-        return;
-      }
-
-      const id = document.getElementById('prodSeleccionadoId').value;
-      const nuevoMin = parseFloat(document.getElementById('nuevoPrecioInput').value);
-      const nuevoMay = parseFloat(document.getElementById('nuevoPrecioMayoristaInput').value);
-      
-      if (!id || (isNaN(nuevoMin) && isNaN(nuevoMay))) return;
-
-      let datosUpdate = {};
-      if (!isNaN(nuevoMin)) datosUpdate.precio = nuevoMin;
-      if (!isNaN(nuevoMay)) datosUpdate.precio_mayorista = nuevoMay;
-
-      await _supabase.from('productos').update(datosUpdate).eq('id', id);
-      alert('¡Precios actualizados con éxito!');
-      cerrarModalPrecios();
+    function cerrarModalConfiguracion() { document.getElementById('modalConfiguracion').classList.add('hidden'); }
+    function abrirModalMisLogros() { document.getElementById('modalMisLogros').classList.remove('hidden'); }
+    function cerrarModalMisLogros() { document.getElementById('modalMisLogros').classList.add('hidden'); }
+    function abrirModalPermisos() { document.getElementById('modalPermisos').classList.remove('hidden'); }
+    function cerrarModalPermisos() { document.getElementById('modalPermisos').classList.add('hidden'); }
+    function abrirModalCompra() { document.getElementById('modalCompra').classList.remove('hidden'); }
+    function cerrarModalCompra() { document.getElementById('modalCompra').classList.add('hidden'); }
+    function abrirModalCostosProveedores() { document.getElementById('modalCostosProveedores').classList.remove('hidden'); }
+    function cerrarModalCostosProveedores() { document.getElementById('modalCostosProveedores').classList.add('hidden'); }
+    function abrirModalCargaMasiva() { document.getElementById('modalCargaMasiva').classList.remove('hidden'); }
+    function cerrarModalCargaMasiva() { document.getElementById('modalCargaMasiva').classList.add('hidden'); }
+    function solicitarConfirmacionEliminar() { document.getElementById('modalConfirmarEliminar').classList.remove('hidden'); }
+    function cerrarModalConfirmacion() { document.getElementById('modalConfirmarEliminar').classList.add('hidden'); }
+    async function confirmarEliminacionFinal() {
+      const id = document.getElementById('editProductoId').value;
+      cerrarModalConfirmacion();
+      await _supabase.from('productos').delete().eq('id', id);
+      cerrarModalProducto();
       await cargarProductos();
     }
-
-    async function descargarReporteCSV() {
-      const { data } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
-      let csv = "ID;Fecha;Cliente;Total\n";
-      data.forEach(v => { csv += `"${v.id}";"${v.fecha} ${v.hora}";"${v.cliente}";"${v.total}"\n`; });
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "ventas.csv"; link.click();
-    }
-
     async function cerrarSesion() {
       await _supabase.auth.signOut();
       document.getElementById('posSection').classList.add('hidden');
