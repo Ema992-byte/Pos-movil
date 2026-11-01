@@ -220,7 +220,7 @@
       </div>
       
       <div class="flex justify-between items-center mb-3">
-        <p class="text-xs text-slate-500 dark:text-slate-400">Registro completo de avisos y cambios de precios:</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Registro completo de avisos y cambios:</p>
         <button onclick="limpiarHistorialNotificaciones()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold">🗑️ Borrar Historial</button>
       </div>
 
@@ -285,10 +285,10 @@
 
         <div class="border-t dark:border-slate-700 pt-3">
           <label class="flex items-center justify-between cursor-pointer">
-            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Cambios de Precio y Ofertas</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300">🔔 Notificaciones de Catálogo y Precios</span>
             <input type="checkbox" id="toggleNotifPrecios" onchange="cambiarEstadoNotificaciones(this.checked)" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
           </label>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualicen precios o se lancen ofertas.</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Recibe avisos flotantes cuando se actualicen precios o visibilidad de artículos.</p>
         </div>
       </div>
 
@@ -1081,7 +1081,6 @@
       if (!modal) return;
 
       if (modal.classList.contains('hidden')) {
-        // Al abrir, marcamos todas como leídas
         historialNotificaciones.forEach(n => n.leida = true);
         localStorage.setItem('go_historial_notif', JSON.stringify(historialNotificaciones));
         actualizarContadorBadgeNotif();
@@ -1175,7 +1174,7 @@
 
     function inicializarSuscripcionPreciosRealtime() {
       _supabase
-        .channel('cambios-precios-productos')
+        .channel('cambios-productos-realtime')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'productos' },
@@ -1184,21 +1183,32 @@
               const prodNuevo = payload.new;
               const prodViejo = payload.old;
 
-              const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
-              const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
+              const estabaEnCatalogo = prodViejo.en_catalogo_virtual !== false;
+              const ahoraEnCatalogo = prodNuevo.en_catalogo_virtual !== false;
 
-              if (cambioMinorista || cambioMayorista) {
-                let detalleCambios = [];
-                if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
-                if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
-
+              if (estabaEnCatalogo && !ahoraEnCatalogo) {
                 mostrarNotificacionFlotante(
-                  `📦 Precio Actualizado: ${prodNuevo.nombre}`,
-                  detalleCambios.join(' | ')
+                  `📖 Catálogo Actualizado`,
+                  `El producto "${prodNuevo.nombre}" ya no está disponible en el catálogo virtual.`,
+                  false
                 );
+              } else {
+                const cambioMinorista = prodNuevo.precio !== prodViejo.precio;
+                const cambioMayorista = prodNuevo.precio_mayorista !== prodViejo.precio_mayorista;
+
+                if (cambioMinorista || cambioMayorista) {
+                  let detalleCambios = [];
+                  if (cambioMinorista) detalleCambios.push(`Minorista: $${prodViejo.precio} ➔ $${prodNuevo.precio}`);
+                  if (cambioMayorista) detalleCambios.push(`Mayorista: $${prodViejo.precio_mayorista || 0} ➔ $${prodNuevo.precio_mayorista || 0}`);
+
+                  mostrarNotificacionFlotante(
+                    `📦 Precio Actualizado: ${prodNuevo.nombre}`,
+                    detalleCambios.join(' | '),
+                    true
+                  );
+                }
               }
             }
-            // Sincronizar y refrescar catálogo ante cualquier alta, modificación o deshabilitación en tiempo real
             cargarProductosSilencioso();
           }
         )
@@ -1208,8 +1218,17 @@
     async function cargarProductosSilencioso() {
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
-        todosLosProductos = data;
-        localStorage.setItem('go_pos_productos', JSON.stringify(data));
+        const emailLower = (usuarioActualEmail || '').toLowerCase();
+        const esAdmin = emailLower.includes('admi');
+
+        let productosValidos = data;
+        if (!esAdmin) {
+          productosValidos = data.filter(p => p.en_catalogo_virtual !== false);
+        }
+
+        todosLosProductos = productosValidos;
+        localStorage.setItem('go_pos_productos', JSON.stringify(productosValidos));
+        
         const textoBusq = document.getElementById('buscador').value.trim();
         if (!textoBusq) {
           mostrarProductos(todosLosProductos.slice(0, 40));
@@ -1629,7 +1648,7 @@
       let html = '';
       lista.forEach(prod => {
         const cod = obtenerCodigoBarras(prod) || 'S/C';
-        const enCatalogo = prod.en_catalogo_virtual !== false; // Por defecto true
+        const enCatalogo = prod.en_catalogo_virtual !== false;
         const checkSel = enCatalogo ? 'checked' : '';
 
         html += `
@@ -2015,8 +2034,16 @@
         return;
       }
 
-      localStorage.setItem('go_pos_productos', JSON.stringify(data));
-      iniciarSesionExitosa(usuarioActualEmail, data);
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdmin = emailLower.includes('admi');
+
+      let productosFiltrados = data;
+      if (!esAdmin) {
+        productosFiltrados = data.filter(p => p.en_catalogo_virtual !== false);
+      }
+
+      localStorage.setItem('go_pos_productos', JSON.stringify(productosFiltrados));
+      iniciarSesionExitosa(usuarioActualEmail, productosFiltrados);
     }
 
     function cargarProductosOffline() {
@@ -2496,7 +2523,6 @@
         const codigoNorm = normalizarTexto(obtenerCodigoBarras(p));
         const textoCompleto = `${nombreNorm} ${codigoNorm}`;
 
-        // Verifica que CADA palabra/fragmento ingresado esté presente en cualquier orden y parte del texto
         return palabras.every(palabra => textoCompleto.includes(palabra));
       }).slice(0, 40);
 
