@@ -211,12 +211,12 @@
     </div>
   </aside>
 
-  <!-- MODAL DE REPORTE DE VENTAS CON FILTROS -->
+  <!-- MODAL DE REPORTE DE VENTAS AVANZADO CON FILTROS Y COSTOS -->
   <div id="modalReporteVentas" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-5xl overflow-y-auto max-h-[92vh] flex flex-col">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-5xl overflow-y-auto max-h-[92vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-3">
         <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <span>📊</span> Reporte de Ventas Detallado con Filtros
+          <span>📊</span> Reporte de Ventas Avanzado y Costos
         </h3>
         <button onclick="cerrarModalReporteVentas()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -224,74 +224,76 @@
       <!-- SECCIÓN DE FILTROS -->
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border dark:border-slate-700">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">📅 Desde:</label>
-          <input type="date" id="filtroFechaDesde" onchange="aplicarFiltrosReporte()" class="w-full px-3 py-1.5 border dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">📅 Desde la fecha:</label>
+          <input type="date" id="filtroFechaDesde" onchange="aplicarFiltrosReporteVentas()"
+            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">📅 Hasta:</label>
-          <input type="date" id="filtroFechaHasta" onchange="aplicarFiltrosReporte()" class="w-full px-3 py-1.5 border dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">📅 Hasta la fecha:</label>
+          <input type="date" id="filtroFechaHasta" onchange="aplicarFiltrosReporteVentas()"
+            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">👤 Cliente:</label>
-          <select id="filtroCliente" onchange="aplicarFiltrosReporte()" class="w-full px-3 py-1.5 border dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
-            <option value="">Todos los clientes</option>
-          </select>
+          <input type="text" id="filtroCliente" placeholder="Ej: Juan / Todos" oninput="aplicarFiltrosReporteVentas()"
+            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">👨‍💼 Vendedor:</label>
-          <select id="filtroVendedor" onchange="aplicarFiltrosReporte()" class="w-full px-3 py-1.5 border dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
-            <option value="">Todos los vendedores</option>
-          </select>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">👨‍💼 Vendedor / Operador:</label>
+          <input type="text" id="filtroVendedor" placeholder="Ej: I.S. / Todos" oninput="aplicarFiltrosReporteVentas()"
+            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white text-xs">
         </div>
       </div>
 
-      <!-- TARJETAS RESUMEN DE VENTAS Y COSTOS -->
+      <!-- TARJETAS DE RESUMEN -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 p-3 rounded-xl">
-          <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400">Total Vendido:</p>
-          <p id="lblReporteTotalVentas" class="text-lg font-bold text-indigo-900 dark:text-indigo-200">$0.00</p>
-        </div>
-        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 rounded-xl">
-          <p class="text-xs font-medium text-amber-600 dark:text-amber-400">Total Precio Costo:</p>
-          <p id="lblReporteTotalCosto" class="text-lg font-bold text-amber-900 dark:text-amber-200">$0.00</p>
+          <p class="text-xs font-medium text-indigo-700 dark:text-indigo-300">Ventas Totales Filtradas</p>
+          <p id="lblReporteTotalVentas" class="text-lg font-bold text-indigo-900 dark:text-indigo-100">$0.00</p>
         </div>
         <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-3 rounded-xl">
-          <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Ganancia Estimada:</p>
-          <p id="lblReporteTotalGanancia" class="text-lg font-bold text-emerald-900 dark:text-emerald-200">$0.00</p>
+          <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Costo Total Productos Vendidos</p>
+          <p id="lblReporteTotalCostos" class="text-lg font-bold text-emerald-900 dark:text-emerald-100">$0.00</p>
+        </div>
+        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 rounded-xl">
+          <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Ganancia Neta Estimada</p>
+          <p id="lblReporteGananciaNeta" class="text-lg font-bold text-amber-900 dark:text-amber-100">$0.00</p>
         </div>
       </div>
 
-      <!-- TABLA DETALLADA DEL REPORTE -->
-      <div class="border dark:border-slate-700 rounded-lg overflow-hidden flex-grow max-h-[380px] overflow-y-auto mb-4">
+      <!-- TABLA DETALLADA CON COLUMNA DE COSTO -->
+      <div class="border dark:border-slate-700 rounded-xl overflow-hidden max-h-72 overflow-y-auto mb-4">
         <table class="w-full text-left text-xs border-collapse">
           <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 sticky top-0">
             <tr>
-              <th class="p-2.5">Ticket</th>
-              <th class="p-2.5">Fecha / Hora</th>
+              <th class="p-2.5">Ticket / Fecha</th>
               <th class="p-2.5">Cliente</th>
               <th class="p-2.5">Vendedor</th>
               <th class="p-2.5">Producto</th>
               <th class="p-2.5 text-center">Cant.</th>
-              <th class="p-2.5 text-right">P. Costo Unit.</th>
-              <th class="p-2.5 text-right">P. Venta Unit.</th>
-              <th class="p-2.5 text-right">Subtotal Venta</th>
+              <th class="p-2.5 text-right">P. Unit.</th>
+              <th class="p-2.5 text-right">Costo Unit.</th>
+              <th class="p-2.5 text-right">Subtotal</th>
             </tr>
           </thead>
-          <tbody id="tablaReporteVentas" class="divide-y divide-slate-100 dark:divide-slate-700">
-            <tr><td colspan="9" class="text-center py-6 text-slate-400">Cargando reporte...</td></tr>
+          <tbody id="tablaReporteVentasItems" class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tr><td colspan="8" class="text-center py-4 text-slate-400">Cargando registros...</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- BOTONES INFERIORES -->
-      <div class="flex justify-between items-center pt-2 border-t dark:border-slate-700">
-        <button onclick="descargarReporteCSVFiltrado()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-1.5">
-          <span>📥</span> Descargar Reporte Filtrado (CSV)
-        </button>
+      <!-- BOTONES DE ACCIÓN INFERIORES -->
+      <div class="flex justify-between items-center border-t dark:border-slate-700 pt-3">
+        <div class="flex gap-2">
+          <button onclick="exportarReporteVentasFiltradoCSV()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-1.5">
+            <span>📥</span> Exportar Filtrado a CSV
+          </button>
+        </div>
         <button onclick="cerrarModalReporteVentas()" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-5 py-2 rounded-lg text-xs font-bold">
           Cerrar
         </button>
       </div>
+
     </div>
   </div>
 
@@ -973,7 +975,7 @@
     let modoImpresionActual = 'bluetooth';
     let usuarioEditandoPermisos = '';
     let tipoPrecioCatalogoWeb = 'minorista';
-    let todasLasVentasCache = [];
+    let ventasCacheReporte = [];
     
     let historialNotificaciones = JSON.parse(localStorage.getItem('go_historial_notif') || '[]');
 
@@ -1460,12 +1462,9 @@
     function obtenerPrecioMayorista(prod) { return parseFloat(prod.precio_mayorista || prod.precio_mayorist || 0); }
     function obtenerCantMayorista(prod) { return parseInt(prod.cantidad_mayorista || prod.cantidad_mayor || 6); }
     function obtenerUnidadesPorBulto(prod) { return parseInt(prod.unidades_por_bulto || prod.unidades_bulto || 0); }
-    function obtenerPrecioCostoProducto(prodId, prodNombre) {
-      const p = todosLosProductos.find(x => String(x.id) === String(prodId) || (prodNombre && x.nombre === prodNombre));
-      if (p) {
-        return parseFloat(p["Precio Costo"] || p.precio_costo || p.costo || 0);
-      }
-      return 0;
+    function obtenerCostoProducto(prodRef) {
+      if (!prodRef) return 0;
+      return parseFloat(prodRef["Precio Costo"] || prodRef.precio_costo || prodRef.costo || 0);
     }
 
     async function iniciarSesionExitosa(email, productosData) {
@@ -1620,45 +1619,32 @@
       document.getElementById('usuarioRol').textContent = `Perfil: Vendedor (${obtenerAtendidoPor(email)})`;
     }
 
+    // ==========================================
+    // MÓDULO REPORTE DE VENTAS CON FILTROS Y COSTOS
+    // ==========================================
     async function abrirModalReporteVentas() {
       document.getElementById('modalReporteVentas').classList.remove('hidden');
       
-      document.getElementById('filtroFechaDesde').value = '';
-      document.getElementById('filtroFechaHasta').value = '';
+      // Inicializar fechas por defecto (mes actual o últimos 30 días)
+      const hoy = new Date();
+      const hace30Dias = new Date();
+      hace30Dias.setDate(hoy.getDate() - 30);
       
-      const selectCliente = document.getElementById('filtroCliente');
-      const selectVendedor = document.getElementById('filtroVendedor');
-      
-      selectCliente.innerHTML = '<option value="">Todos los clientes</option>';
-      selectVendedor.innerHTML = '<option value="">Todos los vendedores</option>';
+      document.getElementById('filtroFechaDesde').value = hace30Dias.toISOString().split('T')[0];
+      document.getElementById('filtroFechaHasta').value = hoy.toISOString().split('T')[0];
+      document.getElementById('filtroCliente').value = '';
+      document.getElementById('filtroVendedor').value = '';
 
-      const tbody = document.getElementById('tablaReporteVentas');
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-slate-400">Cargando ventas...</td></tr>';
+      const tbody = document.getElementById('tablaReporteVentasItems');
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-slate-400">Cargando ventas y costos...</td></tr>';
 
       try {
         const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
         if (error) throw error;
-        
-        todasLasVentasCache = data || [];
-
-        let clientesSet = new Set();
-        let vendedoresSet = new Set();
-
-        todasLasVentasCache.forEach(v => {
-          if (v.cliente) clientesSet.add(v.cliente);
-          if (v.atendido_por) vendedoresSet.add(v.atendido_por);
-        });
-
-        clientesSet.forEach(c => {
-          selectCliente.innerHTML += `<option value="${c}">${c}</option>`;
-        });
-        vendedoresSet.forEach(ve => {
-          selectVendedor.innerHTML += `<option value="${ve}">${ve}</option>`;
-        });
-
-        renderizarTablaReporte(todasLasVentasCache);
+        ventasCacheReporte = data || [];
+        aplicarFiltrosReporteVentas();
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-rose-500">Error al cargar las ventas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-rose-500">Error al cargar el reporte de ventas.</td></tr>';
       }
     }
 
@@ -1666,137 +1652,132 @@
       document.getElementById('modalReporteVentas').classList.add('hidden');
     }
 
-    function aplicarFiltrosReporte() {
+    function aplicarFiltrosReporteVentas() {
       const fechaDesde = document.getElementById('filtroFechaDesde').value;
       const fechaHasta = document.getElementById('filtroFechaHasta').value;
-      const clienteFiltro = document.getElementById('filtroCliente').value;
-      const vendedorFiltro = document.getElementById('filtroVendedor').value;
+      const filtroCliente = normalizarTexto(document.getElementById('filtroCliente').value.trim());
+      const filtroVendedor = normalizarTexto(document.getElementById('filtroVendedor').value.trim());
 
-      let filtradas = todasLasVentasCache.filter(v => {
-        let cumple = true;
-        if (fechaDesde && v.fecha < fechaDesde) cumple = false;
-        if (fechaHasta && v.fecha > fechaHasta) cumple = false;
-        if (clienteFiltro && v.cliente !== clienteFiltro) cumple = false;
-        if (vendedorFiltro && v.atendido_por !== vendedorFiltro) cumple = false;
-        return cumple;
-      });
+      const tbody = document.getElementById('tablaReporteVentasItems');
+      let totalVentasFiltradas = 0;
+      let totalCostosFiltrados = 0;
+      let htmlFilas = '';
+      let contadorFilas = 0;
 
-      renderizarTablaReporte(filtradas);
-    }
+      ventasCacheReporte.forEach(v => {
+        const fechaVenta = v.fecha || '';
+        const clienteVenta = v.cliente || 'Consumidor Final';
+        const vendedorVenta = v.atendido_por || '';
 
-    function renderizarTablaReporte(listaVentas) {
-      const tbody = document.getElementById('tablaReporteVentas');
-      let totalVentasSuma = 0;
-      let totalCostoSuma = 0;
+        // Validar filtros de fecha
+        if (fechaDesde && fechaVenta < fechaDesde) return;
+        if (fechaHasta && fechaVenta > fechaHasta) return;
 
-      if (!listaVentas || listaVentas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-slate-400">No se encontraron ventas con los filtros seleccionados.</td></tr>';
-        document.getElementById('lblReporteTotalVentas').textContent = '$0.00';
-        document.getElementById('lblReporteTotalCosto').textContent = '$0.00';
-        document.getElementById('lblReporteTotalGanancia').textContent = '$0.00';
-        return;
-      }
+        // Validar filtros de cliente
+        if (filtroCliente && !normalizarTexto(clienteVenta).includes(filtroCliente)) return;
 
-      let html = '';
-      listaVentas.forEach(v => {
-        const idVenta = v.id || '';
-        const fechaHora = `${v.fecha || ''} ${v.hora || ''}`;
-        const cliente = v.cliente || 'Consumidor Final';
-        const vendedor = v.atendido_por || '-';
+        // Validar filtros de vendedor
+        if (filtroVendedor && !normalizarTexto(vendedorVenta).includes(filtroVendedor)) return;
+
         const detalles = v.detalles || [];
-
         if (detalles.length > 0) {
           detalles.forEach(item => {
-            const nombreProd = item.nombre || 'Producto';
+            contadorFilas++;
+            const nombreProd = item.nombre || 'Producto general';
             const cantidad = item.cantidad || 1;
-            const precioVentaUnit = item.precio || 0;
-            const subtotalVenta = cantidad * precioVentaUnit;
-            
-            const precioCostoUnit = obtenerPrecioCostoProducto(item.idUnico, nombreProd);
-            const subtotalCosto = cantidad * precioCostoUnit;
+            const precioUnit = parseFloat(item.precio || 0);
+            const subtotal = cantidad * precioUnit;
 
-            totalVentasSuma += subtotalVenta;
-            totalCostoSuma += subtotalCosto;
+            // Buscar costo unitario del producto en el catálogo actual o en el item
+            let costoUnit = 0;
+            const prodMatch = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || normalizarTexto(p.nombre) === normalizarTexto(nombreProd));
+            if (prodMatch) {
+              costoUnit = obtenerCostoProducto(prodMatch);
+            } else if (item.costoUnitario !== undefined) {
+              costoUnit = parseFloat(item.costoUnitario);
+            }
 
-            html += `
-              <tr>
-                <td class="p-2.5 font-bold text-slate-800 dark:text-white">#${idVenta}</td>
-                <td class="p-2.5 text-slate-600 dark:text-slate-400">${fechaHora}</td>
-                <td class="p-2.5 text-slate-800 dark:text-white">${cliente}</td>
-                <td class="p-2.5 text-slate-600 dark:text-slate-400">${vendedor}</td>
-                <td class="p-2.5 font-medium text-slate-800 dark:text-white">${nombreProd}</td>
-                <td class="p-2.5 text-center text-slate-800 dark:text-white">${cantidad}</td>
-                <td class="p-2.5 text-right font-semibold text-amber-600 dark:text-amber-400">$${precioCostoUnit.toFixed(2)}</td>
-                <td class="p-2.5 text-right font-semibold text-indigo-600 dark:text-indigo-400">$${precioVentaUnit.toFixed(2)}</td>
-                <td class="p-2.5 text-right font-bold text-slate-900 dark:text-white">$${subtotalVenta.toFixed(2)}</td>
+            const subtotalCosto = cantidad * costoUnit;
+            totalVentasFiltradas += subtotal;
+            totalCostosFiltrados += subtotalCosto;
+
+            htmlFilas += `
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td class="p-2.5 text-slate-700 dark:text-slate-300"><b>#${v.id}</b><br><span class="text-[10px] text-slate-400">${fechaVenta} ${v.hora || ''}</span></td>
+                <td class="p-2.5 text-slate-800 dark:text-white font-medium">${clienteVenta}</td>
+                <td class="p-2.5 text-slate-600 dark:text-slate-300">${vendedorVenta}</td>
+                <td class="p-2.5 text-slate-800 dark:text-white">${nombreProd}</td>
+                <td class="p-2.5 text-center text-slate-700 dark:text-slate-300">${cantidad}</td>
+                <td class="p-2.5 text-right text-blue-600 dark:text-blue-400 font-semibold">$${precioUnit.toFixed(2)}</td>
+                <td class="p-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">$${costoUnit.toFixed(2)}</td>
+                <td class="p-2.5 text-right text-slate-900 dark:text-white font-bold">$${subtotal.toFixed(2)}</td>
               </tr>
             `;
           });
         } else {
-          const totalVenta = v.total || 0;
-          totalVentasSuma += totalVenta;
-          html += `
-            <tr>
-              <td class="p-2.5 font-bold text-slate-800 dark:text-white">#${idVenta}</td>
-              <td class="p-2.5 text-slate-600 dark:text-slate-400">${fechaHora}</td>
-              <td class="p-2.5 text-slate-800 dark:text-white">${cliente}</td>
-              <td class="p-2.5 text-slate-600 dark:text-slate-400">${vendedor}</td>
-              <td class="p-2.5 font-medium text-slate-800 dark:text-white">Venta General</td>
-              <td class="p-2.5 text-center text-slate-800 dark:text-white">1</td>
-              <td class="p-2.5 text-right font-semibold text-amber-600 dark:text-amber-400">$0.00</td>
-              <td class="p-2.5 text-right font-semibold text-indigo-600 dark:text-indigo-400">$${totalVenta.toFixed(2)}</td>
-              <td class="p-2.5 text-right font-bold text-slate-900 dark:text-white">$${totalVenta.toFixed(2)}</td>
+          contadorFilas++;
+          const subtotalVenta = parseFloat(v.total || 0);
+          totalVentasFiltradas += subtotalVenta;
+
+          htmlFilas += `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+              <td class="p-2.5 text-slate-700 dark:text-slate-300"><b>#${v.id}</b><br><span class="text-[10px] text-slate-400">${fechaVenta} ${v.hora || ''}</span></td>
+              <td class="p-2.5 text-slate-800 dark:text-white font-medium">${clienteVenta}</td>
+              <td class="p-2.5 text-slate-600 dark:text-slate-300">${vendedorVenta}</td>
+              <td class="p-2.5 text-slate-800 dark:text-white italic">Venta general / Sin detalle</td>
+              <td class="p-2.5 text-center text-slate-700 dark:text-slate-300">1</td>
+              <td class="p-2.5 text-right text-blue-600 dark:text-blue-400 font-semibold">$${subtotalVenta.toFixed(2)}</td>
+              <td class="p-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">$0.00</td>
+              <td class="p-2.5 text-right text-slate-900 dark:text-white font-bold">$${subtotalVenta.toFixed(2)}</td>
             </tr>
           `;
         }
       });
 
-      tbody.innerHTML = html;
-      const gananciaEstimada = totalVentasSuma - totalCostoSuma;
-
-      document.getElementById('lblReporteTotalVentas').textContent = '$' + totalVentasSuma.toFixed(2);
-      document.getElementById('lblReporteTotalCosto').textContent = '$' + totalCostoSuma.toFixed(2);
-      document.getElementById('lblReporteTotalGanancia').textContent = '$' + gananciaEstimada.toFixed(2);
-    }
-
-    function descargarReporteCSVFiltrado() {
-      const fechaDesde = document.getElementById('filtroFechaDesde').value;
-      const fechaHasta = document.getElementById('filtroFechaHasta').value;
-      const clienteFiltro = document.getElementById('filtroCliente').value;
-      const vendedorFiltro = document.getElementById('filtroVendedor').value;
-
-      let filtradas = todasLasVentasCache.filter(v => {
-        let cumple = true;
-        if (fechaDesde && v.fecha < fechaDesde) cumple = false;
-        if (fechaHasta && v.fecha > fechaHasta) cumple = false;
-        if (clienteFiltro && v.cliente !== clienteFiltro) cumple = false;
-        if (vendedorFiltro && v.atendido_por !== vendedorFiltro) cumple = false;
-        return cumple;
-      });
-
-      if (filtradas.length === 0) {
-        alert('No hay datos para exportar con los filtros actuales.');
-        return;
+      if (contadorFilas === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-400">No se encontraron registros con los filtros seleccionados.</td></tr>';
+      } else {
+        tbody.innerHTML = htmlFilas;
       }
 
-      let csv = "ID Venta;Fecha;Hora;Cliente;Vendedor;Producto;Cantidad;Precio Costo Unit.;Precio Venta Unit.;Subtotal Venta\n";
+      const gananciaNeta = totalVentasFiltradas - totalCostosFiltrados;
+      document.getElementById('lblReporteTotalVentas').textContent = '$' + totalVentasFiltradas.toFixed(2);
+      document.getElementById('lblReporteTotalCostos').textContent = '$' + totalCostosFiltrados.toFixed(2);
+      document.getElementById('lblReporteGananciaNeta').textContent = '$' + gananciaNeta.toFixed(2);
+    }
 
-      filtradas.forEach(v => {
-        const idVenta = v.id || '';
-        const fecha = v.fecha || '';
-        const hora = v.hora || '';
-        const cliente = v.cliente || 'Consumidor Final';
-        const vendedor = v.atendido_por || '';
+    function exportarReporteVentasFiltradoCSV() {
+      const fechaDesde = document.getElementById('filtroFechaDesde').value;
+      const fechaHasta = document.getElementById('filtroFechaHasta').value;
+      const filtroCliente = normalizarTexto(document.getElementById('filtroCliente').value.trim());
+      const filtroVendedor = normalizarTexto(document.getElementById('filtroVendedor').value.trim());
+
+      let csv = "ID Venta;Fecha;Hora;Cliente;Vendedor;Producto;Cantidad;Precio Unit.;Costo Unit.;Subtotal Ventas;Subtotal Costos\n";
+
+      ventasCacheReporte.forEach(v => {
+        const fechaVenta = v.fecha || '';
+        const clienteVenta = v.cliente || 'Consumidor Final';
+        const vendedorVenta = v.atendido_por || '';
+
+        if (fechaDesde && fechaVenta < fechaDesde) return;
+        if (fechaHasta && fechaVenta > fechaHasta) return;
+        if (filtroCliente && !normalizarTexto(clienteVenta).includes(filtroCliente)) return;
+        if (filtroVendedor && !normalizarTexto(vendedorVenta).includes(filtroVendedor)) return;
+
         const detalles = v.detalles || [];
-
         if (detalles.length > 0) {
           detalles.forEach(item => {
-            const producto = (item.nombre || '').replace(/"/g, '""');
+            const nombreProd = (item.nombre || '').replace(/"/g, '""');
             const cantidad = item.cantidad || 1;
-            const precioVenta = item.precio || 0;
-            const precioCosto = obtenerPrecioCostoProducto(item.idUnico, item.nombre);
-            const subtotal = cantidad * precioVenta;
-            csv += `"${idVenta}";"${fecha}";"${hora}";"${cliente}";"${vendedor}";"${producto}";"${cantidad}";"${precioCosto}";"${precioVenta}";"${subtotal}"\n`;
+            const precioUnit = item.precio || 0;
+            const subtotal = cantidad * precioUnit;
+            
+            let costoUnit = 0;
+            const prodMatch = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || normalizarTexto(p.nombre) === normalizarTexto(item.nombre));
+            if (prodMatch) costoUnit = obtenerCostoProducto(prodMatch);
+
+            const subtotalCosto = cantidad * costoUnit;
+            csv += `"${v.id}";"${fechaVenta}";"${v.hora || ''}";"${clienteVenta}";"${vendedorVenta}";"${nombreProd}";"${cantidad}";"${precioUnit}";"${costoUnit}";"${subtotal}";"${subtotalCosto}"\n`;
           });
         }
       });
@@ -1804,8 +1785,544 @@
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "reporte_ventas_filtrado.csv";
+      link.download = `reporte_ventas_filtrado_${fechaDesde || 'inicio'}_al_${fechaHasta || 'hoy'}.csv`;
       link.click();
+    }
+    // ==========================================
+
+    function abrirModalCostosProveedores() {
+      document.getElementById('buscadorProductoCostos').value = '';
+      document.getElementById('detalleComparativaProveedores').classList.add('hidden');
+      document.getElementById('modalCostosProveedores').classList.remove('hidden');
+    }
+
+    function cerrarModalCostosProveedores() {
+      document.getElementById('modalCostosProveedores').classList.add('hidden');
+    }
+
+    function filtrarProductosParaCostos() {
+      const texto = document.getElementById('buscadorProductoCostos').value.trim().toLowerCase();
+      const contenedor = document.getElementById('listaResultadosCostos');
+      if (!texto || texto.length < 2) { contenedor.classList.add('hidden'); return; }
+
+      const palabras = texto.split(/\s+/);
+      const encontrados = todosLosProductos.filter(p => {
+        const nombreProd = (p.nombre || '').toLowerCase();
+        const codigoProd = String(obtenerCodigoBarras(p)).toLowerCase();
+        const textoCompleto = `${nombreProd} ${codigoProd}`;
+        return palabras.every(w => textoCompleto.includes(w));
+      }).slice(0, 10);
+
+      if (encontrados.length === 0) {
+        contenedor.innerHTML = '<div class="p-2 text-slate-400 text-center">No se encontró producto</div>';
+        contenedor.classList.remove('hidden');
+        return;
+      }
+
+      let html = '';
+      encontrados.forEach(p => {
+        const codProd = obtenerCodigoBarras(p);
+        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
+        const costoActual = obtenerCostoProducto(p);
+        html += `
+          <div onclick="seleccionarProductoParaCostos('${codProd}', '${nombreSeguro}', ${costoActual})" 
+               class="p-2 hover:bg-indigo-50 dark:hover:bg-slate-700 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200">
+            <span>[${codProd || 'S/C'}] ${p.nombre}</span>
+            <span class="text-indigo-600 dark:text-indigo-400 font-semibold">$${costoActual.toFixed(2)}</span>
+          </div>`;
+      });
+      contenedor.innerHTML = html;
+      contenedor.classList.remove('hidden');
+    }
+
+    async function seleccionarProductoParaCostos(codigo, nombre, costoActual) {
+      document.getElementById('listaResultadosCostos').classList.add('hidden');
+      document.getElementById('buscadorProductoCostos').value = nombre;
+      document.getElementById('tituloProductoSeleccionadoCostos').textContent = `Producto: ${nombre} (Cód: ${codigo || 'S/C'})`;
+      document.getElementById('lblCostoActualInventario').textContent = '$' + costoActual.toFixed(2);
+      
+      const tbody = document.getElementById('tablaProveedoresCosto');
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">Consultando historial de proveedores...</td></tr>';
+      document.getElementById('detalleComparativaProveedores').classList.remove('hidden');
+
+      try {
+        let query = _supabase
+          .from('compras_detalles')
+          .select('precio_costo_unitario, cantidad, compras_facturas(proveedor, created_at)')
+          .eq('codigo_barras', codigo);
+
+        let { data } = await query;
+
+        if ((!data || data.length === 0) && codigo) {
+          let queryNombre = _supabase
+            .from('compras_detalles')
+            .select('precio_costo_unitario, cantidad, compras_facturas(proveedor, created_at)')
+            .ilike('nombre_producto', `%${nombre}%`);
+          let resNombre = await queryNombre;
+          data = resNombre.data;
+        }
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">No hay registros de compras anteriores.</td></tr>';
+          return;
+        }
+
+        let proveedoresList = data.map(item => {
+          const proveedorNombre = (item.compras_facturas && item.compras_facturas.proveedor) ? item.compras_facturas.proveedor : 'Proveedor General';
+          const fechaCompra = (item.compras_facturas && item.compras_facturas.created_at) ? new Date(item.compras_facturas.created_at).toLocaleDateString() : 'Fecha no registrada';
+          return {
+            proveedor: proveedorNombre,
+            fecha: fechaCompra,
+            cantidad: item.cantidad || 1,
+            costo: parseFloat(item.precio_costo_unitario || 0)
+          };
+        });
+
+        proveedoresList.sort((a, b) => a.costo - b.costo);
+
+        let html = '';
+        proveedoresList.forEach((p, idx) => {
+          const highlightClass = idx === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 font-bold' : '';
+          const badgeMejor = idx === 0 ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-[9px] px-1.5 py-0.5 rounded ml-1">⭐ Mejor Precio</span>` : '';
+          
+          html += `
+            <tr class="${highlightClass}">
+              <td class="p-2.5 text-slate-800 dark:text-white">${p.proveedor} ${badgeMejor}</td>
+              <td class="p-2.5 text-slate-600 dark:text-slate-400">${p.fecha}</td>
+              <td class="p-2.5 text-center text-slate-600 dark:text-slate-400">${p.cantidad}</td>
+              <td class="p-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">$${p.costo.toFixed(2)}</td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-rose-500">Error al consultar los costos.</td></tr>';
+      }
+    }
+
+    function abrirModalCatalogoVirtual() {
+      document.getElementById('modalCatalogoVirtual').classList.remove('hidden');
+      renderizarListaCatalogoVirtual(todosLosProductos);
+    }
+
+    function cerrarModalCatalogoVirtual() {
+      document.getElementById('modalCatalogoVirtual').classList.add('hidden');
+    }
+
+    function cambiarTipoPrecioCatalogoWeb(tipo) {
+      tipoPrecioCatalogoWeb = tipo;
+      const btnMin = document.getElementById('btnTipoPrecioMin');
+      const btnMay = document.getElementById('btnTipoPrecioMay');
+      if (tipo === 'minorista') {
+        btnMin.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-600 shadow-sm";
+        btnMay.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold border transition-all bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600";
+      } else {
+        btnMay.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-600 shadow-sm";
+        btnMin.className = "flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold border transition-all bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600";
+      }
+    }
+
+    function renderizarListaCatalogoVirtual(lista) {
+      const contenedor = document.getElementById('contenedorItemsCatalogoVirtual');
+      if (!lista || lista.length === 0) {
+        contenedor.innerHTML = '<p class="text-center text-slate-400 text-xs py-4">No hay productos disponibles.</p>';
+        return;
+      }
+
+      let html = '';
+      lista.forEach(prod => {
+        const cod = obtenerCodigoBarras(prod) || 'S/C';
+        const enCatalogo = prod.en_catalogo_virtual !== false;
+        const checkSel = enCatalogo ? 'checked' : '';
+
+        html += `
+          <div class="flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 text-xs shadow-sm">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" class="chk-item-catalogo w-4 h-4 rounded text-indigo-600" data-id="${prod.id}" ${checkSel}>
+              <div>
+                <p class="font-bold text-slate-800 dark:text-white">${prod.nombre}</p>
+                <p class="text-[10px] text-slate-500">Cód: ${cod} | P. Min: $${parseFloat(prod.precio || 0).toFixed(2)} | P. May: $${obtenerPrecioMayorista(prod).toFixed(2)}</p>
+              </div>
+            </div>
+            <div>
+              <button onclick="toggleEstadoIndividualCatalogo('${prod.id}', ${!enCatalogo})" 
+                class="${enCatalogo ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300'} text-[10px] font-bold px-2.5 py-1 rounded-full transition-all">
+                ${enCatalogo ? '🟢 Visible' : '🔴 Oculto'}
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      contenedor.innerHTML = html;
+    }
+
+    function filtrarListaCatalogoVirtual() {
+      const texto = document.getElementById('buscadorModalCatalogo').value.trim().toLowerCase();
+      const filtrados = todosLosProductos.filter(p => 
+        (p.nombre || '').toLowerCase().includes(texto) || 
+        String(obtenerCodigoBarras(p)).toLowerCase().includes(texto)
+      );
+      renderizarListaCatalogoVirtual(filtrados);
+    }
+
+    function alternarSeleccionTodosCatalogo(estado) {
+      const checkboxes = document.querySelectorAll('.chk-item-catalogo');
+      checkboxes.forEach(chk => chk.checked = estado);
+    }
+
+    async function cambiarEstadoMasivoCatalogo(habilitar) {
+      const checkboxes = document.querySelectorAll('.chk-item-catalogo:checked');
+      const ids = Array.from(checkboxes).map(c => c.getAttribute('data-id'));
+
+      if (ids.length === 0) {
+        alert('Por favor, selecciona al menos un producto.');
+        return;
+      }
+
+      try {
+        const { error } = await _supabase
+          .from('productos')
+          .update({ en_catalogo_virtual: habilitar })
+          .in('id', ids);
+
+        if (error) throw error;
+
+        alert(`¡Se ha ${habilitar ? 'habilitado' : 'deshabilitado'} el catálogo para los productos seleccionados!`);
+        await cargarProductos();
+        renderizarListaCatalogoVirtual(todosLosProductos);
+      } catch (err) {
+        alert('Error al actualizar el catálogo: ' + (err.message || err));
+      }
+    }
+
+    async function toggleEstadoIndividualCatalogo(id, nuevoEstado) {
+      try {
+        const { error } = await _supabase
+          .from('productos')
+          .update({ en_catalogo_virtual: nuevoEstado })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        await cargarProductos();
+        renderizarListaCatalogoVirtual(todosLosProductos);
+      } catch (err) {
+        alert('Error al actualizar producto: ' + (err.message || err));
+      }
+    }
+
+    function generarVistaPreviaCatalogoWeb() {
+      const productosVisibles = todosLosProductos.filter(p => p.en_catalogo_virtual !== false);
+
+      if (productosVisibles.length === 0) {
+        alert('No hay productos habilitados para mostrar en el catálogo virtual.');
+        return;
+      }
+
+      const win = window.open('', '_blank');
+      let itemsHtml = '';
+      const esMayoristaLista = tipoPrecioCatalogoWeb === 'mayorista';
+      const tituloListaTexto = esMayoristaLista ? 'Lista de Precios Mayorista' : 'Lista de Precios Minorista';
+
+      productosVisibles.forEach(p => {
+        const foto = p.imagen_url || 'https://via.placeholder.com/150?text=Sin+Foto';
+        const pMin = parseFloat(p.precio || 0).toFixed(2);
+        const pMay = obtenerPrecioMayorista(p);
+        const cMay = obtenerCantMayorista(p);
+
+        let precioMostrarHtml = '';
+        if (esMayoristaLista) {
+          const precioFinal = pMay > 0 ? pMay.toFixed(2) : pMin;
+          precioMostrarHtml = `
+            <p style="font-size: 14px; font-weight: 800; color: #16a34a; margin: 2px 0;">$${precioFinal}</p>
+            <p style="font-size: 10px; color: #64748b; margin: 0;">Cantidad mínima: ${cMay} u.</p>
+          `;
+        } else {
+          precioMostrarHtml = `
+            <p style="font-size: 14px; font-weight: 800; color: #2563eb; margin: 2px 0;">$${pMin}</p>
+          `;
+        }
+
+        itemsHtml += `
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <img src="${foto}" style="width: 100%; height: 120px; object-fit: contain; margin-bottom: 8px;">
+            <h4 style="font-size: 13px; font-weight: bold; color: #1e293b; margin: 4px 0;">${p.nombre}</h4>
+            ${precioMostrarHtml}
+          </div>
+        `;
+      });
+
+      win.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Catálogo Virtual - Distribuidora La Nueva</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: system-ui, sans-serif; background: #f8fafc; margin: 0; padding: 16px; }
+            header { text-align: center; margin-bottom: 20px; }
+            h1 { color: #4f46e5; margin: 0; font-size: 24px; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; max-width: 950px; margin: 0 auto; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <h1>Distribuidora La Nueva 🛒</h1>
+            <p style="font-size: 13px; font-weight: 600; color: #475569; margin-top: 4px;">Catálogo Digital (${tituloListaTexto})</p>
+          </header>
+          <div class="grid">
+            ${itemsHtml}
+          </div>
+        </body>
+        </html>
+      `);
+      win.document.close();
+    }
+
+    function abrirModalPermisos() {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      if (emailLower !== 'admini@pos.com' && emailLower !== 'admine@pos.com') {
+        alert('⚠️ Esta sección es exclusiva para admini@pos.com y admine@pos.com.');
+        return;
+      }
+      document.getElementById('modalPermisos').classList.remove('hidden');
+      mostrarSubPestanaPermisos('crear');
+    }
+
+    function cerrarModalPermisos() {
+      document.getElementById('modalPermisos').classList.add('hidden');
+    }
+
+    function mostrarSubPestanaPermisos(pestana) {
+      const btnCrear = document.getElementById('tabCrearUser');
+      const btnLista = document.getElementById('tabListaUser');
+      const btnLogros = document.getElementById('tabLogrosAdmin');
+      
+      const secCrear = document.getElementById('secCrearUsuario');
+      const secLista = document.getElementById('secListaUsuarios');
+      const secLogros = document.getElementById('secAdminLogros');
+
+      btnCrear.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+      btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+      btnLogros.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+
+      secCrear.classList.add('hidden');
+      secLista.classList.add('hidden');
+      secLogros.classList.add('hidden');
+
+      if (pestana === 'crear') {
+        btnCrear.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        secCrear.classList.remove('hidden');
+      } else if (pestana === 'lista') {
+        btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        secLista.classList.remove('hidden');
+        cargarListaUsuariosPOS();
+      } else if (pestana === 'logros') {
+        btnLogros.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        secLogros.classList.remove('hidden');
+        cargarCatalogoLogrosAdmin();
+      }
+    }
+
+    async function registrarNuevoUsuarioPOS() {
+      const email = document.getElementById('nuevoUserEmail').value.trim().toLowerCase();
+      const password = document.getElementById('nuevoUserPass').value.trim();
+      const nombre = document.getElementById('nuevoUserNombre').value.trim() || email.split('@')[0];
+
+      if (!email || !password) {
+        alert('El correo y la contraseña son obligatorios.');
+        return;
+      }
+
+      try {
+        const { error: authErr } = await _supabase.auth.signUp({ email: email, password: password });
+        if (authErr) throw authErr;
+
+        const { error: dbErr } = await _supabase
+          .from('usuarios_pos')
+          .upsert({ email: email, nombre: nombre, rol: 'vendedor', estado: 'activo' }, { onConflict: 'email' });
+
+        if (dbErr) throw dbErr;
+
+        alert(`¡Usuario vendedor "${email}" creado exitosamente!`);
+        document.getElementById('nuevoUserEmail').value = '';
+        document.getElementById('nuevoUserPass').value = '';
+        document.getElementById('nuevoUserNombre').value = '';
+        mostrarSubPestanaPermisos('lista');
+      } catch (err) {
+        alert('Error al crear usuario: ' + (err.message || err));
+      }
+    }
+
+    async function cargarListaUsuariosPOS() {
+      const contenedor = document.getElementById('contenedorListaUsuariosPos');
+      contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>';
+
+      const { data, error } = await _supabase.from('usuarios_pos').select('*').order('id', { ascending: true });
+      if (error || !data || data.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay usuarios registrados.</p>';
+        return;
+      }
+
+      let html = '';
+      data.forEach(u => {
+        const esCongelado = u.estado === 'congelado';
+        const badgeEstado = esCongelado ? `<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">❄️ Congelado</span>` : `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">🟢 Activo</span>`;
+        const btnEstado = esCongelado
+          ? `<button onclick="alternarEstadoUsuario('${u.email}', 'activo')" class="bg-emerald-600 text-white text-[10px] px-2 py-1 rounded font-bold">Activar</button>`
+          : `<button onclick="alternarEstadoUsuario('${u.email}', 'congelado')" class="bg-rose-500 text-white text-[10px] px-2 py-1 rounded font-bold">Congelar</button>`;
+
+        html += `
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs gap-2">
+            <div>
+              <p class="font-bold text-slate-800 dark:text-white">${u.email} ${badgeEstado}</p>
+              <p class="text-[10px] text-slate-500">${u.nombre || 'Sin nombre'}</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-500">Activo desde:</span>
+                <input type="date" value="${u.fecha_inicio_actividad || ''}" onchange="actualizarFechaInicio('${u.email}', this.value)" class="px-1.5 py-0.5 border rounded text-[11px] bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
+              </div>
+              ${btnEstado}
+              <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded font-bold">⚙️ Permisos</button>
+            </div>
+          </div>
+        `;
+      });
+      contenedor.innerHTML = html;
+    }
+
+    async function actualizarFechaInicio(email, nuevaFecha) {
+      await _supabase.from('usuarios_pos').update({ fecha_inicio_actividad: nuevaFecha || null }).eq('email', email);
+    }
+
+    async function alternarEstadoUsuario(email, nuevoEstado) {
+      await _supabase.from('usuarios_pos').update({ estado: nuevoEstado }).eq('email', email);
+      cargarListaUsuariosPOS();
+    }
+
+    async function seleccionarUsuarioParaModulos(email) {
+      usuarioEditandoPermisos = email;
+      document.getElementById('lblUsuarioEditando').textContent = `Editando Permisos de: ${email}`;
+
+      const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', email).maybeSingle();
+      const modulos = data ? data.modulos_activos || {} : {};
+      
+      document.getElementById('chk_nuevoProducto').checked = !!modulos.nuevoProducto;
+      document.getElementById('chk_registrarCompra').checked = !!modulos.registrarCompra;
+      document.getElementById('chk_cargaMasiva').checked = !!modulos.cargaMasiva;
+      document.getElementById('chk_exportarProductos').checked = !!modulos.exportarProductos;
+      document.getElementById('chk_modificarPrecios').checked = !!modulos.modificarPrecios;
+      document.getElementById('chk_reporteVentas').checked = !!modulos.reporteVentas;
+      document.getElementById('chk_edicionCuadricula').checked = !!modulos.edicionCuadricula;
+
+      document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
+    }
+
+    async function guardarPermisosUsuario() {
+      if (!usuarioEditandoPermisos) return;
+      
+      const { data: usuarioActualData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', usuarioEditandoPermisos).maybeSingle();
+      let modulosActuales = usuarioActualData ? usuarioActualData.modulos_activos || {} : {};
+
+      modulosActuales.nuevoProducto = document.getElementById('chk_nuevoProducto').checked;
+      modulosActuales.registrarCompra = document.getElementById('chk_registrarCompra').checked;
+      modulosActuales.cargaMasiva = document.getElementById('chk_cargaMasiva').checked;
+      modulosActuales.exportarProductos = document.getElementById('chk_exportarProductos').checked;
+      modulosActuales.modificarPrecios = document.getElementById('chk_modificarPrecios').checked;
+      modulosActuales.reporteVentas = document.getElementById('chk_reporteVentas').checked;
+      modulosActuales.edicionCuadricula = document.getElementById('chk_edicionCuadricula').checked;
+
+      await _supabase.from('usuarios_pos').update({ modulos_activos: modulosActuales }).eq('email', usuarioEditandoPermisos);
+      alert(`¡Permisos y módulos actualizados con éxito para ${usuarioEditandoPermisos}!`);
+      document.getElementById('contenedorCheckboxesModulos').classList.add('hidden');
+    }
+
+    async function cargarCatalogoLogrosAdmin() {
+      const contenedor = document.getElementById('listaAdminLogros');
+      contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando logros...</p>';
+
+      const { data } = await _supabase.from('logros_catalogo').select('*').order('id', { ascending: true });
+      if (!data || data.length === 0) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay logros registrados.</p>';
+        return;
+      }
+
+      let html = '';
+      data.forEach(l => {
+        const checkHabilitado = l.habilitado ? 'checked' : '';
+        html += `
+          <div class="flex justify-between items-center p-2 rounded border dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+            <div>
+              <p class="font-bold text-slate-800 dark:text-white">${l.icono || '🏆'} ${l.titulo} <span class="text-indigo-600 font-semibold">(+${l.experiencia_xp} XP)</span></p>
+              <p class="text-[10px] text-slate-500">${l.descripcion}</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" ${checkHabilitado} onchange="toggleHabilitarLogro('${l.codigo}', this.checked)" class="sr-only peer">
+              <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
+        `;
+      });
+      contenedor.innerHTML = html;
+    }
+
+    async function toggleHabilitarLogro(codigo, estado) {
+      await _supabase.from('logros_catalogo').update({ habilitado: estado }).eq('codigo', codigo);
+    }
+
+    async function abrirModalMisLogros() {
+      document.getElementById('modalMisLogros').classList.remove('hidden');
+      const contenedor = document.getElementById('gridLogrosVendedor');
+      contenedor.innerHTML = '<p class="text-slate-400 text-center py-4 col-span-full text-xs">Consultando tus conquistas...</p>';
+
+      try {
+        const { data: catalogo } = await _supabase.from('logros_catalogo').select('*').eq('habilitado', true).order('id', { ascending: true });
+        const { data: conseguidos } = await _supabase.from('vendedor_logros').select('codigo_logro, fecha_obtenido').eq('email_vendedor', usuarioActualEmail);
+        
+        const codigosConseguidos = new Set((conseguidos || []).map(l => l.codigo_logro));
+
+        if (!catalogo || catalogo.length === 0) {
+          contenedor.innerHTML = '<p class="text-slate-400 text-center py-4 col-span-full text-xs">No hay logros disponibles.</p>';
+          return;
+        }
+
+        let html = '';
+        catalogo.forEach(logro => {
+          const obtenido = codigosConseguidos.has(logro.codigo);
+          const cardClass = obtenido 
+            ? "bg-gradient-to-r from-amber-50 to-indigo-50 dark:from-slate-700 dark:to-indigo-950/40 border-amber-300 dark:border-indigo-500 shadow-sm" 
+            : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60 grayscale";
+          const badgeEstado = obtenido 
+            ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">✓ ¡Conseguido!</span>` 
+            : `<span class="bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-medium px-2 py-0.5 rounded-full">🔒 Bloqueado</span>`;
+
+          html += `
+            <div class="flex items-start gap-3 p-3 rounded-xl border ${cardClass} transition-all">
+              <div class="text-3xl p-2 bg-white dark:bg-slate-800 rounded-lg shadow-inner shrink-0 flex items-center justify-center w-12 h-12">
+                ${logro.icono || '🏆'}
+              </div>
+              <div class="flex-grow">
+                <div class="flex justify-between items-start gap-1">
+                  <h4 class="font-bold text-slate-800 dark:text-white text-xs">${logro.titulo}</h4>
+                  ${badgeEstado}
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${logro.descripcion}</p>
+                <p class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1.5">+${logro.experiencia_xp} XP</p>
+              </div>
+            </div>
+          `;
+        });
+        contenedor.innerHTML = html;
+      } catch (err) {
+        contenedor.innerHTML = '<p class="text-rose-500 text-center py-4 col-span-full text-xs">Error al cargar los logros.</p>';
+      }
+    }
+
+    function cerrarModalMisLogros() {
+      document.getElementById('modalMisLogros').classList.add('hidden');
     }
 
     async function cargarProductos() {
@@ -1869,6 +2386,7 @@
         const cMayor = obtenerCantMayorista(prod);
 
         const btnEditarHtml = `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar Producto" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 hover:bg-white text-slate-700 dark:text-slate-200 p-1 rounded-full shadow text-xs z-10">✏️</button>`;
+
         const cardClass = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
 
         if (esLista) {
@@ -1938,6 +2456,7 @@
           precioMayorista: obtenerPrecioMayorista(prodRef),
           cantMayorista: obtenerCantMayorista(prodRef),
           unidadesBulto: obtenerUnidadesPorBulto(prodRef),
+          costoUnitario: obtenerCostoProducto(prodRef),
           precioPersonalizado: null,
           cantidad: cantidadAAgregar 
         });
@@ -2059,7 +2578,7 @@
       encontrados.forEach(p => {
         const codProd = obtenerCodigoBarras(p);
         const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
-        const costoActual = parseFloat(p["Precio Costo"] || 0);
+        const costoActual = obtenerCostoProducto(p);
         html += `<div onclick="agregarItemCompraManual('${codProd}', '${nombreSeguro}', ${costoActual})" class="p-2 hover:bg-emerald-50 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200"><span>[${codProd || 'S/C'}] ${p.nombre}</span><span class="text-emerald-700 font-semibold">$${costoActual}</span></div>`;
       });
       contenedor.innerHTML = html;
@@ -2157,8 +2676,8 @@
     }
 
     function descargarReporteProductosCSV() {
-      let csv = "codigo;nombre;precio;stock\n";
-      todosLosProductos.forEach(p => { csv += `"${obtenerCodigoBarras(p)}";"${p.nombre}";"${p.precio}";"${p.stock || 0}"\n`; });
+      let csv = "codigo;nombre;precio;stock;costo\n";
+      todosLosProductos.forEach(p => { csv += `"${obtenerCodigoBarras(p)}";"${p.nombre}";"${p.precio}";"${p.stock || 0}";"${obtenerCostoProducto(p)}"\n`; });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "catalogo.csv"; link.click();
     }
@@ -2209,7 +2728,7 @@
       document.getElementById('nuevoCodigo').value = obtenerCodigoBarras(prod);
       document.getElementById('nuevoNombre').value = prod.nombre || '';
       document.getElementById('nuevoStock').value = prod.stock || 0;
-      document.getElementById('nuevoCosto').value = prod["Precio Costo"] || '';
+      document.getElementById('nuevoCosto').value = obtenerCostoProducto(prod) || '';
       document.getElementById('nuevoVenta').value = prod.precio || '';
       document.getElementById('nuevoMayorista').value = obtenerPrecioMayorista(prod) || '';
       document.getElementById('nuevoCantMayor').value = obtenerCantMayorista(prod);
@@ -2355,7 +2874,7 @@
       const detalles = carrito.map(i => {
         let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
         total += p * i.cantidad;
-        return { idUnico: i.idUnico, nombre: i.nombre, precio: p, cantidad: i.cantidad, unidadesBulto: i.unidadesBulto || 0 };
+        return { idUnico: i.idUnico, nombre: i.nombre, precio: p, cantidad: i.cantidad, costoUnitario: i.costoUnitario || 0, unidadesBulto: i.unidadesBulto || 0 };
       });
 
       const { fechaStr, horaStr } = obtenerFechaHoraLocal();
