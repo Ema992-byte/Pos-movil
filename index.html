@@ -1009,22 +1009,26 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (JUSTIFICADA Y EXACTA 80MM) -->
-  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[80mm] max-w-[80mm] mx-auto bg-white text-black leading-tight p-1 whitespace-pre box-border">--------------------------------
-         TICKET DE VENTA
---------------------------------
-Fecha: <span id="ticketFecha">--/--/----</span>  Hora: <span id="ticketHora">--:--</span>
-Cajero: <span id="ticketAtendidoPor">---</span>
-
-Cliente: <span id="ticketCliente">Consumidor Final</span>
---------------------------------
- CANT  DESCRIPCION          P.U.    TOTAL
---------------------------------
-<div id="ticketItems" style="word-break: break-all; white-space: pre-wrap;"></div>
---------------------------------
-TOTAL:                      <span id="ticketTotal">$0.00</span>
---------------------------------
-      Gracias por su visita</div>
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (DISEÑO EXACTO SOLICITADO) -->
+  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[80mm] max-w-[80mm] mx-auto bg-white text-black leading-tight p-1 whitespace-pre box-border text-center">
+<div class="font-bold text-sm">GO!</div>
+<div class="text-[10px]">Punto de Venta Móvil</div>
+----------------------------------------
+<b>TICKET DE COMPRA</b>
+----------------------------------------
+Fecha/Hora:                  <span id="ticketFecha">--/--/----</span> <span id="ticketHora">--:--</span>
+Comprabante:                     <span id="ticketNro">Ticket #--</span>
+Atendido por:                    <span id="ticketAtendidoPor">---</span>
+Cliente:                         <span id="ticketCliente">Consumidor Final</span>
+----------------------------------------
+Cant.   Descripción             P.U.    Importe
+----------------------------------------
+<div id="ticketItems" style="text-align: left; word-break: break-all; white-space: pre-wrap;"></div>
+----------------------------------------
+TOTAL                            <span id="ticketTotal" class="font-bold">$0.00</span>
+----------------------------------------
+         ¡GRACIAS POR SU VISITA!
+  </div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
   <script>
@@ -1398,7 +1402,6 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       }
     });
 
-    // 1) INICIALES DE ADMINISTRADORES Y CAJEROS
     function obtenerAtendidoPor(email) {
       const emailLower = (email || '').toLowerCase();
       if (emailLower === 'admini@pos.com') return 'I.S.';
@@ -1519,9 +1522,6 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       document.getElementById('usuarioRol').textContent = `Perfil: Vendedor (${obtenerAtendidoPor(email)})`;
     }
 
-    // ==========================================
-    // MÓDULO PANEL DE AUDITORÍA DE TICKETS BORRADOS
-    // ==========================================
     async function abrirModalAuditoriaEliminaciones() {
       const modal = document.getElementById('modalAuditoriaEliminaciones');
       const tbody = document.getElementById('tablaAuditoriaEliminacionesItems');
@@ -1579,9 +1579,6 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       document.getElementById('modalAuditoriaEliminaciones').classList.add('hidden');
     }
 
-    // ==========================================
-    // MÓDULO GESTIÓN DE COSTOS, PROVEEDORES E IA
-    // ==========================================
     function abrirModalCostosProveedores() {
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
@@ -1763,9 +1760,6 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       }
     }
 
-    // ==========================================
-    // MÓDULO REPORTE DE VENTAS CON FILTROS Y COSTOS
-    // ==========================================
     async function abrirModalReporteVentas() {
       document.getElementById('modalReporteVentas').classList.remove('hidden');
       const hoy = new Date();
@@ -2051,6 +2045,12 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
         ? "space-y-2 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors"
         : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors";
 
+      const esTemaOscuro = configActual.tema === 'dark';
+      // Si el tema es oscuro, los números/inputs del catálogo se ponen en blanco explícitamente
+      const inputClase = esTemaOscuro 
+        ? "w-12 px-1 py-1 text-center border rounded text-xs bg-slate-900 text-white font-bold" 
+        : "w-12 px-1 py-1 text-center border rounded text-xs bg-white text-slate-900 font-bold";
+
       let htmlContent = '';
       productos.forEach((prod, idx) => {
         const codBarra = obtenerCodigoBarras(prod);
@@ -2078,7 +2078,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
                   <p class="text-blue-600 font-bold">Min: $${precioMinorista.toFixed(2)}</p>
                 </div>
                 <div class="flex items-center gap-1">
-                  <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-10 px-1 py-1 text-center border rounded text-xs bg-white dark:bg-slate-900">
+                  <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="${inputClase}">
                   <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="bg-indigo-600 text-white px-2.5 py-1 rounded text-xs font-bold">Agregar</button>
                 </div>
               </div>
@@ -2099,7 +2099,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
                 </div>
               </div>
               <div class="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
-                <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="w-12 px-1 py-1 text-center border rounded text-xs bg-white dark:bg-slate-900">
+                <input type="number" id="qty_input_${idUnico}" value="1" min="1" class="${inputClase}">
                 <button onclick="agregarAlCarritoConPrecio('${idUnico}', ${precioMinorista})" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-1 rounded text-xs font-bold text-center shadow-sm">Agregar</button>
               </div>
             </div>`;
@@ -2136,10 +2136,33 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       carrito.forEach((i, idx) => {
         let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
         total += p * i.cantidad;
-        html += `<div class="flex justify-between items-center bg-white dark:bg-slate-800 p-2 rounded border text-sm"><span>${i.nombre} (${i.cantidad}x)</span><b>$${(p * i.cantidad).toFixed(2)}</b><button onclick="carrito.splice(${idx},1);actualizarCarritoVisual()" class="text-rose-500 font-bold">✕</button></div>`;
+        
+        // Habilitado para que TODOS los usuarios puedan modificar la cantidad directamente desde el carrito
+        html += `
+          <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-2 rounded border text-xs gap-2">
+            <div class="truncate flex-grow">
+              <p class="font-bold text-slate-800 dark:text-white">${i.nombre}</p>
+              <p class="text-[10px] text-slate-500">$${p.toFixed(2)} c/u</p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <input type="number" min="1" value="${i.cantidad}" onchange="modificarCantidadCarrito(${idx}, this.value)" class="w-12 px-1 py-1 text-center border rounded text-xs bg-white dark:bg-slate-900 font-bold">
+            </div>
+            <b class="shrink-0">$${(p * i.cantidad).toFixed(2)}</b>
+            <button onclick="carrito.splice(${idx},1);actualizarCarritoVisual()" class="text-rose-500 font-bold px-1">✕</button>
+          </div>`;
       });
       contenedor.innerHTML = html;
       totalSpan.textContent = '$' + total.toFixed(2);
+    }
+
+    function modificarCantidadCarrito(idx, nuevaCant) {
+      const cantVal = parseInt(nuevaCant);
+      if (isNaN(cantVal) || cantVal <= 0) {
+        carrito.splice(idx, 1);
+      } else {
+        carrito[idx].cantidad = cantVal;
+      }
+      actualizarCarritoVisual();
     }
 
     function abrirModalCompra() {
@@ -2391,39 +2414,48 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       const operador = obtenerAtendidoPor(usuarioActualEmail);
       const { data } = await _supabase.from('ventas').insert([{ total, cliente: clienteNombre, atendido_por: operador, fecha: fechaBaseDatos, hora: horaStr, detalles }]).select();
       
+      const ticketId = data && data[0] ? data[0].id : Math.floor(Math.random() * 1000);
+
       alert('✓ ¡Venta registrada con éxito!');
       await sumarExperienciaVendedor(usuarioActualEmail, 35);
-      imprimirTicketConOperadorFijo(detalles, total, fechaStr, horaStr, clienteNombre, operador);
+      imprimirTicketConOperadorFijo(detalles, total, fechaStr, horaStr, clienteNombre, operador, ticketId);
       carrito = [];
       actualizarCarritoVisual();
     }
 
-    // 2) DETECCIÓN DE BULTOS Y 3) DESCRIPCIÓN MULTILÍNEA COMPLETA PARA 80MM
-    function imprimirTicketConOperadorFijo(items, total, fecha, hora, cliente, operador) {
+    // TICKET DE IMPRESIÓN (CÁLCULO DE BULTOS Y UNIDADES POR SEPARADO + DISEÑO EXACTO 80MM)
+    function imprimirTicketConOperadorFijo(items, total, fecha, hora, cliente, operador, ticketId) {
       document.getElementById('ticketFecha').textContent = fecha;
       document.getElementById('ticketHora').textContent = hora;
+      document.getElementById('ticketNro').textContent = `Ticket #${ticketId}`;
       document.getElementById('ticketAtendidoPor').textContent = operador;
       document.getElementById('ticketCliente').textContent = cliente;
+      
       const c = document.getElementById('ticketItems'); 
       c.innerHTML = '';
       
       items.forEach(i => {
-        let cantidadTexto = String(i.cantidad);
-        if (i.unidadesBulto && i.unidadesBulto > 0) {
-          const bultosCompletos = Math.floor(i.cantidad / i.unidadesBulto);
-          if (bultosCompletos > 0) {
-            cantidadTexto = `${bultosCompletos} bulto${bultosCompletos > 1 ? 's' : ''}`;
+        let cantidadTexto = '';
+        const bultoSize = i.unidadesBulto || 0;
+
+        if (bultoSize > 0 && i.cantidad >= bultoSize) {
+          const bultos = Math.floor(i.cantidad / bultoSize);
+          const sueltas = i.cantidad % bultoSize;
+          cantidadTexto = `${bultos} bulto${bultos > 1 ? 's' : ''}`;
+          if (sueltas > 0) {
+            cantidadTexto += ` + ${sueltas} un.`;
           }
+        } else {
+          cantidadTexto = `${i.cantidad} und.`;
         }
 
-        const cantStr = cantidadTexto.padEnd(5, ' ');
-        const puStr = ('$' + i.precio.toFixed(0)).padStart(7, ' ');
+        const cantStr = cantidadTexto.padEnd(7, ' ');
+        const puStr = ('$' + i.precio.toFixed(2)).padStart(8, ' ');
         const totStr = ('$' + (i.precio * i.cantidad).toFixed(2)).padStart(9, ' ');
         
-        // El ancho útil para la descripción en un ticket de 80mm es de aproximadamente 14-16 caracteres antes de ajustar a múltiples renglones
         const descripcionCompleta = i.nombre || 'Articulo';
         
-        c.innerHTML += `${cantStr} ${descripcionCompleta} ${puStr} ${totStr}\n`;
+        c.innerHTML += `${cantStr} ${descripcionCompleta}\n${''.padEnd(25, ' ')} ${puStr} ${totStr}\n`;
       });
 
       const totalFormateado = ('$' + total.toFixed(2)).padStart(9, ' ');
@@ -2431,7 +2463,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: monospace; white-space: pre-wrap; word-break: break-all; font-size: 11px; width: 80mm; max-width: 80mm; box-sizing: border-box; margin: 0 auto; }</style></head><body>${document.getElementById('ticketImpresion').innerText}</body></html>`); 
+        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: monospace; white-space: pre-wrap; word-break: break-all; font-size: 11px; width: 80mm; max-width: 80mm; box-sizing: border-box; margin: 0 auto; text-align: center; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
         w.document.close(); 
         setTimeout(() => w.print(), 300); 
       }
@@ -2462,9 +2494,6 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
 
     function cerrarModalHistorial() { document.getElementById('modalHistorial').classList.add('hidden'); }
 
-    // ==========================================
-    // AUDITORÍA DE BORRADO DE VENTAS
-    // ==========================================
     async function eliminarVentaRegistroConAuditoria(idVenta) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
@@ -2536,10 +2565,20 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       const { data } = await _supabase.from('ventas').select('detalles, atendido_por').eq('id', id).single();
       const partesFecha = fechaDb.split('-');
       const fechaFormateada = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fechaDb;
-      imprimirTicketConOperadorFijo(data.detalles || [], total, fechaFormateada, hora, cliente, atendidoPor || data.atendido_por || 'Maria G');
+      imprimirTicketConOperadorFijo(data.detalles || [], total, fechaFormateada, hora, cliente, atendidoPor || data.atendido_por || 'Maria G', id);
     }
 
-    function abrirModalPrecios() { document.getElementById('modalPrecios').classList.remove('hidden'); }
+    function abrirModalPrecios() {
+      // RESTRICCIÓN DE SEGURIDAD: Solo administradores pueden modificar precios
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
+      if (!esAdminEspecial) {
+        alert('⚠️ ACCESO DENEGADO: La modificación de precios está permitida únicamente para los administradores.');
+        return;
+      }
+      document.getElementById('modalPrecios').classList.remove('hidden');
+    }
+    
     function cerrarModalPrecios() { document.getElementById('modalPrecios').classList.add('hidden'); }
 
     function filtrarProductosAdmin() {
@@ -2554,6 +2593,13 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
     }
 
     async function guardarNuevosPreciosAdmin() {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
+      if (!esAdminEspecial) {
+        alert('⚠️ ACCESO DENEGADO: No cuenta con privilegios de administrador para actualizar precios.');
+        return;
+      }
+
       const id = document.getElementById('prodSeleccionadoId').value;
       const pMin = parseFloat(document.getElementById('nuevoPrecioInput').value);
       if (!id || isNaN(pMin)) return;
