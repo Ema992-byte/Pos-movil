@@ -126,7 +126,7 @@
           <div class="space-y-2">
             <button onclick="iniciarProcesoCobro('bluetooth')"
               class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-colors shadow text-xs flex items-center justify-center gap-1.5">
-              <span>🖨️</span> Cobrar e Imprimir Bluetooth
+              <span>🖨️</span> Cobrar e Imprimir Bluetooth (80mm)
             </button>
             <button onclick="iniciarProcesoCobro('pdf')"
               class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 rounded-lg transition-colors shadow text-xs flex items-center justify-center gap-1.5">
@@ -180,6 +180,9 @@
           <button id="menuBtn_reporteVentas" onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
             <span>📊</span> Reporte de Ventas
           </button>
+          <button id="menuBtn_auditoriaEliminaciones" onclick="toggleSidebarMenu(); ejecutarAccionModulo('auditoriaEliminaciones')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-rose-700 dark:text-rose-400 font-medium flex items-center gap-2">
+            <span>🛡️</span> Auditoría de Tickets Borrados
+          </button>
           <button id="menuBtn_gestionarPermisos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
             <span>🛡️</span> Gestión de Usuarios
           </button>
@@ -210,6 +213,47 @@
 
     </div>
   </aside>
+
+  <!-- MODAL DE AUDITORÍA DE TICKETS ELIMINADOS -->
+  <div id="modalAuditoriaEliminaciones" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-5xl overflow-y-auto max-h-[92vh]">
+      <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-3">
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <span>🛡️</span> Panel de Auditoría: Tickets y Ventas Eliminadas
+        </h3>
+        <button onclick="cerrarModalAuditoriaEliminaciones()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Registro detallado de seguridad y control interno de todas las ventas que fueron eliminadas del sistema.
+      </p>
+
+      <!-- TABLA DE AUDITORÍA -->
+      <div class="border dark:border-slate-700 rounded-xl overflow-hidden max-h-96 overflow-y-auto mb-4">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 sticky top-0">
+            <tr>
+              <th class="p-2.5">ID Ticket</th>
+              <th class="p-2.5">Operador / Usuario</th>
+              <th class="p-2.5">Fecha y Hora Borrado</th>
+              <th class="p-2.5 text-right">Monto ($)</th>
+              <th class="p-2.5">Motivo Justificado</th>
+              <th class="p-2.5 text-center">Detalle de Ítems</th>
+            </tr>
+          </thead>
+          <tbody id="tablaAuditoriaEliminacionesItems" class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tr><td colspan="6" class="text-center py-6 text-slate-400">Cargando registros de auditoría...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-end border-t dark:border-slate-700 pt-3">
+        <button onclick="cerrarModalAuditoriaEliminaciones()" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-5 py-2 rounded-lg text-xs font-bold">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL DE ANÁLISIS DE COSTOS, PROVEEDORES E IA PARA REVISTAS -->
   <div id="modalCostosProveedores" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
@@ -965,37 +1009,37 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM -->
-  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight">
-    <div class="text-center font-black text-lg tracking-widest mb-0.5">GO!</div>
-    <div class="text-center text-[9px] text-slate-700 mb-1.5">Punto de Venta Móvil</div>
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (JUSTIFICADA Y OPTIMIZADA) -->
+  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight p-1">
+    <div class="text-center font-black text-xl tracking-widest mb-0.5">GO! POS</div>
+    <div class="text-center text-[10px] text-slate-800 mb-1.5 font-bold">PUNTO DE VENTA MÓVIL</div>
     
     <div class="border-t border-b border-black py-0.5 my-1.5 text-center font-bold tracking-widest text-[10px]">
       TICKET DE COMPRA
     </div>
     
-    <div class="flex justify-between text-[9px] mb-1">
+    <div class="flex justify-between text-[10px] mb-0.5">
       <span class="font-bold">Fecha/Hora:</span>
       <span id="ticketFecha">--/--/---- --:--</span>
     </div>
-    <div class="flex justify-between text-[9px] mb-1">
+    <div class="flex justify-between text-[10px] mb-0.5">
       <span class="font-bold">Comprobante:</span>
       <span id="ticketIdVenta">Ticket #---</span>
     </div>
-    <div class="flex justify-between text-[9px] mb-1">
+    <div class="flex justify-between text-[10px] mb-0.5">
       <span class="font-bold">Atendido por:</span>
       <span id="ticketAtendidoPor">E.J</span>
     </div>
-    <div class="flex justify-between text-[9px] mb-2">
+    <div class="flex justify-between text-[10px] mb-2">
       <span class="font-bold">Cliente:</span>
       <span id="ticketCliente">Consumidor Final</span>
     </div>
 
-    <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[9px] border-dashed">
-      <span class="w-[18%] text-left">Cant.</span>
-      <span class="w-[38%] text-left px-0.5 break-words">Descripción</span>
-      <span class="w-[20%] text-right">P.U.</span>
-      <span class="w-[24%] text-right">Importe</span>
+    <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[10px] border-dashed">
+      <span class="w-[15%] text-left">Cant</span>
+      <span class="w-[43%] text-left px-0.5">Descripción</span>
+      <span class="w-[20%] text-right">P.Unit</span>
+      <span class="w-[22%] text-right">Subtotal</span>
     </div>
     <div class="border-b border-black mb-1.5"></div>
 
@@ -1003,14 +1047,15 @@
 
     <div class="border-t border-dashed border-black my-2"></div>
 
-    <div class="flex justify-between font-bold text-xs">
-      <span>TOTAL</span>
+    <div class="flex justify-between font-extrabold text-sm">
+      <span>TOTAL A PAGAR</span>
       <span id="ticketTotal">$0.00</span>
     </div>
 
     <div class="border-t border-dashed border-black my-2"></div>
 
-    <div class="text-center text-[10px] font-semibold mt-2">¡GRACIAS POR SU VISITA!</div>
+    <div class="text-center text-[10px] font-bold mt-2">¡GRACIAS POR SU VISITA!</div>
+    <div class="text-center text-[9px] text-slate-600 mt-0.5">Comprobante no válido como factura fiscal</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
@@ -1315,6 +1360,15 @@
         return;
       }
 
+      if (accion === 'auditoriaEliminaciones') {
+        if (!esAdminEspecial) {
+          alert('⚠️ Módulo de auditoría exclusivo para los administradores principales.');
+          return;
+        }
+        abrirModalAuditoriaEliminaciones();
+        return;
+      }
+
       if (!esAdminEspecial) {
         const tienePermiso = await validarAccionConAlerta(accion);
         if (!tienePermiso) return;
@@ -1460,6 +1514,7 @@
         'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
         'catalogoVirtual': document.getElementById('menuBtn_catalogoVirtual'),
         'reporteVentas': document.getElementById('menuBtn_reporteVentas'),
+        'auditoriaEliminaciones': document.getElementById('menuBtn_auditoriaEliminaciones'),
         'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
       };
 
@@ -1479,7 +1534,7 @@
           let tieneAlgunPermiso = false;
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
-            if (btn && key !== 'gestionarPermisos' && modulos[key] === true) {
+            if (btn && key !== 'gestionarPermisos' && key !== 'auditoriaEliminaciones' && modulos[key] === true) {
               btn.classList.remove('hidden');
               tieneAlgunPermiso = true;
             }
@@ -1492,6 +1547,66 @@
       } catch (e) {}
 
       document.getElementById('usuarioRol').textContent = `Perfil: Vendedor (${obtenerAtendidoPor(email)})`;
+    }
+
+    // ==========================================
+    // MÓDULO PANEL DE AUDITORÍA DE TICKETS BORRADOS
+    // ==========================================
+    async function abrirModalAuditoriaEliminaciones() {
+      const modal = document.getElementById('modalAuditoriaEliminaciones');
+      const tbody = document.getElementById('tablaAuditoriaEliminacionesItems');
+      modal.classList.remove('hidden');
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">Cargando registros de auditoría de Supabase...</td></tr>';
+
+      try {
+        const { data, error } = await _supabase
+          .from('auditoria_eliminaciones_ventas')
+          .select('*')
+          .order('id', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">No hay registros de ventas eliminadas.</td></tr>';
+          return;
+        }
+
+        let html = '';
+        data.forEach((aud) => {
+          const fechaHora = `${aud.fecha || ''} ${aud.hora || ''}`;
+          const detallesArray = aud.detalles_venta || [];
+          let listaDetalleHtml = '<ul class="text-[11px] list-disc pl-4 space-y-0.5">';
+          detallesArray.forEach(item => {
+            listaDetalleHtml += `<li>${item.cantidad}x ${item.nombre || 'Prod'} ($${(item.precio || 0).toFixed(2)})</li>`;
+          });
+          listaDetalleHtml += '</ul>';
+
+          html += `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+              <td class="p-2.5 font-bold text-slate-800 dark:text-white">Ticket #${aud.venta_id}</td>
+              <td class="p-2.5 text-slate-600 dark:text-slate-300 font-medium">${aud.email_usuario || 'N/D'}</td>
+              <td class="p-2.5 text-slate-500 dark:text-slate-400">${fechaHora}</td>
+              <td class="p-2.5 text-right font-bold text-rose-600 dark:text-rose-400">$${parseFloat(aud.monto_total || 0).toFixed(2)}</td>
+              <td class="p-2.5 text-slate-700 dark:text-slate-200 italic">"${aud.motivo || 'Sin motivo especificado'}"</td>
+              <td class="p-2.5 text-center">
+                <details class="cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold">
+                  <summary>Ver Ítems (${detallesArray.length})</summary>
+                  <div class="mt-1 text-left bg-slate-50 dark:bg-slate-900 p-2 rounded border dark:border-slate-700">
+                    ${listaDetalleHtml}
+                  </div>
+                </details>
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-rose-500">Error al cargar la auditoría: ' + (err.message || err) + '</td></tr>';
+      }
+    }
+
+    function cerrarModalAuditoriaEliminaciones() {
+      document.getElementById('modalAuditoriaEliminaciones').classList.add('hidden');
     }
 
     // ==========================================
@@ -1628,7 +1743,7 @@
             count++;
           }
         }
-        alert(`¡Lista procesada! Se actualizaron o registraron ${count} costos para el proveedor "${proveedor}".`);
+        alert(`✓ ¡Lista procesada! Se actualizaron o registraron ${count} costos para el proveedor "${proveedor}".`);
       };
       lector.readAsText(archivo, 'UTF-8');
     }
@@ -1717,7 +1832,6 @@
       let totalVentasFiltradas = 0;
       let totalCostosFiltrados = 0;
       let htmlFilas = '';
-      let contadorFilas = 0;
 
       ventasCacheReporte.forEach(v => {
         const fechaVenta = v.fecha || '';
@@ -1732,7 +1846,6 @@
         const detalles = v.detalles || [];
         if (detalles.length > 0) {
           detalles.forEach(item => {
-            contadorFilas++;
             const nombreProd = item.nombre || 'Producto general';
             const cantidad = item.cantidad || 1;
             const precioUnit = parseFloat(item.precio || 0);
@@ -1872,7 +1985,7 @@
       if (!email || !password) { alert('Complete correo y contraseña.'); return; }
       await _supabase.auth.signUp({ email: email, password: password });
       await _supabase.from('usuarios_pos').upsert({ email: email, nombre: nombre, rol: 'vendedor', estado: 'activo' }, { onConflict: 'email' });
-      alert('¡Usuario creado!');
+      alert('✓ ¡Usuario creado con éxito!');
       mostrarSubPestanaPermisos('lista');
     }
 
@@ -1916,7 +2029,7 @@
         eliminarVentas: document.getElementById('chk_eliminarVentas').checked
       };
       await _supabase.from('usuarios_pos').update({ modulos_activos: modulos }).eq('email', usuarioEditandoPermisos);
-      alert('¡Permisos guardados!');
+      alert('✓ ¡Permisos guardados con éxito!');
     }
 
     async function cargarCatalogoLogrosAdmin() {
@@ -2091,7 +2204,7 @@
       for (let i of itemsCompraActual) {
         await _supabase.from('compras_detalles').insert([{ compra_id: compraId, codigo_barras: i.codigo, nombre_producto: i.nombre, cantidad: i.cantidad, precio_costo_unitario: i.costoUnitario, subtotal: i.cantidad * i.costoUnitario }]);
       }
-      alert('¡Factura guardada!');
+      alert('✓ ¡Factura guardada con éxito!');
       cerrarModalCompra();
       await sumarExperienciaVendedor(usuarioActualEmail, 100);
     }
@@ -2129,7 +2242,7 @@
     }
     async function ejecutarImportacionInteligente() {
       for (let p of productosParaCargarMasiva) await _supabase.from('productos').insert([p]);
-      alert('¡Carga masiva completada!');
+      alert('✓ ¡Carga masiva completada!');
       cerrarModalCargaMasiva();
       await cargarProductos();
     }
@@ -2215,7 +2328,7 @@
       };
       if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
       else await _supabase.from('productos').insert([datos]);
-      alert('¡Guardado!');
+      alert('✓ ¡Guardado con éxito!');
       cerrarModalProducto();
       await cargarProductos();
     }
@@ -2288,7 +2401,7 @@
       const operador = obtenerAtendidoPor(usuarioActualEmail);
       const { data } = await _supabase.from('ventas').insert([{ total, cliente: clienteNombre, atendido_por: operador, fecha: fechaStr, hora: horaStr, detalles }]).select();
       
-      alert('¡Venta registrada con éxito!');
+      alert('✓ ¡Venta registrada con éxito!');
       await sumarExperienciaVendedor(usuarioActualEmail, 35);
       imprimirTicketConOperadorFijo(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${data ? data[0].id : 1}`, clienteNombre, operador);
       carrito = [];
@@ -2301,10 +2414,26 @@
       document.getElementById('ticketAtendidoPor').textContent = operador;
       document.getElementById('ticketCliente').textContent = cliente;
       const c = document.getElementById('ticketItems'); c.innerHTML = '';
-      items.forEach(i => { c.innerHTML += `<div class="flex justify-between"><span>${i.cantidad}x ${i.nombre}</span><span>$${(i.precio*i.cantidad).toFixed(2)}</span></div>`; });
+      
+      items.forEach(i => {
+        const subtotalItem = i.precio * i.cantidad;
+        c.innerHTML += `
+          <div class="flex justify-between items-start text-[10px] mb-1">
+            <span class="w-[15%] text-left font-semibold">${i.cantidad}x</span>
+            <span class="w-[43%] text-left px-0.5 break-words">${i.nombre}</span>
+            <span class="w-[20%] text-right">$${i.precio.toFixed(2)}</span>
+            <span class="w-[22%] text-right font-bold">$${subtotalItem.toFixed(2)}</span>
+          </div>
+        `;
+      });
+
       document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
       const w = window.open('', '_blank', 'width=380,height=600');
-      if (w) { w.document.write(`<html><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); w.document.close(); setTimeout(() => w.print(), 300); }
+      if (w) { 
+        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
+        w.document.close(); 
+        setTimeout(() => w.print(), 300); 
+      }
     }
 
     async function abrirModalHistorial() {
@@ -2333,7 +2462,7 @@
     function cerrarModalHistorial() { document.getElementById('modalHistorial').classList.add('hidden'); }
 
     // ==========================================
-    // AUDITORÍA DE BORRADO DE VENTAS (MÓDULO INTEGRADO)
+    // AUDITORÍA DE BORRADO DE VENTAS
     // ==========================================
     async function eliminarVentaRegistroConAuditoria(idVenta) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
@@ -2354,7 +2483,6 @@
         return;
       }
 
-      // Obtener los datos de la venta antes de borrarla
       const { data: ventaData, error: errorFetch } = await _supabase
         .from('ventas')
         .select('*')
@@ -2375,7 +2503,6 @@
       try {
         const { fechaStr, horaStr } = obtenerFechaHoraLocal();
         
-        // 1. Insertar el respaldo en la tabla de auditoría
         const { error: errorAuditoria } = await _supabase
           .from('auditoria_eliminaciones_ventas')
           .insert([{
@@ -2390,7 +2517,6 @@
 
         if (errorAuditoria) throw errorAuditoria;
 
-        // 2. Ejecutar el borrado definitivo en la tabla de ventas
         const { error: errorDelete } = await _supabase
           .from('ventas')
           .delete()
@@ -2429,7 +2555,7 @@
       const pMin = parseFloat(document.getElementById('nuevoPrecioInput').value);
       if (!id || isNaN(pMin)) return;
       await _supabase.from('productos').update({ precio: pMin }).eq('id', id);
-      alert('¡Precio actualizado!');
+      alert('✓ ¡Precio actualizado con éxito!');
       cerrarModalPrecios();
       await cargarProductos();
     }
