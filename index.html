@@ -113,7 +113,7 @@
       <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl flex flex-col justify-between border border-slate-200 dark:border-slate-700 h-[560px] transition-colors">
         <div>
           <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-3">Venta Actual</h3>
-          <div id="carritoList" class="space-y-2 overflow-y-auto max-h-[350px] pr-1 mb-4">
+          <div id="carritoList" class="space-y-3 overflow-y-auto max-h-[350px] pr-1 mb-4">
             <p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>
           </div>
         </div>
@@ -1425,6 +1425,11 @@
       return nombre.charAt(0).toUpperCase() + nombre.slice(1);
     }
 
+    function esUsuarioAdmin() {
+      const emailLower = (usuarioActualEmail || '').toLowerCase();
+      return emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
+    }
+
     function obtenerCodigoBarras(prod) { return prod.codigo_barras || prod.codigo_barra || ''; }
     function obtenerPrecioMayorista(prod) { return parseFloat(prod.precio_mayorista || prod.precio_mayorist || 0); }
     function obtenerCantMayorista(prod) { return parseInt(prod.cantidad_mayorista || prod.cantidad_mayor || 6); }
@@ -2145,15 +2150,69 @@
       actualizarCarritoVisual();
     }
 
+    function actualizarCantidadItemCarrito(idUnico, nuevaCant) {
+      const item = carrito.find(i => i.idUnico === idUnico);
+      if (!item) return;
+      const val = parseInt(nuevaCant);
+      item.cantidad = isNaN(val) || val < 1 ? 1 : val;
+      actualizarCarritoVisual();
+    }
+
+    function actualizarPrecioItemCarrito(idUnico, nuevoPrecio) {
+      const item = carrito.find(i => i.idUnico === idUnico);
+      if (!item) return;
+      const val = parseFloat(nuevoPrecio);
+      item.precioPersonalizado = isNaN(val) ? null : val;
+      actualizarCarritoVisual();
+    }
+
     function actualizarCarritoVisual() {
       const contenedor = document.getElementById('carritoList');
       const totalSpan = document.getElementById('totalVenta');
-      if (carrito.length === 0) { contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>'; totalSpan.textContent = '$0.00'; return; }
+      const esAdmin = esUsuarioAdmin();
+
+      if (carrito.length === 0) { 
+        contenedor.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">El carrito está vacío</p>'; 
+        totalSpan.textContent = '$0.00'; 
+        return; 
+      }
+
       let total = 0, html = '';
       carrito.forEach((i, idx) => {
-        let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
-        total += p * i.cantidad;
-        html += `<div class="flex justify-between items-center bg-white dark:bg-slate-800 p-2 rounded border text-sm"><span>${i.nombre} (${i.cantidad}x)</span><b>$${(p * i.cantidad).toFixed(2)}</b><button onclick="carrito.splice(${idx},1);actualizarCarritoVisual()" class="text-rose-500 font-bold">✕</button></div>`;
+        let esMayoristaActivo = i.precioMayorista > 0 && i.cantidad >= i.cantMayorista;
+        let precioAplicado = i.precioPersonalizado !== null ? i.precioPersonalizado : (esMayoristaActivo ? i.precioMayorista : i.precioMinorista);
+        total += precioAplicado * i.cantidad;
+
+        const badgeTipo = esMayoristaActivo 
+          ? `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[10px] px-2 py-0.5 rounded">MAYORISTA</span>` 
+          : `<span class="bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded">MINORISTA</span>`;
+
+        const inputPrecioHtml = esAdmin 
+          ? `<input type="number" step="0.01" value="${precioAplicado.toFixed(2)}" onchange="actualizarPrecioItemCarrito('${i.idUnico}', this.value)" class="w-24 px-1 py-0.5 text-xs border rounded bg-white dark:bg-slate-900 font-bold text-indigo-600" title="Modificar precio unitario (Admin)"> c/u`
+          : `$${precioAplicado.toFixed(2)} c/u`;
+
+        html += `
+          <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <p class="font-bold text-slate-800 dark:text-white text-xs">${i.nombre}</p>
+                <div class="mt-1 flex items-center gap-2">
+                  ${badgeTipo}
+                  <span class="text-xs text-slate-600 dark:text-slate-300">${inputPrecioHtml}</span>
+                </div>
+              </div>
+              <button onclick="carrito.splice(${idx},1);actualizarCarritoVisual()" class="text-rose-500 hover:text-rose-700 font-bold text-sm px-1">✕</button>
+            </div>
+            
+            <div class="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-700 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="font-semibold text-slate-500">Cant:</span>
+                <input type="number" min="1" value="${i.cantidad}" onchange="actualizarCantidadItemCarrito('${i.idUnico}', this.value)" class="w-16 px-2 py-1 text-center border rounded bg-white dark:bg-slate-900 font-bold text-slate-800 dark:text-white">
+              </div>
+              <span class="font-extrabold text-slate-900 dark:text-white text-sm">$${(precioAplicado * i.cantidad).toFixed(2)}</span>
+            </div>
+          </div>
+        `;
       });
       contenedor.innerHTML = html;
       totalSpan.textContent = '$' + total.toFixed(2);
@@ -2391,7 +2450,8 @@
       let total = 0;
       const { fechaStr, horaStr } = obtenerFechaHoraLocal();
       const detalles = carrito.map(i => {
-        let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
+        let esMayoristaActivo = i.precioMayorista > 0 && i.cantidad >= i.cantMayorista;
+        let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (esMayoristaActivo ? i.precioMayorista : i.precioMinorista);
         total += p * i.cantidad;
         return { 
           idUnico: i.idUnico, 
