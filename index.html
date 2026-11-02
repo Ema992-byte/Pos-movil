@@ -793,7 +793,7 @@
       <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-1">Datos del Cliente</h3>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Ingrese el nombre del cliente para figurar en el ticket (opcional):</p>
       
-      <input type="text" id="nombreClienteInput" placeholder="Ej: Juan Pérez / Consumidor Final" onkeypress="detectarEnterCliente(event)"
+      <input type="text" id="nombreClienteInput" placeholder="Ej: Juan Perez / Consumidor Final" onkeypress="detectarEnterCliente(event)"
         class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg text-sm mb-4 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
 
       <div class="flex gap-2">
@@ -1009,54 +1009,23 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (JUSTIFICADA Y OPTIMIZADA) -->
-  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight p-1">
-    <div class="text-center font-black text-xl tracking-widest mb-0.5">GO! POS</div>
-    <div class="text-center text-[10px] text-slate-800 mb-1.5 font-bold">PUNTO DE VENTA MÓVIL</div>
-    
-    <div class="border-t border-b border-black py-0.5 my-1.5 text-center font-bold tracking-widest text-[10px]">
-      TICKET DE COMPRA
-    </div>
-    
-    <div class="flex justify-between text-[10px] mb-0.5">
-      <span class="font-bold">Fecha/Hora:</span>
-      <span id="ticketFecha">--/--/---- --:--</span>
-    </div>
-    <div class="flex justify-between text-[10px] mb-0.5">
-      <span class="font-bold">Comprobante:</span>
-      <span id="ticketIdVenta">Ticket #---</span>
-    </div>
-    <div class="flex justify-between text-[10px] mb-0.5">
-      <span class="font-bold">Atendido por:</span>
-      <span id="ticketAtendidoPor">E.J</span>
-    </div>
-    <div class="flex justify-between text-[10px] mb-2">
-      <span class="font-bold">Cliente:</span>
-      <span id="ticketCliente">Consumidor Final</span>
-    </div>
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (JUSTIFICADA Y EXACTA AL FORMATO SOLICITADO) -->
+  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight p-1 whitespace-pre">--------------------------------
+         TICKET DE VENTA
+--------------------------------
+Fecha: <span id="ticketFecha">--/--/----</span>  Hora: <span id="ticketHora">--:--</span>
+Cajero: <span id="ticketAtendidoPor">---</span>
 
-    <div class="border-t border-black pt-1 pb-1 flex justify-between font-bold text-[10px] border-dashed">
-      <span class="w-[15%] text-left">Cant</span>
-      <span class="w-[43%] text-left px-0.5">Descripción</span>
-      <span class="w-[20%] text-right">P.Unit</span>
-      <span class="w-[22%] text-right">Subtotal</span>
-    </div>
-    <div class="border-b border-black mb-1.5"></div>
-
-    <div id="ticketItems" class="space-y-1 text-[10px]"></div>
-
-    <div class="border-t border-dashed border-black my-2"></div>
-
-    <div class="flex justify-between font-extrabold text-sm">
-      <span>TOTAL A PAGAR</span>
-      <span id="ticketTotal">$0.00</span>
-    </div>
-
-    <div class="border-t border-dashed border-black my-2"></div>
-
-    <div class="text-center text-[10px] font-bold mt-2">¡GRACIAS POR SU VISITA!</div>
-    <div class="text-center text-[9px] text-slate-600 mt-0.5">Comprobante no válido como factura fiscal</div>
-  </div>
+Cliente: <span id="ticketCliente">Consumidor Final</span>
+--------------------------------
+ CANT  DESCRIPCION          P.U.    TOTAL
+--------------------------------
+<div id="ticketItems"></div>
+--------------------------------
+TOTAL:                      <span id="ticketTotal">$0.00</span>
+--------------------------------
+      Gracias por su visita
+    en formato 80 mm Justificado</div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
   <script>
@@ -1432,7 +1401,7 @@
 
     function obtenerAtendidoPor(email) {
       const emailLower = (email || '').toLowerCase();
-      if (emailLower.includes('admini')) return 'I.S.';
+      if (emailLower.includes('admini')) return 'Maria G';
       if (emailLower.includes('admine')) return 'E.S.';
       let nombre = emailLower.split('@')[0];
       return nombre.charAt(0).toUpperCase() + nombre.slice(1);
@@ -2373,7 +2342,7 @@
 
     function obtenerFechaHoraLocal() {
       const d = new Date();
-      return { fechaStr: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`, horaStr: `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` };
+      return { fechaStr: `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`, horaStr: `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` };
     }
 
     function iniciarProcesoCobro(modo) {
@@ -2391,46 +2360,46 @@
 
     async function cobrarVentaFinal(clienteNombre) {
       let total = 0;
+      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
       const detalles = carrito.map(i => {
         let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
         total += p * i.cantidad;
         return { idUnico: i.idUnico, nombre: i.nombre, precio: p, cantidad: i.cantidad, costoUnitario: i.costoUnitario || 0 };
       });
 
-      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
+      const [anio, mes, dia] = new Date().toISOString().split('T')[0].split('-');
+      const fechaBaseDatos = `${anio}-${mes}-${dia}`;
       const operador = obtenerAtendidoPor(usuarioActualEmail);
-      const { data } = await _supabase.from('ventas').insert([{ total, cliente: clienteNombre, atendido_por: operador, fecha: fechaStr, hora: horaStr, detalles }]).select();
+      const { data } = await _supabase.from('ventas').insert([{ total, cliente: clienteNombre, atendido_por: operador, fecha: fechaBaseDatos, hora: horaStr, detalles }]).select();
       
       alert('✓ ¡Venta registrada con éxito!');
       await sumarExperienciaVendedor(usuarioActualEmail, 35);
-      imprimirTicketConOperadorFijo(detalles, total, `${fechaStr} ${horaStr}`, `Ticket #${data ? data[0].id : 1}`, clienteNombre, operador);
+      imprimirTicketConOperadorFijo(detalles, total, fechaStr, horaStr, clienteNombre, operador);
       carrito = [];
       actualizarCarritoVisual();
     }
 
-    function imprimirTicketConOperadorFijo(items, total, fecha, ticket, cliente, operador) {
+    function imprimirTicketConOperadorFijo(items, total, fecha, hora, cliente, operador) {
       document.getElementById('ticketFecha').textContent = fecha;
-      document.getElementById('ticketIdVenta').textContent = ticket;
+      document.getElementById('ticketHora').textContent = hora;
       document.getElementById('ticketAtendidoPor').textContent = operador;
       document.getElementById('ticketCliente').textContent = cliente;
       const c = document.getElementById('ticketItems'); c.innerHTML = '';
       
       items.forEach(i => {
-        const subtotalItem = i.precio * i.cantidad;
-        c.innerHTML += `
-          <div class="flex justify-between items-start text-[10px] mb-1">
-            <span class="w-[15%] text-left font-semibold">${i.cantidad}x</span>
-            <span class="w-[43%] text-left px-0.5 break-words">${i.nombre}</span>
-            <span class="w-[20%] text-right">$${i.precio.toFixed(2)}</span>
-            <span class="w-[22%] text-right font-bold">$${subtotalItem.toFixed(2)}</span>
-          </div>
-        `;
+        const cantStr = String(i.cantidad).padEnd(5, ' ');
+        const descStr = (i.nombre || 'Articulo').padEnd(20, ' ').substring(0, 20);
+        const puStr = ('$' + i.precio.toFixed(0)).padStart(7, ' ');
+        const totStr = ('$' + (i.precio * i.cantidad).toFixed(2)).padStart(9, ' ');
+        c.innerHTML += `${cantStr} ${descStr} ${puStr} ${totStr}\n`;
       });
 
-      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
+      const totalFormateado = ('$' + total.toFixed(2)).padStart(9, ' ');
+      document.getElementById('ticketTotal').textContent = totalFormateado;
+      
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
+        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: monospace; white-space: pre; font-size: 11px; }</style></head><body>${document.getElementById('ticketImpresion').innerText}</body></html>`); 
         w.document.close(); 
         setTimeout(() => w.print(), 300); 
       }
@@ -2454,7 +2423,7 @@
       let h = '';
       data.forEach(v => {
         const btnDel = tienePermisoEliminar ? `<button onclick="eliminarVentaRegistroConAuditoria(${v.id})" class="bg-rose-600 text-white px-2 py-1 rounded font-bold text-[10px]">🗑️ Eliminar</button>` : '';
-        h += `<div class="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-2 rounded border text-xs"><span><b>#${v.id}</b> - $${v.total}</span><div class="flex gap-1"><button onclick="reimprimirTicketAnterior(${v.id}, '${v.fecha} ${v.hora}', ${v.total}, '${v.cliente}')" class="bg-sky-600 text-white px-2 py-1 rounded text-[10px]">🖨️</button>${btnDel}</div></div>`;
+        h += `<div class="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-2 rounded border text-xs"><span><b>#${v.id}</b> - $${v.total}</span><div class="flex gap-1"><button onclick="reimprimirTicketAnterior(${v.id}, '${v.fecha}', '${v.hora}', ${v.total}, '${v.cliente}', '${v.atendido_por}')" class="bg-sky-600 text-white px-2 py-1 rounded text-[10px]">🖨️</button>${btnDel}</div></div>`;
       });
       c.innerHTML = h;
     }
@@ -2531,9 +2500,11 @@
       }
     }
 
-    async function reimprimirTicketAnterior(id, fecha, total, cliente) {
+    async function reimprimirTicketAnterior(id, fechaDb, hora, total, cliente, atendidoPor) {
       const { data } = await _supabase.from('ventas').select('detalles, atendido_por').eq('id', id).single();
-      imprimirTicketConOperadorFijo(data.detalles || [], total, fecha, `Ticket #${id}`, cliente, data.atendido_por || 'E.J');
+      const partesFecha = fechaDb.split('-');
+      const fechaFormateada = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fechaDb;
+      imprimirTicketConOperadorFijo(data.detalles || [], total, fechaFormateada, hora, cliente, atendidoPor || data.atendido_por || 'Maria G');
     }
 
     function abrirModalPrecios() { document.getElementById('modalPrecios').classList.remove('hidden'); }
