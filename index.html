@@ -1009,8 +1009,8 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (JUSTIFICADA Y EXACTA AL FORMATO SOLICITADO) -->
-  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[72mm] mx-auto bg-white text-black leading-tight p-1 whitespace-pre">--------------------------------
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (JUSTIFICADA Y EXACTA 80MM) -->
+  <div id="ticketImpresion" class="hidden font-mono text-[11px] w-[80mm] max-w-[80mm] mx-auto bg-white text-black leading-tight p-1 whitespace-pre box-border">--------------------------------
          TICKET DE VENTA
 --------------------------------
 Fecha: <span id="ticketFecha">--/--/----</span>  Hora: <span id="ticketHora">--:--</span>
@@ -1020,12 +1020,11 @@ Cliente: <span id="ticketCliente">Consumidor Final</span>
 --------------------------------
  CANT  DESCRIPCION          P.U.    TOTAL
 --------------------------------
-<div id="ticketItems"></div>
+<div id="ticketItems" style="word-break: break-all; white-space: pre-wrap;"></div>
 --------------------------------
 TOTAL:                      <span id="ticketTotal">$0.00</span>
 --------------------------------
-      Gracias por su visita
-    en formato 80 mm Justificado</div>
+      Gracias por su visita</div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
   <script>
@@ -1181,7 +1180,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
 
     async function validarAccionConAlerta(accion) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
       if (esAdminEspecial) return true;
 
       try {
@@ -1297,7 +1296,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
         const emailLower = (usuarioActualEmail || '').toLowerCase();
-        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
 
         let productosValidos = data;
         if (!esAdminEspecial) {
@@ -1318,7 +1317,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
 
     async function ejecutarAccionModulo(accion) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
 
       if (accion === 'gestionarPermisos') {
         if (!esAdminEspecial) {
@@ -1399,10 +1398,12 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       }
     });
 
+    // 1) INICIALES DE ADMINISTRADORES Y CAJEROS
     function obtenerAtendidoPor(email) {
       const emailLower = (email || '').toLowerCase();
-      if (emailLower.includes('admini')) return 'Maria G';
-      if (emailLower.includes('admine')) return 'E.S.';
+      if (emailLower === 'admini@pos.com') return 'I.S.';
+      if (emailLower === 'admine@pos.com') return 'E.S.';
+      if (emailLower === 'adminr@pos.com') return 'R.S.';
       let nombre = emailLower.split('@')[0];
       return nombre.charAt(0).toUpperCase() + nombre.slice(1);
     }
@@ -1472,7 +1473,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
 
     async function verificarYAplicarPermisos(email) {
       const emailLower = email.toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
       const contenedorAdminSidebar = document.getElementById('contenedorMenuAdminSidebar');
       const botonesModulos = {
         'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
@@ -2032,7 +2033,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
         const emailLower = (usuarioActualEmail || '').toLowerCase();
-        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
         todosLosProductos = esAdminEspecial ? data : data.filter(p => p.en_catalogo_virtual !== false);
         iniciarSesionExitosa(usuarioActualEmail, todosLosProductos);
       }
@@ -2113,7 +2114,17 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       const cant = parseInt(document.getElementById(`qty_input_${idUnico}`)?.value || 1);
       const existe = carrito.find(i => i.idUnico === idUnico);
       if (existe) existe.cantidad += cant;
-      else carrito.push({ idUnico, nombre: prod.nombre, precioMinorista: prod.precio, precioMayorista: obtenerPrecioMayorista(prod), cantMayorista: obtenerCantMayorista(prod), costoUnitario: obtenerCostoProducto(prod), precioPersonalizado: null, cantidad: cant });
+      else carrito.push({ 
+        idUnico, 
+        nombre: prod.nombre, 
+        precioMinorista: prod.precio, 
+        precioMayorista: obtenerPrecioMayorista(prod), 
+        cantMayorista: obtenerCantMayorista(prod), 
+        unidadesBulto: obtenerUnidadesPorBulto(prod), 
+        costoUnitario: obtenerCostoProducto(prod), 
+        precioPersonalizado: null, 
+        cantidad: cant 
+      });
       actualizarCarritoVisual();
     }
 
@@ -2293,6 +2304,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
         precio: parseFloat(document.getElementById('nuevoVenta').value) || 0,
         precio_mayorista: parseFloat(document.getElementById('nuevoMayorista').value) || null,
         cantidad_mayorista: parseInt(document.getElementById('nuevoCantMayor').value) || 6,
+        unidades_por_bulto: parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0,
         activo: true
       };
       if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
@@ -2364,7 +2376,14 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       const detalles = carrito.map(i => {
         let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (i.precioMayorista > 0 && i.cantidad >= i.cantMayorista ? i.precioMayorista : i.precioMinorista);
         total += p * i.cantidad;
-        return { idUnico: i.idUnico, nombre: i.nombre, precio: p, cantidad: i.cantidad, costoUnitario: i.costoUnitario || 0 };
+        return { 
+          idUnico: i.idUnico, 
+          nombre: i.nombre, 
+          precio: p, 
+          cantidad: i.cantidad, 
+          unidadesBulto: i.unidadesBulto || 0,
+          costoUnitario: i.costoUnitario || 0 
+        };
       });
 
       const [anio, mes, dia] = new Date().toISOString().split('T')[0].split('-');
@@ -2379,19 +2398,32 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       actualizarCarritoVisual();
     }
 
+    // 2) DETECCIÓN DE BULTOS Y 3) DESCRIPCIÓN MULTILÍNEA COMPLETA PARA 80MM
     function imprimirTicketConOperadorFijo(items, total, fecha, hora, cliente, operador) {
       document.getElementById('ticketFecha').textContent = fecha;
       document.getElementById('ticketHora').textContent = hora;
       document.getElementById('ticketAtendidoPor').textContent = operador;
       document.getElementById('ticketCliente').textContent = cliente;
-      const c = document.getElementById('ticketItems'); c.innerHTML = '';
+      const c = document.getElementById('ticketItems'); 
+      c.innerHTML = '';
       
       items.forEach(i => {
-        const cantStr = String(i.cantidad).padEnd(5, ' ');
-        const descStr = (i.nombre || 'Articulo').padEnd(20, ' ').substring(0, 20);
+        let cantidadTexto = String(i.cantidad);
+        if (i.unidadesBulto && i.unidadesBulto > 0) {
+          const bultosCompletos = Math.floor(i.cantidad / i.unidadesBulto);
+          if (bultosCompletos > 0) {
+            cantidadTexto = `${bultosCompletos} bulto${bultosCompletos > 1 ? 's' : ''}`;
+          }
+        }
+
+        const cantStr = cantidadTexto.padEnd(5, ' ');
         const puStr = ('$' + i.precio.toFixed(0)).padStart(7, ' ');
         const totStr = ('$' + (i.precio * i.cantidad).toFixed(2)).padStart(9, ' ');
-        c.innerHTML += `${cantStr} ${descStr} ${puStr} ${totStr}\n`;
+        
+        // El ancho útil para la descripción en un ticket de 80mm es de aproximadamente 14-16 caracteres antes de ajustar a múltiples renglones
+        const descripcionCompleta = i.nombre || 'Articulo';
+        
+        c.innerHTML += `${cantStr} ${descripcionCompleta} ${puStr} ${totStr}\n`;
       });
 
       const totalFormateado = ('$' + total.toFixed(2)).padStart(9, ' ');
@@ -2399,7 +2431,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: monospace; white-space: pre; font-size: 11px; }</style></head><body>${document.getElementById('ticketImpresion').innerText}</body></html>`); 
+        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: monospace; white-space: pre-wrap; word-break: break-all; font-size: 11px; width: 80mm; max-width: 80mm; box-sizing: border-box; margin: 0 auto; }</style></head><body>${document.getElementById('ticketImpresion').innerText}</body></html>`); 
         w.document.close(); 
         setTimeout(() => w.print(), 300); 
       }
@@ -2411,7 +2443,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
       c.innerHTML = 'Cargando...';
 
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
       let tienePermisoEliminar = esAdminEspecial;
       if (!tienePermisoEliminar) {
         const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
@@ -2435,7 +2467,7 @@ TOTAL:                      <span id="ticketTotal">$0.00</span>
     // ==========================================
     async function eliminarVentaRegistroConAuditoria(idVenta) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
-      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com';
+      const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
       
       let tienePermisoEliminar = esAdminEspecial;
       if (!tienePermisoEliminar) {
