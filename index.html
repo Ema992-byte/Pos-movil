@@ -1000,15 +1000,15 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (COURIER NEW, INTERLINEADO METADATOS 6px y BORDER-DASHED 4px) -->
-  <div id="ticketImpresion" class="hidden" style="font-family: 'Courier New', Courier, monospace; font-size: 9px; width: 78mm; max-width: 78mm; margin: 0 auto; background: #ffffff; color: #000000; line-height: 1.15; padding: 2mm; box-sizing: border-box;">
-    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 2px;">GO!</div>
-    <div style="text-align: center; font-size: 8.5px; margin-bottom: 4px;">Punto de Venta Móvil</div>
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (APTOS, INTERLINEADO METADATOS 6px y BORDER-DASHED 4px) -->
+  <div id="ticketImpresion" class="hidden" style="font-family: 'Aptos', 'Calibri', sans-serif; font-size: 10px; width: 78mm; max-width: 78mm; margin: 0 auto; background: #ffffff; color: #000000; line-height: 1.15; padding: 2mm; box-sizing: border-box;">
+    <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 2px;">GO!</div>
+    <div style="text-align: center; font-size: 9px; margin-bottom: 4px;">Punto de Venta Móvil</div>
     
     <!-- Línea Punteada con separación 4px -->
     <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
     
-    <div style="text-align: center; font-weight: bold; font-size: 10px; margin: 2px 0;">TICKET DE COMPRA</div>
+    <div style="text-align: center; font-weight: bold; font-size: 11px; margin: 2px 0;">TICKET DE COMPRA</div>
     
     <!-- Línea Punteada con separación 4px -->
     <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
@@ -1022,7 +1022,7 @@
     <!-- Línea Punteada con separación 4px -->
     <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
     
-    <table style="width: 100%; font-size: 9px; border-collapse: collapse; table-layout: fixed; line-height: 1.15;">
+    <table style="width: 100%; font-size: 10px; border-collapse: collapse; table-layout: fixed; line-height: 1.15;">
       <thead>
         <tr style="border-bottom: 1px dashed #000;">
           <th style="text-align: left; width: 18%; padding: 2px 0;">Cant.</th>
@@ -1039,7 +1039,7 @@
     <!-- Línea Punteada con separación 4px -->
     <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
     
-    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; margin: 4px 0;">
+    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px; margin: 4px 0;">
       <span>TOTAL</span>
       <span id="ticketTotal">$0.00</span>
     </div>
@@ -1047,7 +1047,7 @@
     <!-- Línea Punteada con separación 4px -->
     <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
     
-    <div style="text-align: center; font-size: 8.5px; margin-top: 4px; font-weight: bold;">¡GRACIAS POR SU VISITA!</div>
+    <div style="text-align: center; font-size: 9px; margin-top: 4px; font-weight: bold;">¡GRACIAS POR SU VISITA!</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
@@ -2482,7 +2482,7 @@
       });
     }
 
-    // IMPRESIÓN OPTIMIZADA CON COURIER NEW, INTERLINEADO Y LÍNEAS SEPARADORAS
+    // IMPRESIÓN OPTIMIZADA CON APTOS, INTERLINEADO Y LÍNEAS SEPARADORAS
     function imprimirTicketConOperadorFijo(items, total, fechaHoraStr, cliente, operador, ticketId) {
       document.getElementById('ticketFechaHora').textContent = fechaHoraStr;
       document.getElementById('ticketNro').textContent = `Ticket #${ticketId}`;
@@ -2521,7 +2521,7 @@
       
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: 'Courier New', Courier, monospace; font-size: 9px; width: 78mm; max-width: 78mm; box-sizing: border-box; margin: 0 auto; background: #fff; color: #000; line-height: 1.15; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
+        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: 'Aptos', 'Calibri', sans-serif; font-size: 10px; width: 78mm; max-width: 78mm; box-sizing: border-box; margin: 0 auto; background: #fff; color: #000; line-height: 1.15; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
         w.document.close(); 
         setTimeout(() => w.print(), 300); 
       }
