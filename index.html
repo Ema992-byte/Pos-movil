@@ -1000,18 +1000,28 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (MONOSPACE, ESPACIADO Y FUENTE -2pt) -->
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (COURIER NEW, INTERLINEADO METADATOS 6px y BORDER-DASHED 4px) -->
   <div id="ticketImpresion" class="hidden" style="font-family: 'Courier New', Courier, monospace; font-size: 9px; width: 78mm; max-width: 78mm; margin: 0 auto; background: #ffffff; color: #000000; line-height: 1.15; padding: 2mm; box-sizing: border-box;">
     <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 2px;">GO!</div>
     <div style="text-align: center; font-size: 8.5px; margin-bottom: 4px;">Punto de Venta Móvil</div>
-    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    
+    <!-- Línea Punteada con separación 4px -->
+    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+    
     <div style="text-align: center; font-weight: bold; font-size: 10px; margin: 2px 0;">TICKET DE COMPRA</div>
-    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Fecha/Hora:</span> <span id="ticketFechaHora">--/--/---- --:--</span></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Comprobante:</span> <span id="ticketNro">Ticket #--</span></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Atendido por:</span> <span id="ticketAtendidoPor">---</span></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;"><span>Cliente:</span> <span id="ticketCliente">Consumidor Final</span></div>
-    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    
+    <!-- Línea Punteada con separación 4px -->
+    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+    
+    <!-- Metadatos con interlineado/separación de 6px -->
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Fecha/Hora:</span> <span id="ticketFechaHora">--/--/---- --:--</span></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Comprobante:</span> <span id="ticketNro">Ticket #--</span></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Atendido por:</span> <span id="ticketAtendidoPor">---</span></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Cliente:</span> <span id="ticketCliente">Consumidor Final</span></div>
+    
+    <!-- Línea Punteada con separación 4px -->
+    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+    
     <table style="width: 100%; font-size: 9px; border-collapse: collapse; table-layout: fixed; line-height: 1.15;">
       <thead>
         <tr style="border-bottom: 1px dashed #000;">
@@ -1025,12 +1035,18 @@
         <!-- Ítems inyectados dinámicamente -->
       </tbody>
     </table>
-    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; margin: 3px 0;">
+    
+    <!-- Línea Punteada con separación 4px -->
+    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+    
+    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; margin: 4px 0;">
       <span>TOTAL</span>
       <span id="ticketTotal">$0.00</span>
     </div>
-    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    
+    <!-- Línea Punteada con separación 4px -->
+    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+    
     <div style="text-align: center; font-size: 8.5px; margin-top: 4px; font-weight: bold;">¡GRACIAS POR SU VISITA!</div>
   </div>
 
@@ -1364,7 +1380,7 @@
       const banner = document.getElementById('estadoRed');
       if (navigator.onLine) {
         banner.className = 'w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded bg-emerald-100 text-emerald-800';
-        banner.textContent = '🟢 Conectado a Internet (Sincronizado)';
+        banner.textContent = '🟢 Conectado à Internet (Sincronizado)';
         banner.classList.remove('hidden');
       } else {
         banner.className = 'w-full max-w-6xl mb-2 text-center text-xs font-bold py-1 rounded bg-amber-100 text-amber-800';
@@ -2466,7 +2482,7 @@
       });
     }
 
-    // IMPRESIÓN OPTIMIZADA CON FUENTE MONOSPACE, -2pt Y ALINEACIÓN DE COLUMNAS
+    // IMPRESIÓN OPTIMIZADA CON COURIER NEW, INTERLINEADO Y LÍNEAS SEPARADORAS
     function imprimirTicketConOperadorFijo(items, total, fechaHoraStr, cliente, operador, ticketId) {
       document.getElementById('ticketFechaHora').textContent = fechaHoraStr;
       document.getElementById('ticketNro').textContent = `Ticket #${ticketId}`;
