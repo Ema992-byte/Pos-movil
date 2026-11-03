@@ -1009,23 +1009,23 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM CORREGIDA Y LIMPIA -->
-  <div id="ticketImpresion" class="hidden" style="font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 78mm; max-width: 78mm; margin: 0 auto; background: #ffffff; color: #000000; line-height: 1.2; padding: 2mm; box-sizing: border-box;">
-    <div style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 2px;">GO!</div>
-    <div style="text-align: center; font-size: 10.5px; margin-bottom: 5px;">Punto de Venta Móvil</div>
-    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
-    <div style="text-align: center; font-weight: bold; font-size: 12px; margin: 3px 0;">TICKET DE COMPRA</div>
-    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM (FUENTE -2pt y DISEÑO LIMPIO) -->
+  <div id="ticketImpresion" class="hidden" style="font-family: 'Courier New', Courier, monospace; font-size: 9px; width: 78mm; max-width: 78mm; margin: 0 auto; background: #ffffff; color: #000000; line-height: 1.2; padding: 2mm; box-sizing: border-box;">
+    <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 2px;">GO!</div>
+    <div style="text-align: center; font-size: 8.5px; margin-bottom: 4px;">Punto de Venta Móvil</div>
+    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    <div style="text-align: center; font-weight: bold; font-size: 10px; margin: 2px 0;">TICKET DE COMPRA</div>
+    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
     <div style="display: flex; justify-content: space-between;"><span>Fecha/Hora:</span> <span id="ticketFechaHora">--/--/---- --:--</span></div>
     <div style="display: flex; justify-content: space-between;"><span>Comprobante:</span> <span id="ticketNro">Ticket #--</span></div>
     <div style="display: flex; justify-content: space-between;"><span>Atendido por:</span> <span id="ticketAtendidoPor">---</span></div>
     <div style="display: flex; justify-content: space-between;"><span>Cliente:</span> <span id="ticketCliente">Consumidor Final</span></div>
-    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
-    <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    <table style="width: 100%; font-size: 9px; border-collapse: collapse; table-layout: fixed;">
       <thead>
         <tr style="border-bottom: 1px dashed #000;">
-          <th style="text-align: left; width: 15%; padding: 2px 0;">Cant.</th>
-          <th style="text-align: left; width: 45%; padding: 2px 0;">Descripción</th>
+          <th style="text-align: left; width: 18%; padding: 2px 0;">Cant.</th>
+          <th style="text-align: left; width: 42%; padding: 2px 0;">Descripción</th>
           <th style="text-align: right; width: 20%; padding: 2px 0;">P.U.</th>
           <th style="text-align: right; width: 20%; padding: 2px 0;">Importe</th>
         </tr>
@@ -1034,13 +1034,13 @@
         <!-- Ítems inyectados dinámicamente -->
       </tbody>
     </table>
-    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin: 4px 0;">
+    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; margin: 3px 0;">
       <span>TOTAL</span>
       <span id="ticketTotal">$0.00</span>
     </div>
-    <div style="border-top: 1px dashed #000; margin: 4px 0;"></div>
-    <div style="text-align: center; font-size: 10.5px; margin-top: 6px; font-weight: bold;">¡GRACIAS POR SU VISITA!</div>
+    <div style="border-top: 1px dashed #000; margin: 3px 0;"></div>
+    <div style="text-align: center; font-size: 8.5px; margin-top: 5px; font-weight: bold;">¡GRACIAS POR SU VISITA!</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
@@ -1415,7 +1415,6 @@
       }
     });
 
-    // 1) INICIALES DE ADMINISTRADORES Y CAJEROS
     function obtenerAtendidoPor(email) {
       const emailLower = (email || '').toLowerCase();
       if (emailLower === 'admini@pos.com') return 'I.S.';
@@ -1541,9 +1540,6 @@
       document.getElementById('usuarioRol').textContent = `Perfil: Vendedor (${obtenerAtendidoPor(email)})`;
     }
 
-    // ==========================================
-    // MÓDULO PANEL DE AUDITORÍA DE TICKETS BORRADOS
-    // ==========================================
     async function abrirModalAuditoriaEliminaciones() {
       const modal = document.getElementById('modalAuditoriaEliminaciones');
       const tbody = document.getElementById('tablaAuditoriaEliminacionesItems');
@@ -1601,9 +1597,6 @@
       document.getElementById('modalAuditoriaEliminaciones').classList.add('hidden');
     }
 
-    // ==========================================
-    // MÓDULO GESTIÓN DE COSTOS, PROVEEDORES E IA
-    // ==========================================
     function abrirModalCostosProveedores() {
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
@@ -1785,9 +1778,6 @@
       }
     }
 
-    // ==========================================
-    // MÓDULO REPORTE DE VENTAS CON FILTROS Y COSTOS
-    // ==========================================
     async function abrirModalReporteVentas() {
       document.getElementById('modalReporteVentas').classList.remove('hidden');
       const hoy = new Date();
@@ -2477,7 +2467,15 @@
       actualizarCarritoVisual();
     }
 
-    // FUNCIÓN DE IMPRESIÓN ADAPTADA A ANCHO 80MM EXACTO Y LIMPIO
+    // FUNCIÓN DE FORMATEO CON SEPARADOR DE MILES (ARGENTINA)
+    function formatearMoneda(valor) {
+      return '$' + Number(valor || 0).toLocaleString('es-AR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    // FUNCIÓN DE IMPRESIÓN CON FUENTE -2pt Y SEPARADOR DE MILES EN P.U. E IMPORTE
     function imprimirTicketConOperadorFijo(items, total, fechaHoraStr, cliente, operador, ticketId) {
       document.getElementById('ticketFechaHora').textContent = fechaHoraStr;
       document.getElementById('ticketNro').textContent = `Ticket #${ticketId}`;
@@ -2498,9 +2496,9 @@
           }
         }
 
-        const nombreProd = i.nombre || 'Articulo';
-        const puStr = '$' + i.precio.toFixed(2);
-        const totStr = '$' + (i.precio * i.cantidad).toFixed(2);
+        const nombreProd = i.nombre || 'Artículo';
+        const puStr = formatearMoneda(i.precio);
+        const totStr = formatearMoneda(i.precio * i.cantidad);
         
         tbody.innerHTML += `
           <tr>
@@ -2512,11 +2510,11 @@
         `;
       });
 
-      document.getElementById('ticketTotal').textContent = '$' + total.toFixed(2);
+      document.getElementById('ticketTotal').textContent = formatearMoneda(total);
       
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 78mm; max-width: 78mm; box-sizing: border-box; margin: 0 auto; background: #fff; color: #000; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
+        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: 'Courier New', Courier, monospace; font-size: 9px; width: 78mm; max-width: 78mm; box-sizing: border-box; margin: 0 auto; background: #fff; color: #000; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
         w.document.close(); 
         setTimeout(() => w.print(), 300); 
       }
@@ -2547,9 +2545,6 @@
 
     function cerrarModalHistorial() { document.getElementById('modalHistorial').classList.add('hidden'); }
 
-    // ==========================================
-    // AUDITORÍA DE BORRADO DE VENTAS
-    // ==========================================
     async function eliminarVentaRegistroConAuditoria(idVenta) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
