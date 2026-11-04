@@ -1236,7 +1236,6 @@
       localStorage.setItem('go_historial_notif', JSON.stringify(historialNotificaciones));
       actualizarContadorBadgeNotif();
       
-      // Mostrar notificación flotante visual en pantalla
       mostrarNotificacionFlotanteUI(titulo, mensaje);
     }
 
@@ -1364,7 +1363,6 @@
         const nombreProd = nuevoProd.nombre || 'Artículo sin nombre';
         const cambios = [];
 
-        // Comparativa de campos específicos
         const pMinViejo = parseFloat(viejoProd.precio || 0);
         const pMinNuevo = parseFloat(nuevoProd.precio || 0);
         if (pMinViejo !== pMinNuevo) {
@@ -2065,20 +2063,65 @@
       mostrarSubPestanaPermisos('lista');
     }
 
+    // LISTADO Y GESTIÓN DE ESTADO DE SERVICIOS / MÓDULOS ACTIVOS O DESHABILITADOS
     async function cargarListaUsuariosPOS() {
       const contenedor = document.getElementById('contenedorListaUsuariosPos');
+      contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios y servicios...</p>';
+      
       const { data } = await _supabase.from('usuarios_pos').select('*').order('id', { ascending: true });
-      if (!data) return;
+      if (!data) {
+        contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">No hay usuarios registrados.</p>';
+        return;
+      }
+
       let html = '';
       data.forEach(u => {
-        html += `<div class="flex justify-between items-center p-2 rounded border bg-slate-50 dark:bg-slate-900 text-xs"><span><b>${u.email}</b> (${u.nombre})</span><button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 text-white px-2 py-1 rounded font-bold">Permisos</button></div>`;
+        const estadoUsuario = u.estado !== 'inactivo' ? 'activo' : 'inactivo';
+        const badgeEstado = estadoUsuario === 'activo' 
+          ? '<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[10px] px-2 py-0.5 rounded-full">🟢 Activo</span>' 
+          : '<span class="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[10px] px-2 py-0.5 rounded-full">🔴 Deshabilitado</span>';
+
+        html += `
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border bg-slate-50 dark:bg-slate-900 text-xs gap-2 shadow-sm">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-800 dark:text-white">${u.email}</span>
+                ${badgeEstado}
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">Nombre: ${u.nombre || 'N/D'} | Rol: ${u.rol || 'vendedor'}</p>
+            </div>
+            <div class="flex items-center gap-1.5 self-end sm:self-center">
+              <button onclick="toggleEstadoUsuarioServicio('${u.email}', '${estadoUsuario}')" class="${estadoUsuario === 'activo' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
+                ${estadoUsuario === 'activo' ? '🚫 Deshabilitar' : '✅ Habilitar'}
+              </button>
+              <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
+                🛡️ Permisos
+              </button>
+            </div>
+          </div>`;
       });
       contenedor.innerHTML = html;
     }
 
+    // FUNCIÓN PARA HABILITAR O DESHABILITAR EL ACCESO/SERVICIOS DE UN USUARIO
+    async function toggleEstadoUsuarioServicio(email, estadoActual) {
+      const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
+      const accionTexto = nuevoEstado === 'activo' ? 'habilitar' : 'deshabilitar';
+      
+      if (confirm(`¿Está seguro de ${accionTexto} el servicio/acceso para el usuario "${email}"?`)) {
+        const { error } = await _supabase.from('usuarios_pos').update({ estado: nuevoEstado }).eq('email', email);
+        if (error) {
+          alert('Error al actualizar el estado del servicio: ' + error.message);
+        } else {
+          alert(`✓ Servicio ${nuevoEstado === 'activo' ? 'habilitado' : 'deshabilitado'} correctamente para ${email}.`);
+          cargarListaUsuariosPOS();
+        }
+      }
+    }
+
     async function seleccionarUsuarioParaModulos(email) {
       usuarioEditandoPermisos = email;
-      document.getElementById('lblUsuarioEditando').textContent = `Editando Permisos de: ${email}`;
+      document.getElementById('lblUsuarioEditando').textContent = `Editando Módulos de: ${email}`;
       const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', email).maybeSingle();
       const m = data ? data.modulos_activos || {} : {};
       document.getElementById('chk_nuevoProducto').checked = !!m.nuevoProducto;
@@ -2561,7 +2604,6 @@
       actualizarCarritoVisual();
     }
 
-    // FORMATEO CON SEPARADOR DE MILES PARA ARGENTINA
     function formatearMoneda(valor) {
       return '$' + Number(valor || 0).toLocaleString('es-AR', {
         minimumFractionDigits: 2,
@@ -2569,7 +2611,6 @@
       });
     }
 
-    // IMPRESIÓN OPTIMIZADA CON APTOS, CANTIDADES CON "UND" Y FECHA/ HORA SEPARADAS
     function imprimirTicketConOperadorFijo(items, total, fechaStr, horaStr, cliente, operador, ticketId) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketHora').textContent = horaStr;
