@@ -1337,8 +1337,13 @@
       }
     }
 
+    let canalRealtime = null;
+
     function inicializarSuscripcionPreciosRealtime() {
-      _supabase
+      if (canalRealtime) {
+        _supabase.removeChannel(canalRealtime);
+      }
+      canalRealtime = _supabase
         .channel('cambios-productos-realtime')
         .on(
           'postgres_changes',
