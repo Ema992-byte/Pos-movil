@@ -2209,7 +2209,11 @@
         const precioMayorista = obtenerPrecioMayorista(prod);
         const cMayor = obtenerCantMayorista(prod);
 
-        const btnEditarHtml = `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 p-1 rounded-full shadow text-xs z-10">✏️</button>`;
+        const emailLower = (usuarioActualEmail || '').toLowerCase();
+        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
+        const btnEditarHtml = esAdminEspecial 
+          ? `<button onclick="abrirModalEditarProducto('${idUnico}')" title="Editar" class="absolute top-1 right-1 bg-white/80 dark:bg-slate-800/80 p-1 rounded-full shadow text-xs z-10">✏️</button>` 
+          : '';
 
         if (esLista) {
           const imagenTagList = fotoUrl ? `<img src="${fotoUrl}" alt="${prod.nombre}" class="w-12 h-12 object-contain rounded bg-white dark:bg-slate-800 p-0.5 shrink-0">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-slate-400 text-lg shrink-0">📦</div>`;
