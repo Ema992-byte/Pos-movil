@@ -1235,6 +1235,40 @@
       if (historialNotificaciones.length > 50) historialNotificaciones.pop();
       localStorage.setItem('go_historial_notif', JSON.stringify(historialNotificaciones));
       actualizarContadorBadgeNotif();
+      
+      // Mostrar notificación flotante visual en pantalla
+      mostrarNotificacionFlotanteUI(titulo, mensaje);
+    }
+
+    function mostrarNotificacionFlotanteUI(titulo, mensaje) {
+      if (!configActual.notifPrecios) return;
+      const contenedor = document.getElementById('contenedorNotificaciones');
+      if (!contenedor) return;
+
+      const toastId = 'toast_' + Date.now();
+      const toastEl = document.createElement('div');
+      toastEl.id = toastId;
+      toastEl.className = "bg-slate-900/95 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-start gap-3 pointer-events-auto transition-all transform translate-y-2 opacity-0";
+      toastEl.innerHTML = `
+        <span class="text-indigo-400 text-lg">🔔</span>
+        <div class="flex-grow">
+          <p class="font-bold text-xs">${titulo}</p>
+          <p class="text-[11px] text-slate-300 mt-0.5">${mensaje}</p>
+        </div>
+        <button onclick="document.getElementById('${toastId}').remove()" class="text-slate-400 hover:text-white text-xs font-bold">✕</button>
+      `;
+      contenedor.appendChild(toastEl);
+      
+      setTimeout(() => {
+        toastEl.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        if (document.getElementById(toastId)) {
+          toastEl.classList.add('translate-y-2', 'opacity-0');
+          setTimeout(() => toastEl.remove(), 300);
+        }
+      }, 4500);
     }
 
     function actualizarContadorBadgeNotif() {
@@ -1311,10 +1345,58 @@
           'postgres_changes',
           { event: '*', schema: 'public', table: 'productos' },
           (payload) => {
+            detectarCambiosYNotificar(payload);
             cargarProductosSilencioso();
           }
         )
         .subscribe();
+    }
+
+    function detectarCambiosYNotificar(payload) {
+      if (!configActual.notifPrecios) return;
+      const { eventType, new: nuevoProd, old: viejoProd } = payload;
+      
+      if (eventType === 'UPDATE' && nuevoProd && viejoProd) {
+        const nombreProd = nuevoProd.nombre || 'Artículo sin nombre';
+        const cambios = [];
+
+        // Comparativa de campos específicos
+        const pMinViejo = parseFloat(viejoProd.precio || 0);
+        const pMinNuevo = parseFloat(nuevoProd.precio || 0);
+        if (pMinViejo !== pMinNuevo) {
+          cambios.push(`Precio Minorista: $${pMinViejo.toFixed(2)} ➔ $${pMinNuevo.toFixed(2)}`);
+        }
+
+        const pMayViejo = parseFloat(viejoProd.precio_mayorista || viejoProd.precio_mayorist || 0);
+        const pMayNuevo = parseFloat(nuevoProd.precio_mayorista || nuevoProd.precio_mayorist || 0);
+        if (pMayViejo !== pMayNuevo) {
+          cambios.push(`Precio Mayorista: $${pMayViejo.toFixed(2)} ➔ $${pMayNuevo.toFixed(2)}`);
+        }
+
+        const stockViejo = parseInt(viejoProd.stock || 0);
+        const stockNuevo = parseInt(nuevoProd.stock || 0);
+        if (stockViejo !== stockNuevo) {
+          cambios.push(`Stock: ${stockViejo} ➔ ${stockNuevo}`);
+        }
+
+        const costoViejo = parseFloat(viejoProd["Precio Costo"] || viejoProd.precio_costo || viejoProd.costo || 0);
+        const costoNuevo = parseFloat(nuevoProd["Precio Costo"] || nuevoProd.precio_costo || nuevoProd.costo || 0);
+        if (costoViejo !== costoNuevo) {
+          cambios.push(`Precio Costo: $${costoViejo.toFixed(2)} ➔ $${costoNuevo.toFixed(2)}`);
+        }
+
+        if (cambios.length > 0) {
+          registrarNotificacionHistorial(
+            `Actualización: ${nombreProd}`,
+            cambios.join(' | ')
+          );
+        }
+      } else if (eventType === 'INSERT' && nuevoProd) {
+        registrarNotificacionHistorial(
+          `Nuevo Producto Agregado`,
+          `Se añadió "${nuevoProd.nombre || 'Artículo'}" al catálogo.`
+        );
+      }
     }
 
     async function cargarProductosSilencioso() {
