@@ -1349,7 +1349,11 @@
             cargarProductosSilencioso();
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('Error en la suscripción Realtime:', err);
+          }
+        });
     }
 
     function detectarCambiosYNotificar(payload) {
