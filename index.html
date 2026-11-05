@@ -50,7 +50,7 @@
   <!-- PANTALLA PRINCIPAL DEL POS -->
   <div id="posSection" class="hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg w-full max-w-6xl transition-colors duration-200">
     
-    <!-- BARRA SUPERIOR CON MENÚ Y CAMPANITA DE HISTORIAL -->
+    <!-- BARRA SUPERIOR CON MENÚ, AVATAR Y CAMPANITA -->
     <div class="flex justify-between items-center mb-6 border-b dark:border-slate-700 pb-4 flex-wrap gap-2">
       <div class="flex items-center gap-3">
         <!-- Botón Hamburguesa Superior Izquierda -->
@@ -62,18 +62,37 @@
           </svg>
         </button>
 
-        <div>
-          <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-wide">GO! POS PRO 📱</h1>
-          <p id="usuarioRol" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5"></p>
-          <!-- BARRA DE NIVEL Y XP -->
-          <div id="barraNivelContainer" class="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-            <span id="labelNivelBadge" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-bold px-2 py-0.5 rounded">Nivel 1</span>
-            <div class="w-32 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-              <div id="barraXpProgreso" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+        <!-- MÓDULO INTEGRADO: AvatarPerfil con accesorios flotantes y Nivel -->
+        <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div class="relative my-1">
+            <!-- Aura o brillo si nivel >= 10 -->
+            <div id="avatarAura" class="absolute -inset-1 rounded-full bg-amber-400/30 blur-sm animate-pulse hidden"></div>
+            <!-- Avatar Base -->
+            <div class="relative w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-inner overflow-hidden border-2 border-indigo-500">
+              <span id="avatarIniciales">E.S.</span>
             </div>
-            <span id="labelXpTexto" class="text-[10px]">0 / 400 XP</span>
+            <!-- Accesorio Flotante: Corona (Nivel >= 5) -->
+            <div id="accesorioCorona" class="absolute -top-3 left-1/2 -translate-x-1/2 text-sm animate-bounce hidden" title="Corona de Oro (Nivel 5+)">
+              👑
+            </div>
+            <!-- Accesorio Flotante: Insignia Experto (Nivel >= 3) -->
+            <div id="accesorioEscudo" class="absolute -bottom-1 -right-1 text-xs hidden" title="Insignia de Experto (Nivel 3+)">
+              🛡️
+            </div>
+          </div>
+          <div>
+            <h3 id="usuarioRol" class="text-xs font-bold text-slate-800 dark:text-white">Operador</h3>
+            <!-- BARRA DE NIVEL Y XP -->
+            <div id="barraNivelContainer" class="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-300 mt-0.5">
+              <span id="labelNivelBadge" class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 font-bold px-1.5 py-0.2 rounded">Nivel 1</span>
+              <div class="w-24 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                <div id="barraXpProgreso" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+              </div>
+              <span id="labelXpTexto" class="text-[9px]">0 / 400 XP</span>
+            </div>
           </div>
         </div>
+
       </div>
 
       <!-- SECCIÓN DERECHA DE LA BARRA SUPERIOR -->
@@ -1512,7 +1531,6 @@
           return;
         }
 
-        // Validar si el usuario está congelado o inactivo
         const { data: userData } = await _supabase.from('usuarios_pos').select('estado').eq('email', email).maybeSingle();
         if (userData) {
           if (userData.estado === 'congelado') {
@@ -1583,7 +1601,7 @@
           await _supabase.from('vendedor_niveles').insert([inicial]);
           data = inicial;
         }
-        actualizarBarraNivelVisual(data.experiencia_total);
+        actualizarBarraNivelVisual(data.experiencia_total, email);
       } catch(e) {}
     }
 
@@ -1598,11 +1616,42 @@
       return { nivel: nivel, xpActual: xpTotal, xpNecesaria: xpRequeridaNivelSiguiente, porcentaje: Math.min(100, Math.floor((xpTotal / xpRequeridaNivelSiguiente) * 100)) };
     }
 
-    function actualizarBarraNivelVisual(xpTotal) {
+    function actualizarBarraNivelVisual(xpTotal, email) {
       const info = calcularNivelYProgreso(xpTotal);
       document.getElementById('labelNivelBadge').textContent = `Nivel ${info.nivel}`;
       document.getElementById('labelXpTexto').textContent = `${info.xpActual} / ${info.xpNecesaria} XP`;
       document.getElementById('barraXpProgreso').style.width = info.porcentaje + '%';
+      
+      // Actualizar Avatar y accesorios flotantes en base al nivel actual
+      actualizarAvatarYAccesoriosFlotantes(info.nivel, email || usuarioActualEmail);
+    }
+
+    function actualizarAvatarYAccesoriosFlotantes(nivelActual, email) {
+      const operadorNombre = obtenerAtendidoPor(email);
+      const iniciales = operadorNombre.substring(0, 2).toUpperCase();
+      
+      const elIniciales = document.getElementById('avatarIniciales');
+      const elRol = document.getElementById('usuarioRol');
+      const corona = document.getElementById('accesorioCorona');
+      const escudo = document.getElementById('accesorioEscudo');
+      const aura = document.getElementById('avatarAura');
+
+      if (elIniciales) elIniciales.textContent = iniciales;
+      if (elRol) elRol.textContent = `Operador: ${operadorNombre}`;
+
+      // Accesorios flotantes según el nivel
+      if (corona) {
+        if (nivelActual >= 5) corona.classList.remove('hidden');
+        else corona.classList.add('hidden');
+      }
+      if (escudo) {
+        if (nivelActual >= 3) escudo.classList.remove('hidden');
+        else escudo.classList.add('hidden');
+      }
+      if (aura) {
+        if (nivelActual >= 10) aura.classList.remove('hidden');
+        else aura.classList.add('hidden');
+      }
     }
 
     async function sumarExperienciaVendedor(email, cantidadXp) {
@@ -1612,7 +1661,7 @@
         let nuevoTotal = xpActual + cantidadXp;
         let infoNueva = calcularNivelYProgreso(nuevoTotal);
         await _supabase.from('vendedor_niveles').upsert({ email: email, experiencia_total: nuevoTotal, nivel_actual: infoNueva.nivel });
-        if (email.toLowerCase() === usuarioActualEmail.toLowerCase()) actualizarBarraNivelVisual(nuevoTotal);
+        if (email.toLowerCase() === usuarioActualEmail.toLowerCase()) actualizarBarraNivelVisual(nuevoTotal, email);
       } catch(e) {}
     }
 
@@ -1636,7 +1685,6 @@
       if (esAdminEspecial) {
         if (contenedorAdminSidebar) contenedorAdminSidebar.classList.remove('hidden');
         Object.keys(botonesModulos).forEach(key => { if (botonesModulos[key]) botonesModulos[key].classList.remove('hidden'); });
-        document.getElementById('usuarioRol').textContent = `Perfil: Administrador Principal (${obtenerAtendidoPor(email)})`;
         return;
       }
 
@@ -1660,8 +1708,6 @@
           }
         }
       } catch (e) {}
-
-      document.getElementById('usuarioRol').textContent = `Perfil: Vendedor (${obtenerAtendidoPor(email)})`;
     }
 
     async function abrirModalAuditoriaEliminaciones() {
@@ -2095,7 +2141,6 @@
       mostrarSubPestanaPermisos('lista');
     }
 
-    // LISTADO Y GESTIÓN DE ESTADO DE SERVICIOS / MÓDULOS ACTIVOS, DESHABILITADOS O CONGELADOS
     async function cargarListaUsuariosPOS() {
       const contenedor = document.getElementById('contenedorListaUsuariosPos');
       contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios y servicios...</p>';
@@ -2150,7 +2195,6 @@
       contenedor.innerHTML = html;
     }
 
-    // FUNCIÓN PARA CONGELAR, DESCONGELAR O CAMBIAR ESTADO DE ACCESO
     async function toggleEstadoUsuarioServicio(email, tipoAccion) {
       let nuevoEstado = 'activo';
       let mensajeConfirmacion = '';
@@ -2230,7 +2274,7 @@
           alert(`✓ El progreso de "${emailVendedor}" ha sido reiniciado exitosamente al Nivel 1.`);
           
           if (emailVendedor.toLowerCase() === usuarioActualEmail.toLowerCase()) {
-            actualizarBarraNivelVisual(0);
+            actualizarBarraNivelVisual(0, emailVendedor);
           }
         } catch (err) {
           alert('❌ Error al intentar reiniciar el nivel: ' + (err.message || err));
