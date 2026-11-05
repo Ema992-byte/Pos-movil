@@ -582,19 +582,25 @@
         </div>
 
         <div id="contenedorCheckboxesModulos" class="space-y-2 border-t dark:border-slate-700 pt-3 hidden">
-          <p class="font-bold text-xs text-indigo-600 dark:text-indigo-400 mb-1" id="lblUsuarioEditando">Editando Módulos:</p>
+          <div class="flex justify-between items-center mb-1">
+            <p class="font-bold text-xs text-indigo-600 dark:text-indigo-400" id="lblUsuarioEditando">Editando Módulos:</p>
+            <div class="flex gap-1.5">
+              <button type="button" onclick="alternarTodosLosPermisosModulos(true)" class="text-[10px] bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 px-2 py-0.5 rounded font-bold transition-all">Marcar Todos</button>
+              <button type="button" onclick="alternarTodosLosPermisosModulos(false)" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-bold transition-all">Desmarcar Todos</button>
+            </div>
+          </div>
           <div class="grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_nuevoProducto" class="rounded text-indigo-600"> ➕ Nuevo Producto</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_registrarCompra" class="rounded text-indigo-600"> 📥 Factura Compra</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_cargaMasiva" class="rounded text-indigo-600"> 📄 Carga Masiva</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600"> 📦 Exportar Prod.</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600"> ✏️ Modif. Precios</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600"> 📊 Rep. Ventas</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_nuevoProducto" class="rounded text-indigo-600 chk-modulo-item"> ➕ Nuevo Producto</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_registrarCompra" class="rounded text-indigo-600 chk-modulo-item"> 📥 Factura Compra</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_cargaMasiva" class="rounded text-indigo-600 chk-modulo-item"> 📄 Carga Masiva</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600 chk-modulo-item"> 📦 Exportar Prod.</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600 chk-modulo-item"> ✏️ Modif. Precios</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600 chk-modulo-item"> 📊 Rep. Ventas</label>
             <label class="col-span-2 flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded border border-indigo-200 dark:border-indigo-800">
-              <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600"> ✏️ Permiso para Editar Datos Directos en Cuadrícula
+              <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600 chk-modulo-item"> ✏️ Permiso para Editar Datos Directos en Cuadrícula
             </label>
             <label class="col-span-2 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 p-1.5 rounded border border-rose-200 dark:border-rose-800">
-              <input type="checkbox" id="chk_eliminarVentas" class="rounded text-rose-600"> 🗑️ Permiso para Eliminar Ventas
+              <input type="checkbox" id="chk_eliminarVentas" class="rounded text-rose-600 chk-modulo-item"> 🗑️ Permiso para Eliminar Ventas
             </label>
           </div>
 
@@ -605,7 +611,13 @@
       </div>
 
       <div id="secAdminLogros" class="hidden space-y-2 text-sm">
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Active o pause los logros disponibles para todo el equipo:</p>
+        <div class="flex justify-between items-center mb-2">
+          <p class="text-xs text-slate-500 dark:text-slate-400">Active o pause los logros disponibles para todo el equipo:</p>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="alternarTodosLosLogrosAdmin(true)" class="text-[10px] bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 px-2 py-0.5 rounded font-bold transition-all">Activar Todos</button>
+            <button type="button" onclick="alternarTodosLosLogrosAdmin(false)" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-bold transition-all">Pausar Todos</button>
+          </div>
+        </div>
         <div id="listaAdminLogros" class="space-y-2 max-h-72 overflow-y-auto pr-1">
           <p class="text-slate-400 text-center py-2 text-xs">Cargando catálogo de logros...</p>
         </div>
@@ -2114,6 +2126,9 @@
               <p class="text-[11px] text-slate-500 mt-0.5">Nombre: ${u.nombre || 'N/D'} | Rol: ${u.rol || 'vendedor'}</p>
             </div>
             <div class="flex items-center gap-1.5 self-end sm:self-center flex-wrap">
+              <button onclick="reiniciarNivelVendedor('${u.email}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all" title="Reiniciar XP y volver a Nivel 1">
+                🔄 Reiniciar Nivel
+              </button>
               ${estadoUsuario === 'congelado' ? `
                 <button onclick="toggleEstadoUsuarioServicio('${u.email}', 'congelado')" class="bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
                   🔥 Descongelar
@@ -2181,6 +2196,11 @@
       document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
     }
 
+    function alternarTodosLosPermisosModulos(marcar) {
+      const checkboxes = document.querySelectorAll('.chk-modulo-item');
+      checkboxes.forEach(chk => chk.checked = marcar);
+    }
+
     async function guardarPermisosUsuario() {
       if (!usuarioEditandoPermisos) return;
       const modulos = {
@@ -2197,21 +2217,57 @@
       alert('✓ ¡Permisos guardados con éxito!');
     }
 
+    async function reiniciarNivelVendedor(emailVendedor) {
+      if (confirm(`⚠️ ¿Estás seguro de reiniciar el nivel y la experiencia (XP) del usuario "${emailVendedor}"? Volverá al Nivel 1 (0 XP) y perderá su progreso actual.`)) {
+        try {
+          const { error } = await _supabase
+            .from('vendedor_niveles')
+            .update({ experiencia_total: 0, nivel_actual: 1 })
+            .eq('email', emailVendedor);
+
+          if (error) throw error;
+
+          alert(`✓ El progreso de "${emailVendedor}" ha sido reiniciado exitosamente al Nivel 1.`);
+          
+          if (emailVendedor.toLowerCase() === usuarioActualEmail.toLowerCase()) {
+            actualizarBarraNivelVisual(0);
+          }
+        } catch (err) {
+          alert('❌ Error al intentar reiniciar el nivel: ' + (err.message || err));
+        }
+      }
+    }
+
     async function cargarCatalogoLogrosAdmin() {
       const contenedor = document.getElementById('listaAdminLogros');
-      const { data } = await _supabase.from('logros_catalogo').select('*');
+      const { data } = await _supabase.from('logros_catalogo').select('*').order('codigo', { ascending: true });
       if (!data) return;
       let html = '';
       data.forEach(l => {
         html += `
           <div class="flex justify-between items-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs shadow-sm">
-            <span class="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <span>${l.icono}</span> ${l.titulo}
-            </span>
-            <input type="checkbox" ${l.habilitado ? 'checked' : ''} class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" onchange="_supabase.from('logros_catalogo').update({habilitado:this.checked}).eq('codigo','${l.codigo}')">
+            <div class="flex items-center gap-2">
+              <span class="text-base">${l.icono}</span>
+              <div>
+                <p class="font-bold text-slate-800 dark:text-white">${l.titulo}</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">${l.descripcion}</p>
+              </div>
+            </div>
+            <input type="checkbox" ${l.habilitado ? 'checked' : ''} class="chk-logro-admin w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" data-codigo="${l.codigo}" onchange="actualizarEstadoLogroSingle('${l.codigo}', this.checked)">
           </div>`;
       });
       contenedor.innerHTML = html;
+    }
+
+    async function actualizarEstadoLogroSingle(codigo, estado) {
+      await _supabase.from('logros_catalogo').update({ habilitado: estado }).eq('codigo', codigo);
+    }
+
+    async function alternarTodosLosLogrosAdmin(habilitar) {
+      const checkboxes = document.querySelectorAll('.chk-logro-admin');
+      checkboxes.forEach(chk => chk.checked = habilitar);
+      await _supabase.from('logros_catalogo').update({ habilitado: habilitar }).neq('codigo', '');
+      alert(`✓ ¡Todos los logros han sido ${habilitar ? 'activados' : 'pausados'} correctamente!`);
     }
 
     async function abrirModalMisLogros() {
@@ -2223,9 +2279,20 @@
       let html = '';
       (cat || []).forEach(l => {
         const ob = conseguidos.has(l.codigo);
-        html += `<div class="p-3 rounded-xl border ${ob ? 'bg-amber-50 border-amber-300' : 'opacity-60'}"><b>${l.icono} ${l.titulo}</b><p class="text-[10px]">${l.descripcion}</p></div>`;
+        html += `
+          <div class="p-3 rounded-xl border ${ob ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60'} flex gap-2.5 items-start">
+            <span class="text-2xl shrink-0">${l.icono}</span>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <p class="font-bold text-xs text-slate-800 dark:text-white">${l.titulo}</p>
+                ${ob ? '<span class="text-[9px] bg-amber-200 text-amber-900 font-black px-1.5 py-0.5 rounded">DESBLOQUEADO</span>' : ''}
+              </div>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">${l.descripcion}</p>
+              <p class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-1">+${l.experiencia_recompensa || 100} XP</p>
+            </div>
+          </div>`;
       });
-      contenedor.innerHTML = html;
+      contenedor.innerHTML = html || '<p class="text-slate-400 text-center py-4 col-span-full text-xs">No hay logros habilitados actualmente.</p>';
     }
 
     function cerrarModalMisLogros() { document.getElementById('modalMisLogros').classList.add('hidden'); }
