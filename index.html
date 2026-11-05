@@ -1500,6 +1500,21 @@
           return;
         }
 
+        // Validar si el usuario está congelado o inactivo
+        const { data: userData } = await _supabase.from('usuarios_pos').select('estado').eq('email', email).maybeSingle();
+        if (userData) {
+          if (userData.estado === 'congelado') {
+            alert('⚠️ Su cuenta se encuentra CONGELADA temporalmente. Comuníquese con el administrador.');
+            await _supabase.auth.signOut();
+            return;
+          }
+          if (userData.estado === 'inactivo') {
+            alert('⚠️ Su cuenta se encuentra DESHABILITADA.');
+            await _supabase.auth.signOut();
+            return;
+          }
+        }
+
         usuarioActualEmail = authData.user.email;
         await cargarProductos();
         await cargarProgresoVendedor(usuarioActualEmail);
@@ -2068,7 +2083,7 @@
       mostrarSubPestanaPermisos('lista');
     }
 
-    // LISTADO Y GESTIÓN DE ESTADO DE SERVICIOS / MÓDULOS ACTIVOS O DESHABILITADOS
+    // LISTADO Y GESTIÓN DE ESTADO DE SERVICIOS / MÓDULOS ACTIVOS, DESHABILITADOS O CONGELADOS
     async function cargarListaUsuariosPOS() {
       const contenedor = document.getElementById('contenedorListaUsuariosPos');
       contenedor.innerHTML = '<p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios y servicios...</p>';
@@ -2081,10 +2096,13 @@
 
       let html = '';
       data.forEach(u => {
-        const estadoUsuario = u.estado !== 'inactivo' ? 'activo' : 'inactivo';
-        const badgeEstado = estadoUsuario === 'activo' 
-          ? '<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[10px] px-2 py-0.5 rounded-full">🟢 Activo</span>' 
-          : '<span class="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[10px] px-2 py-0.5 rounded-full">🔴 Deshabilitado</span>';
+        const estadoUsuario = u.estado || 'activo';
+        let badgeEstado = '<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[10px] px-2 py-0.5 rounded-full">🟢 Activo</span>';
+        if (estadoUsuario === 'inactivo') {
+          badgeEstado = '<span class="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[10px] px-2 py-0.5 rounded-full">🔴 Deshabilitado</span>';
+        } else if (estadoUsuario === 'congelado') {
+          badgeEstado = '<span class="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold text-[10px] px-2 py-0.5 rounded-full">❄️ Congelado</span>';
+        }
 
         html += `
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl border bg-slate-50 dark:bg-slate-900 text-xs gap-2 shadow-sm">
@@ -2095,9 +2113,18 @@
               </div>
               <p class="text-[11px] text-slate-500 mt-0.5">Nombre: ${u.nombre || 'N/D'} | Rol: ${u.rol || 'vendedor'}</p>
             </div>
-            <div class="flex items-center gap-1.5 self-end sm:self-center">
-              <button onclick="toggleEstadoUsuarioServicio('${u.email}', '${estadoUsuario}')" class="${estadoUsuario === 'activo' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
-                ${estadoUsuario === 'activo' ? '🚫 Deshabilitar' : '✅ Habilitar'}
+            <div class="flex items-center gap-1.5 self-end sm:self-center flex-wrap">
+              ${estadoUsuario === 'congelado' ? `
+                <button onclick="toggleEstadoUsuarioServicio('${u.email}', 'congelado')" class="bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
+                  🔥 Descongelar
+                </button>
+              ` : `
+                <button onclick="toggleEstadoUsuarioServicio('${u.email}', 'activo')" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
+                  ❄️ Congelar
+                </button>
+              `}
+              <button onclick="toggleEstadoUsuarioServicio('${u.email}', '${estadoUsuario === 'inactivo' ? 'inactivo_toggle' : 'activo_toggle'}')" class="${estadoUsuario === 'inactivo' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'} text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
+                ${estadoUsuario === 'inactivo' ? '✅ Habilitar' : '🚫 Deshabilitar'}
               </button>
               <button onclick="seleccionarUsuarioParaModulos('${u.email}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] shadow-sm transition-all">
                 🛡️ Permisos
@@ -2108,17 +2135,31 @@
       contenedor.innerHTML = html;
     }
 
-    // FUNCIÓN PARA HABILITAR O DESHABILITAR EL ACCESO/SERVICIOS DE UN USUARIO
-    async function toggleEstadoUsuarioServicio(email, estadoActual) {
-      const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
-      const accionTexto = nuevoEstado === 'activo' ? 'habilitar' : 'deshabilitar';
+    // FUNCIÓN PARA CONGELAR, DESCONGELAR O CAMBIAR ESTADO DE ACCESO
+    async function toggleEstadoUsuarioServicio(email, tipoAccion) {
+      let nuevoEstado = 'activo';
+      let mensajeConfirmacion = '';
+
+      if (tipoAccion === 'activo') {
+        nuevoEstado = 'congelado';
+        mensajeConfirmacion = `¿Está seguro de CONGELAR la cuenta de "${email}"? El usuario no podrá iniciar sesión temporalmente.`;
+      } else if (tipoAccion === 'congelado') {
+        nuevoEstado = 'activo';
+        mensajeConfirmacion = `¿Desea DESCONGELAR y reactivar el acceso para "${email}"?`;
+      } else if (tipoAccion === 'inactivo_toggle') {
+        nuevoEstado = 'inactivo';
+        mensajeConfirmacion = `¿Desea DESHABILITAR al usuario "${email}"?`;
+      } else {
+        nuevoEstado = 'activo';
+        mensajeConfirmacion = `¿Desea HABILITAR al usuario "${email}"?`;
+      }
       
-      if (confirm(`¿Está seguro de ${accionTexto} el servicio/acceso para el usuario "${email}"?`)) {
+      if (confirm(mensajeConfirmacion)) {
         const { error } = await _supabase.from('usuarios_pos').update({ estado: nuevoEstado }).eq('email', email);
         if (error) {
-          alert('Error al actualizar el estado del servicio: ' + error.message);
+          alert('Error al actualizar el estado: ' + error.message);
         } else {
-          alert(`✓ Servicio ${nuevoEstado === 'activo' ? 'habilitado' : 'deshabilitado'} correctamente para ${email}.`);
+          alert(`✓ Estado actualizado correctamente a "${nuevoEstado}" para ${email}.`);
           cargarListaUsuariosPOS();
         }
       }
