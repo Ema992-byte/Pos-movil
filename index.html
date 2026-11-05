@@ -2663,6 +2663,7 @@
 
     function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
 
+    // Función guardarProducto() integrada con lógica de Logros y Supabase
     async function guardarProducto() {
       const editId = document.getElementById('editProductoId').value;
       const datos = {
@@ -2677,9 +2678,60 @@
         unidades_por_bulto: parseInt(document.getElementById('nuevoUnidadesBulto').value) || 0,
         activo: true
       };
-      if (editId) await _supabase.from('productos').update(datos).eq('id', editId);
-      else await _supabase.from('productos').insert([datos]);
-      alert('✓ ¡Guardado con éxito!');
+
+      if (!datos.nombre || isNaN(datos.precio)) {
+        alert('Por favor complete al menos el nombre y el precio minorista del producto.');
+        return;
+      }
+
+      if (editId) {
+        await _supabase.from('productos').update(datos).eq('id', editId);
+        alert('✓ ¡Producto actualizado con éxito!');
+      } else {
+        // 1. Guardar el nuevo producto en Supabase
+        const { error: errorProd } = await _supabase.from('productos').insert([datos]);
+        
+        if (errorProd) {
+          alert('Error al guardar el producto: ' + errorProd.message);
+          return;
+        }
+
+        // 2. Otorgar el logro "Arquitecto de Catálogo" y sumar +100 XP de forma segura
+        try {
+          const codigoLogro = 'arquitecto_catalogo';
+          
+          // Verificar si el usuario ya tiene este logro registrado en 'vendedor_logros'
+          const { data: logroExistente } = await _supabase
+            .from('vendedor_logros')
+            .select('*')
+            .eq('email_vendedor', usuarioActualEmail)
+            .eq('codigo_logro', codigoLogro)
+            .maybeSingle();
+
+          if (!logroExistente) {
+            // Registrar el logro obtenido en la base de datos
+            const { error: errorLogro } = await _supabase.from('vendedor_logros').insert([{
+              email_vendedor: usuarioActualEmail,
+              codigo_logro: codigoLogro,
+              obtenido_en: new Date()
+            }]);
+
+            if (!errorLogro) {
+              // Sumar la experiencia correspondiente (+100 XP) a su nivel actual
+              await sumarExperienciaVendedor(usuarioActualEmail, 100);
+              alert('✓ ¡Producto guardado! 🏆 ¡Desbloqueaste el logro "Arquitecto de Catálogo" y sumaste +100 XP!');
+            } else {
+              alert('✓ ¡Producto guardado con éxito!');
+            }
+          } else {
+            alert('✓ ¡Producto guardado con éxito! (Ya habías obtenido este logro anteriormente).');
+          }
+        } catch (err) {
+          console.error('Error al procesar el logro:', err);
+          alert('✓ ¡Producto guardado con éxito!');
+        }
+      }
+
       cerrarModalProducto();
       await cargarProductos();
     }
