@@ -2162,7 +2162,13 @@
       if (!data) return;
       let html = '';
       data.forEach(l => {
-        html += `<div class="flex justify-between items-center p-2 rounded border bg-slate-50 dark:bg-slate-900 text-xs"><span>${l.icono} ${l.titulo}</span><input type="checkbox" ${l.habilitado ? 'checked' : ''} onchange="_supabase.from('logros_catalogo').update({habilitado:this.checked}).eq('codigo','${l.codigo}')"></div>`;
+        html += `
+          <div class="flex justify-between items-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs shadow-sm">
+            <span class="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span>${l.icono}</span> ${l.titulo}
+            </span>
+            <input type="checkbox" ${l.habilitado ? 'checked' : ''} class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" onchange="_supabase.from('logros_catalogo').update({habilitado:this.checked}).eq('codigo','${l.codigo}')">
+          </div>`;
       });
       contenedor.innerHTML = html;
     }
