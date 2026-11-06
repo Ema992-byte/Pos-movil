@@ -243,12 +243,12 @@
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-xl overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
         <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <span>🦁</span> Catálogo de Avatares Temáticos
+          <span>🦁</span> Catálogo de Avatares Temáticos (30+ Niveles)
         </h3>
         <button onclick="cerrarModalAvatares()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-        Desbloquea nuevos avatares a medida que subes de nivel en tus ventas diarias.
+        Desbloquea nuevos avatares a medida que subes de nivel en tus ventas diarias. ¡Hay recompensas en cada nivel del 1 al 10!
       </p>
       <div id="gridAvatares" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
         <!-- Generado dinámicamente -->
@@ -1138,29 +1138,59 @@
       notifPrecios: localStorage.getItem('go_config_notif') !== 'false'
     };
 
-    // Catálogo de Avatares Temáticos clasificados por Nivel
+    // Catálogo ampliado de más de 30 avatares temáticos cubriendo todos los niveles (1 al 10)
     const CATALOGO_AVATARES = [
-      // Nivel 1 - Libres desde el inicio
+      // Nivel 1
       { id: 'lion', nombre: 'León', icono: '🦁', categoria: 'Animales', nivelRequerido: 1 },
       { id: 'bear', nombre: 'Oso', icono: '🐻', categoria: 'Animales', nivelRequerido: 1 },
       { id: 'car1', nombre: 'Auto Rojo', icono: '🚗', categoria: 'Autos', nivelRequerido: 1 },
       { id: 'flag_arg', nombre: 'Argentina', icono: '🇦🇷', categoria: 'Banderas', nivelRequerido: 1 },
 
-      // Nivel 2 - Desbloqueados
+      // Nivel 2
       { id: 'tiger', nombre: 'Tigre', icono: '🐯', categoria: 'Animales', nivelRequerido: 2 },
       { id: 'race_car', nombre: 'Carrera', icono: '🏎️', categoria: 'Autos', nivelRequerido: 2 },
       { id: 'warrior', nombre: 'Guerrero', icono: '⚔️', categoria: 'Guerreros', nivelRequerido: 2 },
       { id: 'chavo_barrel', nombre: 'El Chavo', icono: '🛢️', categoria: 'El Chavo', nivelRequerido: 2 },
 
-      // Nivel 3 - ¡TU NIVEL ACTUAL! 🎉
+      // Nivel 3
       { id: 'dragon_ball', nombre: 'Esfera del Dragón', icono: '🔮', categoria: 'Dragon Ball', nivelRequerido: 3 },
       { id: 'goku_cloud', nombre: 'Nube Voladora', icono: '☁️', categoria: 'Dragon Ball', nivelRequerido: 3 },
       { id: 'ninja', nombre: 'Ninja', icono: '🥷', categoria: 'Guerreros', nivelRequerido: 3 },
       { id: 'trophy_car', nombre: 'Monster Truck', icono: '🛻', categoria: 'Autos', nivelRequerido: 3 },
 
-      // Niveles superiores (Candados para motivar el progreso)
+      // Nivel 4 (NUEVO)
+      { id: 'wolf', nombre: 'Lobo Solitario', icono: '🐺', categoria: 'Animales', nivelRequerido: 4 },
+      { id: 'police_car', nombre: 'Patrullero', icono: '🚓', categoria: 'Autos', nivelRequerido: 4 },
+      { id: 'wizard', nombre: 'Hechicero', icono: '🧙‍♂️', categoria: 'Fantasía', nivelRequerido: 4 },
+
+      // Nivel 5
       { id: 'saiyan', nombre: 'Super Saiyan', icono: '💥', categoria: 'Dragon Ball', nivelRequerido: 5 },
-      { id: 'crown_king', nombre: 'Rey del POS', icono: '👑', categoria: 'Especial', nivelRequerido: 10 }
+      { id: 'eagle', nombre: 'Águila Imperial', icono: '🦅', categoria: 'Animales', nivelRequerido: 5 },
+      { id: 'fire_car', nombre: 'Auto de Fuego', icono: '🔥', categoria: 'Autos', nivelRequerido: 5 },
+
+      // Nivel 6 (NUEVO)
+      { id: 'samurai', nombre: 'Samurái', icono: '👺', categoria: 'Guerreros', nivelRequerido: 6 },
+      { id: 'dragon', nombre: 'Dragón Místico', icono: '🐉', categoria: 'Fantasía', nivelRequerido: 6 },
+      { id: 'sport_bike', nombre: 'Moto Deportiva', icono: '🏍️', categoria: 'Autos', nivelRequerido: 6 },
+
+      // Nivel 7 (NUEVO)
+      { id: 'phoenix', nombre: 'Fénix Renacido', icono: '🐦‍🔥', categoria: 'Fantasía', nivelRequerido: 7 },
+      { id: 'cyborg', nombre: 'Cíborg Táctico', icono: '🤖', categoria: 'Sci-Fi', nivelRequerido: 7 },
+      { id: 'shark', nombre: 'Tiburón Blanco', icono: '🦈', categoria: 'Animales', nivelRequerido: 7 },
+
+      // Nivel 8 (NUEVO)
+      { id: 'astronaut', nombre: 'Astronauta Estelar', icono: '👨‍🚀', categoria: 'Sci-Fi', nivelRequerido: 8 },
+      { id: 'alien', nombre: 'Explorador Alien', icono: '👽', categoria: 'Sci-Fi', nivelRequerido: 8 },
+      { id: 'gold_trophy', nombre: 'Trofeo de Oro', icono: '🏆', categoria: 'Especial', nivelRequerido: 8 },
+
+      // Nivel 9 (NUEVO)
+      { id: 'wizard_master', nombre: 'Gran Mago Supremo', icono: '🧙‍♀️', categoria: 'Fantasía', nivelRequerido: 9 },
+      { id: 'mecha', nombre: 'Guerrero Mecha', icono: '🦾', categoria: 'Sci-Fi', nivelRequerido: 9 },
+      { id: 'diamond', nombre: 'Diamante Brutal', icono: '💎', categoria: 'Especial', nivelRequerido: 9 },
+
+      // Nivel 10
+      { id: 'crown_king', nombre: 'Rey del POS', icono: '👑', categoria: 'Especial', nivelRequerido: 10 },
+      { id: 'galaxy', nombre: 'Galaxia Infinita', icono: '🌌', categoria: 'Especial', nivelRequerido: 10 }
     ];
 
     // Función para cambiar de avatar en la app y guardarlo en Supabase
