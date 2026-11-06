@@ -3585,15 +3585,20 @@
     async function eliminarVentaRegistroConAuditoria(idVenta) {
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
-      
+
       let tienePermisoEliminar = esAdminEspecial;
       if (!tienePermisoEliminar) {
         try {
-          const { data: userData } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
-          if (userData && userData.modulos_activos && userData.modulos_activos.eliminarVentas === true) {
-            tienePermisoEliminar = true;
-          }
-        } catch(e) {}
+          const { data: userData, error: permisoError } = await _supabase
+            .from('usuarios_pos')
+            .select('modulos_activos')
+            .eq('email', emailLower)
+            .maybeSingle();
+          if (permisoError) throw permisoError;
+          tienePermisoEliminar = userData?.modulos_activos?.eliminarVentas === true;
+        } catch (e) {
+          console.error('No se pudo verificar el permiso para eliminar ventas:', e);
+        }
       }
 
       if (!tienePermisoEliminar) {
@@ -3605,10 +3610,15 @@
         .from('ventas')
         .select('*')
         .eq('id', idVenta)
-        .single();
+        .maybeSingle();
 
-      if (errorFetch || !ventaData) {
-        alert('No se encontró el registro de la venta a eliminar.');
+      if (errorFetch) {
+        alert('No se pudo consultar la venta: ' + (errorFetch.message || errorFetch));
+        return;
+      }
+      if (!ventaData) {
+        alert('La venta ya no existe o no está disponible para este usuario. Se actualizará el historial.');
+        await abrirModalHistorial();
         return;
       }
 
@@ -3619,8 +3629,23 @@
       }
 
       try {
+        // Primero se intenta eliminar y se exige que Supabase devuelva el ID afectado.
+        // Un DELETE bloqueado por RLS puede no devolver error y afectar cero filas.
+        const { data: filasEliminadas, error: errorDelete } = await _supabase
+          .from('ventas')
+          .delete()
+          .eq('id', idVenta)
+          .select('id');
+
+        if (errorDelete) throw errorDelete;
+        if (!Array.isArray(filasEliminadas) || filasEliminadas.length !== 1) {
+          await abrirModalHistorial();
+          alert(`No se confirmó la eliminación de la venta #${idVenta}. Supabase no eliminó ninguna fila. Revise la política RLS DELETE de la tabla ventas. No se registró la eliminación como exitosa.`);
+          return;
+        }
+
+        // Se registra la auditoría únicamente después de confirmar el DELETE.
         const { fechaStr, horaStr } = obtenerFechaHoraLocal();
-        
         const { error: errorAuditoria } = await _supabase
           .from('auditoria_eliminaciones_ventas')
           .insert([{
@@ -3633,19 +3658,19 @@
             hora: horaStr
           }]);
 
-        if (errorAuditoria) throw errorAuditoria;
+        // La venta ya fue eliminada; si falla la auditoría, no se informa que la venta sigue existiendo.
+        await abrirModalHistorial();
+        if (errorAuditoria) {
+          console.error('La venta se eliminó, pero falló el registro de auditoría:', errorAuditoria);
+          alert(`La venta #${idVenta} fue eliminada de ventas, pero no se pudo guardar su auditoría: ${errorAuditoria.message || errorAuditoria}. Debe regularizarse el registro de auditoría.`);
+          return;
+        }
 
-        const { error: errorDelete } = await _supabase
-          .from('ventas')
-          .delete()
-          .eq('id', idVenta);
-
-        if (errorDelete) throw errorDelete;
-
-        alert(`✓ Venta #${idVenta} eliminada y debidamente auditada en el sistema.`);
-        abrirModalHistorial();
+        alert(`✓ Supabase confirmó la eliminación de la venta #${idVenta} y se registró la auditoría.`);
       } catch (err) {
-        alert('❌ Error en el proceso de auditoría y eliminación: ' + (err.message || err));
+        console.error('Error en el proceso de auditoría y eliminación:', err);
+        await abrirModalHistorial();
+        alert('❌ No se pudo completar la eliminación: ' + (err.message || err));
       }
     }
 
