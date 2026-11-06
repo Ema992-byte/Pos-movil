@@ -1592,16 +1592,8 @@
     async function cargarProductosSilencioso() {
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
-        const emailLower = (usuarioActualEmail || '').toLowerCase();
-        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
-
-        let productosValidos = data;
-        if (!esAdminEspecial) {
-          productosValidos = data.filter(p => p.en_catalogo_virtual !== false);
-        }
-
-        todosLosProductos = productosValidos;
-        localStorage.setItem('go_pos_productos', JSON.stringify(productosValidos));
+        todosLosProductos = data.filter(p => p.en_catalogo_virtual !== false);
+        localStorage.setItem('go_pos_productos', JSON.stringify(todosLosProductos));
         
         const textoBusq = document.getElementById('buscador').value.trim();
         if (!textoBusq) {
@@ -2495,9 +2487,7 @@
     async function cargarProductos() {
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
-        const emailLower = (usuarioActualEmail || '').toLowerCase();
-        const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
-        todosLosProductos = esAdminEspecial ? data : data.filter(p => p.en_catalogo_virtual !== false);
+        todosLosProductos = data.filter(p => p.en_catalogo_virtual !== false);
         iniciarSesionExitosa(usuarioActualEmail, todosLosProductos);
       }
     }
