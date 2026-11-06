@@ -2975,34 +2975,89 @@
     }
 
     async function cobrarVentaFinal(clienteNombre) {
+      if (!carrito || carrito.length === 0) {
+        alert('No hay productos en el carrito.');
+        return;
+      }
+
+      const btnCobro = document.activeElement;
+      const carritoAntesDeGuardar = carrito.slice();
       let total = 0;
-      const { fechaStr, horaStr } = obtenerFechaHoraLocal();
-      const detalles = carrito.map(i => {
-        let esMayoristaActivo = i.precioMayorista > 0 && i.cantidad >= i.cantMayorista;
-        let p = i.precioPersonalizado !== null ? i.precioPersonalizado : (esMayoristaActivo ? i.precioMayorista : i.precioMinorista);
-        total += p * i.cantidad;
-        return { 
-          idUnico: i.idUnico, 
-          nombre: i.nombre, 
-          precio: p, 
-          cantidad: i.cantidad, 
+      const ahora = new Date();
+      const fechaStr = `${String(ahora.getDate()).padStart(2, '0')}/${String(ahora.getMonth() + 1).padStart(2, '0')}/${ahora.getFullYear()}`;
+      const fechaBaseDatos = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+      const horaStr = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+      const operador = obtenerAtendidoPor(usuarioActualEmail);
+
+      const detalles = carritoAntesDeGuardar.map(i => {
+        const esMayoristaActivo = i.precioMayorista > 0 && i.cantidad >= i.cantMayorista;
+        const precio = i.precioPersonalizado !== null
+          ? i.precioPersonalizado
+          : (esMayoristaActivo ? i.precioMayorista : i.precioMinorista);
+
+        total += Number(precio || 0) * Number(i.cantidad || 0);
+
+        return {
+          idUnico: i.idUnico,
+          nombre: i.nombre,
+          precio: Number(precio || 0),
+          cantidad: Number(i.cantidad || 0),
           unidadesBulto: i.unidadesBulto || 0,
-          costoUnitario: i.costoUnitario || 0 
+          costoUnitario: i.costoUnitario || 0
         };
       });
 
-      const [anio, mes, dia] = new Date().toISOString().split('T')[0].split('-');
-      const fechaBaseDatos = `${anio}-${mes}-${dia}`;
-      const operador = obtenerAtendidoPor(usuarioActualEmail);
-      const { data } = await _supabase.from('ventas').insert([{ total, cliente: clienteNombre, atendido_por: operador, fecha: fechaBaseDatos, hora: horaStr, detalles }]).select();
-      
-      const ticketId = data && data[0] ? data[0].id : Math.floor(Math.random() * 1000);
+      if (!usuarioActualEmail) {
+        alert('No se pudo identificar al usuario que registra la venta. Cierre sesión e ingrese nuevamente.');
+        return;
+      }
 
-      alert('✓ ¡Venta registrada con éxito!');
-      await sumarExperienciaVendedor(usuarioActualEmail, 35);
-      imprimirTicketConOperadorFijo(detalles, total, fechaStr, horaStr, clienteNombre, operador, ticketId);
-      carrito = [];
-      actualizarCarritoVisual();
+      try {
+        const { data: ventaGuardada, error: errorVenta } = await _supabase
+          .from('ventas')
+          .insert([{
+            total,
+            cliente: clienteNombre || 'Consumidor Final',
+            atendido_por: operador,
+            fecha: fechaBaseDatos,
+            hora: horaStr,
+            detalles
+          }])
+          .select('id')
+          .single();
+
+        if (errorVenta) {
+          console.error('Error al guardar la venta en Supabase:', errorVenta);
+          alert(
+            'No se pudo guardar la venta en el historial. El carrito se mantiene para que no pierda la operación.\n\n' +
+            'Detalle: ' + (errorVenta.message || errorVenta.details || 'Error de Supabase') +
+            '\n\nVerifique la conexión y los permisos de la tabla ventas.'
+          );
+          return;
+        }
+
+        if (!ventaGuardada || ventaGuardada.id === undefined || ventaGuardada.id === null) {
+          console.error('Supabase no devolvió el identificador de la venta:', ventaGuardada);
+          alert('La venta no devolvió un número de ticket. No se imprimirá como registrada; el carrito se mantiene.');
+          return;
+        }
+
+        const ticketId = ventaGuardada.id;
+
+        alert('✓ ¡Venta guardada correctamente en el historial!');
+        try {
+          await sumarExperienciaVendedor(usuarioActualEmail, 35);
+        } catch (errorXP) {
+          console.warn('La venta se guardó, pero no se pudo actualizar la experiencia:', errorXP);
+        }
+
+        imprimirTicketConOperadorFijo(detalles, total, fechaStr, horaStr, clienteNombre, operador, ticketId);
+        carrito = [];
+        actualizarCarritoVisual();
+      } catch (error) {
+        console.error('Error inesperado al registrar la venta:', error);
+        alert('Ocurrió un error al guardar la venta. El carrito se mantiene. Revise la conexión e intente nuevamente.');
+      }
     }
 
     function formatearMoneda(valor) {
@@ -3059,25 +3114,80 @@
 
     async function abrirModalHistorial() {
       document.getElementById('modalHistorial').classList.remove('hidden');
-      const c = document.getElementById('listaHistorialVentas');
-      c.innerHTML = '<p class="text-slate-400 dark:text-slate-500 text-center py-4">Cargando...</p>';
+      const contenedor = document.getElementById('listaHistorialVentas');
+      contenedor.innerHTML = '<p class="text-slate-400 dark:text-slate-500 text-center py-4">Cargando ventas...</p>';
 
       const emailLower = (usuarioActualEmail || '').toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
       let tienePermisoEliminar = esAdminEspecial;
+
       if (!tienePermisoEliminar) {
-        const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', emailLower).maybeSingle();
-        if (data && data.modulos_activos && data.modulos_activos.eliminarVentas === true) tienePermisoEliminar = true;
+        try {
+          const { data: usuarioData, error: errorUsuario } = await _supabase
+            .from('usuarios_pos')
+            .select('modulos_activos')
+            .eq('email', emailLower)
+            .maybeSingle();
+
+          if (!errorUsuario && usuarioData?.modulos_activos?.eliminarVentas === true) {
+            tienePermisoEliminar = true;
+          }
+        } catch (error) {
+          console.warn('No se pudieron consultar los permisos de eliminación:', error);
+        }
       }
 
-      const { data } = await _supabase.from('ventas').select('*').order('id', { ascending: false }).limit(20);
-      if (!data || data.length === 0) { c.innerHTML = '<p class="text-slate-400 dark:text-slate-500 text-center py-4">Sin ventas</p>'; return; }
-      let h = '';
-      data.forEach(v => {
-        const btnDel = tienePermisoEliminar ? `<button onclick="eliminarVentaRegistroConAuditoria(${v.id})" class="bg-rose-600 text-white px-2 py-1 rounded font-bold text-[10px]">🗑️ Eliminar</button>` : '';
-        h += `<div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg border dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200"><span><b>#${v.id}</b> - $${v.total}</span><div class="flex gap-1"><button onclick="reimprimirTicketAnterior(${v.id}, '${v.fecha}', '${v.hora}', ${v.total}, '${v.cliente}', '${v.atendido_por}')" class="bg-sky-600 text-white px-2 py-1 rounded text-[10px]">🖨️</button>${btnDel}</div></div>`;
-      });
-      c.innerHTML = h;
+      try {
+        // El historial es compartido: se consultan las ventas de todos los operadores.
+        const { data: ventas, error } = await _supabase
+          .from('ventas')
+          .select('id, total, cliente, atendido_por, fecha, hora, detalles')
+          .order('id', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        if (!ventas || ventas.length === 0) {
+          contenedor.innerHTML = '<p class="text-slate-400 dark:text-slate-500 text-center py-4">Todavía no hay ventas guardadas.</p>';
+          return;
+        }
+
+        const escaparHTML = valor => String(valor ?? '').replace(/[&<>"']/g, caracter => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[caracter]));
+
+        contenedor.innerHTML = ventas.map(venta => {
+          const fecha = escaparHTML(venta.fecha || '');
+          const hora = escaparHTML(venta.hora || '');
+          const cliente = escaparHTML(venta.cliente || 'Consumidor Final');
+          const operador = escaparHTML(venta.atendido_por || 'Sin identificar');
+          const total = formatearMoneda(venta.total);
+          const botonEliminar = tienePermisoEliminar
+            ? `<button onclick="eliminarVentaRegistroConAuditoria(${Number(venta.id)})" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded font-bold text-[10px]">🗑️ Eliminar</button>`
+            : '';
+
+          return `
+            <div class="flex justify-between items-center gap-2 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg border dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200">
+              <div class="min-w-0">
+                <p><b>Ticket #${escaparHTML(venta.id)}</b> - <b>${escaparHTML(total)}</b></p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">${fecha} ${hora} · ${cliente}</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">Atendió: ${operador}</p>
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <button onclick="reimprimirTicketAnterior(${Number(venta.id)})" class="bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded text-[10px]" title="Volver a imprimir">🖨️ Reimprimir</button>
+                ${botonEliminar}
+              </div>
+            </div>`;
+        }).join('');
+      } catch (error) {
+        console.error('Error al cargar el historial de ventas:', error);
+        contenedor.innerHTML = `
+          <div class="text-center py-4">
+            <p class="text-rose-500 font-semibold">No se pudo cargar el historial.</p>
+            <p class="text-xs text-slate-500 mt-2">${String(error.message || error).replace(/[&<>"']/g, '')}</p>
+            <button onclick="abrirModalHistorial()" class="mt-3 bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs">Reintentar</button>
+          </div>`;
+      }
     }
 
     function cerrarModalHistorial() { document.getElementById('modalHistorial').classList.add('hidden'); }
@@ -3149,11 +3259,38 @@
       }
     }
 
-    async function reimprimirTicketAnterior(id, fechaDb, hora, total, cliente, atendidoPor) {
-      const { data } = await _supabase.from('ventas').select('detalles, atendido_por').eq('id', id).single();
-      const partesFecha = fechaDb.split('-');
-      const fechaFormateada = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : fechaDb;
-      imprimirTicketConOperadorFijo(data.detalles || [], total, fechaFormateada, hora, cliente, atendidoPor || data.atendido_por || 'I.S.', id);
+    async function reimprimirTicketAnterior(id) {
+      try {
+        const { data: venta, error } = await _supabase
+          .from('ventas')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error || !venta) throw error || new Error('No se encontró la venta.');
+        if (!Array.isArray(venta.detalles) || venta.detalles.length === 0) {
+          alert('La venta existe, pero no tiene el detalle de productos guardado.');
+          return;
+        }
+
+        const partesFecha = String(venta.fecha || '').split('-');
+        const fechaFormateada = partesFecha.length === 3
+          ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`
+          : (venta.fecha || '');
+
+        imprimirTicketConOperadorFijo(
+          venta.detalles,
+          Number(venta.total || 0),
+          fechaFormateada,
+          venta.hora || '',
+          venta.cliente || 'Consumidor Final',
+          venta.atendido_por || 'Sin identificar',
+          venta.id
+        );
+      } catch (error) {
+        console.error('Error al recuperar la venta para reimprimir:', error);
+        alert('No se pudo recuperar el ticket. Verifique los permisos de lectura de la tabla ventas en Supabase.');
+      }
     }
 
     function abrirModalPrecios() { document.getElementById('modalPrecios').classList.remove('hidden'); }
