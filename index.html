@@ -2197,11 +2197,16 @@
 
     function renderizarListaCatalogoVirtual(lista) {
       const contenedor = document.getElementById('contenedorItemsCatalogoVirtual');
-      if (!lista || lista.length === 0) { contenedor.innerHTML = '<p class="text-center text-slate-400 text-xs py-4">No hay productos.</p>'; return; }
+      if (!lista || lista.length === 0) {
+        contenedor.innerHTML = '<p class="text-center text-slate-400 text-xs py-4">No hay productos.</p>';
+        return;
+      }
+
       let html = '';
       lista.forEach(prod => {
         const cod = obtenerCodigoBarras(prod) || 'S/C';
         const enCatalogo = prod.en_catalogo_virtual !== false;
+
         html += `
           <div class="flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 text-xs shadow-sm">
             <div class="flex items-center gap-3">
@@ -2211,11 +2216,12 @@
                 <p class="text-[10px] text-slate-500">Cód: ${cod} | P. Min: $${parseFloat(prod.precio || 0).toFixed(2)}</p>
               </div>
             </div>
-            <button onclick="toggleEstadoIndividualCatalogo('${prod.id}', ${!enCatalogo})" class="${enCatalogo ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} text-[10px] font-bold px-2.5 py-1 rounded-full">
+            <button onclick="toggleEstadoIndividualCatalogo('${prod.id}', ${!enCatalogo})" class="${enCatalogo ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'} text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm">
               ${enCatalogo ? '🟢 Visible' : '🔴 Oculto'}
             </button>
           </div>`;
       });
+
       contenedor.innerHTML = html;
     }
 
