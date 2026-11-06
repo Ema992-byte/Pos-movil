@@ -1178,11 +1178,9 @@
 
       if (!error) {
         alert("¡Avatar actualizado con éxito! 🎉");
-        // Actualizar el estado visual del avatar en el header del POS
         document.querySelector('.avatar-header').innerText = avatarIcono;
         cerrarModalAvatares();
       } else {
-        // En caso de que la función RPC no exista en la BD, actualizamos localmente y mostramos aviso
         document.querySelector('.avatar-header').innerText = avatarIcono;
         alert("¡Avatar actualizado con éxito! 🎉");
         cerrarModalAvatares();
@@ -1194,7 +1192,6 @@
       const grid = document.getElementById('gridAvatares');
       modal.classList.remove('hidden');
 
-      // Obtener nivel actual del DOM o calcular
       const nivelBadgeText = document.getElementById('labelNivelBadge').textContent;
       const nivelActual = parseInt(nivelBadgeText.replace('Nivel ', '')) || 1;
 
@@ -1734,7 +1731,6 @@
       document.getElementById('labelXpTexto').textContent = `${info.xpActual} / ${info.xpNecesaria} XP`;
       document.getElementById('barraXpProgreso').style.width = info.porcentaje + '%';
       
-      // Actualizar Avatar y accesorios flotantes en base al nivel actual
       actualizarAvatarYAccesoriosFlotantes(info.nivel, email || usuarioActualEmail);
     }
 
@@ -1748,7 +1744,6 @@
 
       if (elRol) elRol.textContent = `Operador: ${operadorNombre}`;
 
-      // Accesorios flotantes según el nivel
       if (corona) {
         if (nivelActual >= 5) corona.classList.remove('hidden');
         else corona.classList.add('hidden');
@@ -2385,6 +2380,10 @@
           if (emailVendedor.toLowerCase() === usuarioActualEmail.toLowerCase()) {
             actualizarBarraNivelVisual(0, emailVendedor);
           }
+
+          if (typeof cargarListaUsuariosPOS === 'function') {
+            cargarListaUsuariosPOS();
+          }
         } catch (err) {
           alert('❌ Error al intentar reiniciar el nivel: ' + (err.message || err));
         }
@@ -2772,7 +2771,6 @@
 
     function cerrarModalProducto() { document.getElementById('modalProducto').classList.add('hidden'); }
 
-    // Función guardarProducto() integrada con lógica de Logros y Supabase
     async function guardarProducto() {
       const editId = document.getElementById('editProductoId').value;
       const datos = {
@@ -2797,7 +2795,6 @@
         await _supabase.from('productos').update(datos).eq('id', editId);
         alert('✓ ¡Producto actualizado con éxito!');
       } else {
-        // 1. Guardar el nuevo producto en Supabase
         const { error: errorProd } = await _supabase.from('productos').insert([datos]);
         
         if (errorProd) {
@@ -2805,11 +2802,8 @@
           return;
         }
 
-        // 2. Otorgar el logro "Arquitecto de Catálogo" y sumar +100 XP de forma segura
         try {
           const codigoLogro = 'arquitecto_catalogo';
-          
-          // Verificar si el usuario ya tiene este logro registrado en 'vendedor_logros'
           const { data: logroExistente } = await _supabase
             .from('vendedor_logros')
             .select('*')
@@ -2818,7 +2812,6 @@
             .maybeSingle();
 
           if (!logroExistente) {
-            // Registrar el logro obtenido en la base de datos
             const { error: errorLogro } = await _supabase.from('vendedor_logros').insert([{
               email_vendedor: usuarioActualEmail,
               codigo_logro: codigoLogro,
@@ -2826,7 +2819,6 @@
             }]);
 
             if (!errorLogro) {
-              // Sumar la experiencia correspondiente (+100 XP) a su nivel actual
               await sumarExperienciaVendedor(usuarioActualEmail, 100);
               alert('✓ ¡Producto guardado! 🏆 ¡Desbloqueaste el logro "Arquitecto de Catálogo" y sumaste +100 XP!');
             } else {
