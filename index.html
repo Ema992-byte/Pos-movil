@@ -362,7 +362,7 @@
                 </tr>
               </thead>
               <tbody id="tablaProveedoresCosto" class="divide-y divide-slate-100 dark:divide-slate-700">
-                <tr><td colspan="3" class="text-center py-4 text-slate-400">Seleccione un producto arriba</td></tr>
+                <tr><td colspan="5" class="text-center py-4 text-slate-400">Seleccione un producto arriba</td></tr>
               </tbody>
             </table>
           </div>
@@ -400,9 +400,11 @@
             <table class="w-full text-left text-xs border-collapse">
               <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 sticky top-0">
                 <tr>
-                  <th class="p-2">Producto Detectado</th>
-                  <th class="p-2 text-right">Precio Sugerido IA</th>
-                  <th class="p-2 text-center">Acción</th>
+                  <th class="p-2">Producto (editable)</th>
+                  <th class="p-2 text-right">Precio (editable)</th>
+                  <th class="p-2">Unidades</th>
+                  <th class="p-2">Proveedor</th>
+                  <th class="p-2 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaItemsRevistaIA" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
@@ -2052,7 +2054,7 @@
       document.getElementById('lblCostoActualInventario').textContent = '$' + costoActual.toFixed(2);
       
       const tbody = document.getElementById('tablaProveedoresCosto');
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-400">Consultando múltiples proveedores...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">Consultando múltiples proveedores...</td></tr>';
       document.getElementById('detalleComparativaProveedores').classList.remove('hidden');
 
       try {
@@ -2062,7 +2064,7 @@
           .or(`codigo_barras.eq.${codigo},nombre_producto.ilike.%${nombre}%`);
 
         if (!data || data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-slate-400">Sin proveedores registrados. Costo actual: $${costoActual.toFixed(2)}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">Sin proveedores registrados. Costo actual: $${costoActual.toFixed(2)}</td></tr>`;
           return;
         }
 
@@ -2081,7 +2083,7 @@
         });
         tbody.innerHTML = html;
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-rose-500">Error al consultar proveedores.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-rose-500">Error al consultar proveedores.</td></tr>';
       }
     }
 
@@ -2267,13 +2269,13 @@
       const contenedorRes = document.getElementById('contenedorResultadoIA');
       const tbody = document.getElementById('tablaItemsRevistaIA');
       contenedorRes.classList.remove('hidden');
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-indigo-600">Preparando lectura del archivo...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-indigo-600">Preparando lectura del archivo...</td></tr>';
       let worker = null;
       try {
         let texto = '';
         const esPDF = archivo.type === 'application/pdf' || archivo.name.toLowerCase().endsWith('.pdf');
         const actualizarEstado = (mensaje) => {
-          tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-indigo-600">${mensaje}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-indigo-600">${mensaje}</td></tr>`;
         };
         const ejecutarOCR = async (fuente, etiqueta) => {
           if (!window.Tesseract || !window.Tesseract.createWorker) {
@@ -2353,13 +2355,13 @@
         for (const x of candidatos) { const k=normalizarArticuloCostos(x.nombre)+'|'+x.precioSugerido; if(!vistos.has(k)){vistos.add(k);unicos.push(x);} }
         window._productosRevistaExtraidos = unicos;
         if (!unicos.length) {
-          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-amber-600">Se pudo leer el archivo, pero no se detectaron renglones claros con artículo y precio. Revisá la calidad del escaneo o probá con una lista CSV.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-amber-600">Se pudo leer el archivo, pero no se detectaron renglones claros con artículo y precio. Revisá la calidad del escaneo o probá con una lista CSV.</td></tr>';
           return;
         }
-        tbody.innerHTML = unicos.map((item,i)=>`<tr><td class="p-2 font-medium text-slate-800 dark:text-white">${String(item.nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</td><td class="p-2 text-right font-bold text-emerald-600">$${item.precioSugerido.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td class="p-2 text-center"><button onclick="prepararAplicacionPrecioRevista(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-[10px] font-bold">Revisar / aplicar</button></td></tr>`).join('');
+        renderizarProductosRevista();
       } catch (e) {
         console.error('Error al leer revista:', e);
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-rose-500">${String(e.message||e).replace(/</g,'&lt;')}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-rose-500">${String(e.message||e).replace(/</g,'&lt;')}</td></tr>`;
       } finally {
         if (worker) {
           try { await worker.terminate(); } catch (e) { console.warn('No se pudo cerrar el motor OCR:', e); }
@@ -2369,18 +2371,74 @@
       }
     }
 
-    function prepararAplicacionPrecioRevista(indice) {
-      const item=(window._productosRevistaExtraidos||[])[indice];
-      if(!item) return;
-      const coincidencias=todosLosProductos.filter(p=>normalizarArticuloCostos(p.nombre).includes(normalizarArticuloCostos(item.nombre)) || normalizarArticuloCostos(item.nombre).includes(normalizarArticuloCostos(p.nombre)));
-      if(coincidencias.length===1) {
-        if(confirm(`Se encontró “${coincidencias[0].nombre}” en el inventario. ¿Querés registrar $${item.precioSugerido.toFixed(2)} como precio de proveedor?`)) {
-          const proveedor=prompt('Ingresá el nombre del proveedor:');
-          if(proveedor && proveedor.trim()) guardarRegistroPrecioProveedor({codigo_barras:obtenerCodigoBarras(coincidencias[0])||null,nombre_producto:coincidencias[0].nombre,proveedor:proveedor.trim(),precio_presentacion:item.precioSugerido,cantidad_unidades:1,precio_unitario:item.precioSugerido,fecha:new Date().toISOString().slice(0,10),origen_precio:'Revista PDF'}).then(()=>alert('Precio registrado en la tabla de proveedores. El costo del inventario no fue modificado.')).catch(e=>alert('No se pudo registrar: '+(e.message||e)));
-        }
-      } else {
-        alert('Artículo extraído: '+item.nombre+'\nPrecio detectado: $'+item.precioSugerido.toFixed(2)+'\nNo se encontró una coincidencia única en el inventario. Verificá el artículo y registralo manualmente en “Precio individual”.');
+    function renderizarProductosRevista() {
+      const tbody = document.getElementById('tablaItemsRevistaIA');
+      const items = window._productosRevistaExtraidos || [];
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-500">No hay productos pendientes.</td></tr>';
+        return;
       }
+      const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      tbody.innerHTML = items.map((item,i) => `<tr class="border-t dark:border-slate-700" data-revista-index="${i}">
+        <td class="p-2 min-w-64"><input id="revistaNombre_${i}" value="${esc(item.nombre)}" class="w-full min-w-56 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" /></td>
+        <td class="p-2"><input id="revistaPrecio_${i}" type="number" min="0.01" step="0.01" value="${Number(item.precioSugerido)||0}" class="w-28 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-right text-slate-900 dark:text-white" /></td>
+        <td class="p-2"><input id="revistaCantidad_${i}" type="number" min="0.001" step="0.001" value="${Number(item.cantidad_unidades)||1}" class="w-20 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-right text-slate-900 dark:text-white" /></td>
+        <td class="p-2"><input id="revistaProveedor_${i}" value="${esc(item.proveedor||'')}" placeholder="Proveedor" class="w-32 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" /></td>
+        <td class="p-2 text-center whitespace-nowrap space-y-1"><button onclick="guardarProductoRevista(${i})" class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded font-bold">Guardar</button><button onclick="eliminarProductoRevista(${i})" class="block w-full bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded font-bold">Eliminar</button></td>
+      </tr>`).join('');
+    }
+
+    async function guardarProductoRevista(indice) {
+      if (!esUsuarioAdmin()) { alert('Módulo exclusivo para administradores.'); return; }
+      const items = window._productosRevistaExtraidos || [];
+      const item = items[indice];
+      if (!item) return;
+      const nombre = document.getElementById(`revistaNombre_${indice}`).value.trim();
+      const precio = Number(document.getElementById(`revistaPrecio_${indice}`).value);
+      const cantidad = Number(document.getElementById(`revistaCantidad_${indice}`).value);
+      const proveedor = document.getElementById(`revistaProveedor_${indice}`).value.trim();
+      if (!nombre) { alert('Ingresá el nombre del producto.'); return; }
+      if (!Number.isFinite(precio) || precio <= 0) { alert('Ingresá un precio válido mayor a cero.'); return; }
+      if (!Number.isFinite(cantidad) || cantidad <= 0) { alert('Ingresá una cantidad de unidades válida.'); return; }
+      if (!proveedor) { alert('Ingresá el nombre del proveedor.'); return; }
+      const coincidencias = todosLosProductos.filter(p => {
+        const a=normalizarArticuloCostos(p.nombre), b=normalizarArticuloCostos(nombre);
+        return a && b && (a===b || a.includes(b) || b.includes(a));
+      });
+      const producto = coincidencias.length === 1 ? coincidencias[0] : null;
+      try {
+        await guardarRegistroPrecioProveedor({
+          codigo_barras: producto ? (obtenerCodigoBarras(producto)||null) : null,
+          nombre_producto: producto ? producto.nombre : nombre,
+          proveedor,
+          precio_presentacion: precio,
+          cantidad_unidades: cantidad,
+          precio_unitario: precio/cantidad,
+          fecha: new Date().toISOString().slice(0,10),
+          origen_precio: 'Revista PDF',
+          observaciones: producto ? 'Producto vinculado al inventario' : 'Producto de revista pendiente de vincular al inventario'
+        });
+        items[indice] = {...item, nombre, precioSugerido:precio, cantidad_unidades:cantidad, proveedor, guardado:true};
+        alert('Precio guardado en proveedores. No se modificó el costo del inventario.');
+        items.splice(indice,1);
+        window._productosRevistaExtraidos = items;
+        renderizarProductosRevista();
+      } catch(e) { alert('No se pudo guardar el precio: '+(e.message||e)); }
+    }
+
+    function eliminarProductoRevista(indice) {
+      if (!esUsuarioAdmin()) { alert('Módulo exclusivo para administradores.'); return; }
+      const items = window._productosRevistaExtraidos || [];
+      if (!items[indice]) return;
+      if (!confirm(`¿Eliminar “${items[indice].nombre}” de los resultados detectados? Esta acción no elimina registros ya guardados.`)) return;
+      items.splice(indice,1);
+      window._productosRevistaExtraidos = items;
+      renderizarProductosRevista();
+    }
+
+    function prepararAplicacionPrecioRevista(indice) {
+      // Compatibilidad con versiones anteriores: ahora la edición y el guardado se realizan en cada fila.
+      renderizarProductosRevista();
     }
 
     async function aplicarCostoIA(nombreProducto, nuevoCosto) {
