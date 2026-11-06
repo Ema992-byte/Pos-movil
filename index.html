@@ -881,7 +881,7 @@
   <div id="modalCargaMasiva" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-md">
       <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">📄 Actualización / Carga Masiva</h3>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Sube tu CSV. El sistema actualizará los productos existentes y agregará los nuevos sin duplicar.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Subí un CSV con las columnas codigo;nombre;precio;stock. Si el código ya existe, actualiza esos datos; si es nuevo, agrega el producto. Las fotos, costos, precios mayoristas y visibilidad del catálogo se conservan.</p>
       
       <div class="space-y-4">
         <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 p-6 rounded-xl text-center bg-slate-50 dark:bg-slate-900">
@@ -2757,39 +2757,429 @@
       await cargarProductos();
     }
 
-    function abrirModalCargaMasiva() { document.getElementById('modalCargaMasiva').classList.remove('hidden'); }
-    function cerrarModalCargaMasiva() { document.getElementById('modalCargaMasiva').classList.add('hidden'); }
+    function abrirModalCargaMasiva() {
+      document.getElementById('modalCargaMasiva').classList.remove('hidden');
+    }
+
+    function cerrarModalCargaMasiva() {
+      document.getElementById('modalCargaMasiva').classList.add('hidden');
+    }
+
+    // Analiza CSV respetando campos entre comillas y separadores dentro del texto.
+    function analizarLineaCSV(linea, separador) {
+      const campos = [];
+      let campo = '';
+      let dentroComillas = false;
+
+      for (let i = 0; i < linea.length; i++) {
+        const caracter = linea[i];
+
+        if (caracter === '"') {
+          if (dentroComillas && linea[i + 1] === '"') {
+            campo += '"';
+            i++;
+          } else {
+            dentroComillas = !dentroComillas;
+          }
+        } else if (caracter === separador && !dentroComillas) {
+          campos.push(campo.trim());
+          campo = '';
+        } else {
+          campo += caracter;
+        }
+      }
+
+      campos.push(campo.trim());
+      return campos;
+    }
+
+    function normalizarEncabezadoCSV(valor) {
+      return String(valor || '')
+        .replace(/^\uFEFF/, '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_-]+/g, '');
+    }
+
+    // Normaliza la descripción para comparar artículos aunque cambien mayúsculas,
+    // tildes, signos o espacios. Conserva números y medidas para no confundir tamaños.
+    function normalizarDetalleArticulo(valor) {
+      return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+    }
+
+    // Similitud por palabras. Se usa solo para advertir posibles repetidos;
+    // nunca para actualizar automáticamente un artículo con otro código.
+    function similitudDetalleArticulo(a, b) {
+      const na = normalizarDetalleArticulo(a);
+      const nb = normalizarDetalleArticulo(b);
+      if (!na || !nb) return 0;
+      if (na === nb) return 1;
+      const ta = new Set(na.split(' '));
+      const tb = new Set(nb.split(' '));
+      const interseccion = [...ta].filter(t => tb.has(t)).length;
+      const union = new Set([...ta, ...tb]).size;
+      const jaccard = union ? interseccion / union : 0;
+      const proporcionLongitud = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
+      return jaccard * 0.75 + proporcionLongitud * 0.25;
+    }
+
+    function convertirNumeroCSV(valor) {
+      if (valor === undefined || valor === null || String(valor).trim() === '') return null;
+      let limpio = String(valor).trim().replace(/\$/g, '').replace(/\s/g, '');
+
+      // Admite 1.234,56 y 1234,56; el CSV de Excel suele usar punto y coma.
+      if (limpio.includes(',') && limpio.includes('.')) {
+        if (limpio.lastIndexOf(',') > limpio.lastIndexOf('.')) {
+          limpio = limpio.replace(/\./g, '').replace(',', '.');
+        } else {
+          limpio = limpio.replace(/,/g, '');
+        }
+      } else if (limpio.includes(',')) {
+        limpio = limpio.replace(',', '.');
+      }
+
+      const numero = Number(limpio);
+      return Number.isFinite(numero) ? numero : null;
+    }
+
     function procesarArchivoCSV(e) {
-      const arch = e.target.files[0];
+      const arch = e.target.files && e.target.files[0];
       if (!arch) return;
+
       const lector = new FileReader();
       lector.onload = function(ev) {
-        const lineas = ev.target.result.split(/\r\n|\n/);
-        productosParaCargarMasiva = [];
-        for (let i = 1; i < lineas.length; i++) {
-          const v = lineas[i].split(';');
-          if (v[1] && parseFloat(v[2]) > 0) productosParaCargarMasiva.push({ codigo_barras: v[0] || null, nombre: v[1].trim(), precio: parseFloat(v[2]) || 0, stock: parseInt(v[3]) || 0, activo: true });
+        try {
+          let contenido = String(ev.target.result || '').replace(/^\uFEFF/, '');
+          const primeraLinea = contenido.split(/\r\n|\n|\r/).find(l => l.trim()) || '';
+          const separador = (primeraLinea.match(/;/g) || []).length >= (primeraLinea.match(/,/g) || []).length ? ';' : ',';
+          const lineas = contenido.split(/\r\n|\n|\r/).filter(l => l.trim());
+
+          if (lineas.length < 2) throw new Error('El CSV no contiene filas de productos.');
+
+          const encabezados = analizarLineaCSV(lineas[0], separador).map(normalizarEncabezadoCSV);
+          const buscarColumna = (...nombres) => encabezados.findIndex(h => nombres.includes(h));
+
+          const idxCodigo = buscarColumna('codigo', 'codigobarras', 'codigodebarras', 'barcode', 'ean');
+          const idxNombre = buscarColumna('nombre', 'producto', 'descripcion', 'articulo');
+          const idxPrecio = buscarColumna('precio', 'preciominorista', 'precioventa', 'venta');
+          const idxPrecioMayorista = buscarColumna('preciomayorista', 'preciomayorist');
+          const idxCantidadMayorista = buscarColumna('cantidadmayorista', 'cantidadparamayor', 'unidadesparamayor');
+          const idxUnidadesBulto = buscarColumna('unidadesporbulto', 'unidadesbulto', 'cantidadporbulto');
+          const idxStock = buscarColumna('stock', 'existencia', 'cantidad');
+
+          if (idxCodigo < 0 || idxNombre < 0) {
+            throw new Error('Faltan columnas obligatorias. Se requieren codigo_barras y nombre. Los demás campos son opcionales.');
+          }
+          if ([idxPrecio, idxPrecioMayorista, idxCantidadMayorista, idxUnidadesBulto, idxStock].every(i => i < 0)) {
+            throw new Error('Incluí al menos un campo para actualizar: precio, precio_mayorista, cantidad_mayorista, unidades_por_bulto o stock.');
+          }
+
+          productosParaCargarMasiva = [];
+          const codigosLeidos = new Set();
+          let filasInvalidas = 0;
+
+          for (let i = 1; i < lineas.length; i++) {
+            const valores = analizarLineaCSV(lineas[i], separador);
+            const codigo = String(valores[idxCodigo] || '').trim();
+            const nombre = String(valores[idxNombre] || '').trim();
+            const precio = idxPrecio >= 0 ? convertirNumeroCSV(valores[idxPrecio]) : null;
+            const precioMayorista = idxPrecioMayorista >= 0 ? convertirNumeroCSV(valores[idxPrecioMayorista]) : null;
+            const cantidadMayorista = idxCantidadMayorista >= 0 ? convertirNumeroCSV(valores[idxCantidadMayorista]) : null;
+            const unidadesPorBulto = idxUnidadesBulto >= 0 ? convertirNumeroCSV(valores[idxUnidadesBulto]) : null;
+            const stock = idxStock >= 0 ? convertirNumeroCSV(valores[idxStock]) : null;
+
+            const valoresNumericos = [precio, precioMayorista, cantidadMayorista, unidadesPorBulto, stock];
+            const numerosInvalidos = valoresNumericos.some((n, j) => {
+              if (n === null) return false;
+              if (!Number.isFinite(n) || n < 0) return true;
+              if (j < 2 && n === 0) return true; // los precios, si se informan, deben ser mayores a cero
+              if (j === 2 || j === 3 || j === 4) return !Number.isInteger(n);
+              return false;
+            });
+            if (!codigo || !nombre || numerosInvalidos || valoresNumericos.every(n => n === null)) {
+              filasInvalidas++;
+              continue;
+            }
+
+            const codigoNormalizado = codigo.toLowerCase();
+            if (codigosLeidos.has(codigoNormalizado)) {
+              filasInvalidas++;
+              continue;
+            }
+            codigosLeidos.add(codigoNormalizado);
+
+            const productoCSV = { codigo_barras: codigo, nombre: nombre };
+            if (precio !== null) productoCSV.precio = precio;
+            if (precioMayorista !== null) productoCSV.precio_mayorista = precioMayorista;
+            if (cantidadMayorista !== null) productoCSV.cantidad_mayorista = Math.trunc(cantidadMayorista);
+            if (unidadesPorBulto !== null) productoCSV.unidades_por_bulto = Math.trunc(unidadesPorBulto);
+            if (stock !== null) productoCSV.stock = Math.trunc(stock);
+
+            productosParaCargarMasiva.push(productoCSV);
+          }
+
+          if (!productosParaCargarMasiva.length) {
+            throw new Error('No se encontraron filas válidas. Verificá códigos, nombres y precios.');
+          }
+
+          document.getElementById('nombreArchivoCsv').textContent = arch.name;
+          document.getElementById('estadoCargaMasiva').textContent =
+            `${productosParaCargarMasiva.length} productos listos. ${filasInvalidas} filas omitidas por datos inválidos o códigos repetidos.`;
+          document.getElementById('estadoCargaMasiva').className =
+            'text-xs text-center p-2 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+          document.getElementById('estadoCargaMasiva').classList.remove('hidden');
+
+          const boton = document.getElementById('btnEjecutarCarga');
+          boton.disabled = false;
+          boton.className = 'flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm font-bold shadow';
+        } catch (error) {
+          productosParaCargarMasiva = [];
+          document.getElementById('btnEjecutarCarga').disabled = true;
+          document.getElementById('estadoCargaMasiva').textContent = error.message;
+          document.getElementById('estadoCargaMasiva').className =
+            'text-xs text-center p-2 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+          document.getElementById('estadoCargaMasiva').classList.remove('hidden');
         }
-        if (productosParaCargarMasiva.length > 0) {
-          document.getElementById('btnEjecutarCarga').disabled = false;
-          document.getElementById('btnEjecutarCarga').className = "flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm font-bold shadow";
-          alert(`✓ ${productosParaCargarMasiva.length} productos listos para importar.`);
-        }
+      };
+      lector.onerror = function() {
+        alert('No se pudo leer el archivo CSV.');
       };
       lector.readAsText(arch, 'UTF-8');
     }
+
     async function ejecutarImportacionInteligente() {
-      for (let p of productosParaCargarMasiva) await _supabase.from('productos').insert([p]);
-      alert('✓ ¡Carga masiva completada!');
-      cerrarModalCargaMasiva();
-      await cargarProductos();
+      const boton = document.getElementById('btnEjecutarCarga');
+      if (!productosParaCargarMasiva || !productosParaCargarMasiva.length) {
+        alert('Primero seleccioná un archivo CSV válido.');
+        return;
+      }
+
+      boton.disabled = true;
+      boton.textContent = 'Procesando...';
+
+      let agregados = 0;
+      let actualizados = 0;
+      let omitidosPosibleDuplicado = 0;
+      const errores = [];
+      const posiblesDuplicados = [];
+
+      try {
+        // Traemos el catálogo para comparar por código y también por descripción.
+        let catalogo = [];
+        const tamanoPagina = 1000;
+        for (let desde = 0; ; desde += tamanoPagina) {
+          const { data: pagina, error: errorConsulta } = await _supabase
+            .from('productos')
+            .select('*')
+            .range(desde, desde + tamanoPagina - 1);
+          if (errorConsulta) throw errorConsulta;
+          catalogo = catalogo.concat(pagina || []);
+          if (!pagina || pagina.length < tamanoPagina) break;
+        }
+
+        const porCodigo = new Map();
+        catalogo.forEach(prod => {
+          const codigo = String(prod.codigo_barras || prod.codigo_barra || '').trim().toLowerCase();
+          if (codigo && !porCodigo.has(codigo)) porCodigo.set(codigo, prod);
+        });
+
+        // Evita también repetir un mismo detalle dentro del propio CSV.
+        const detallesCSVProcesados = [];
+
+        for (const item of productosParaCargarMasiva) {
+          const codigoNormalizado = String(item.codigo_barras || '').trim().toLowerCase();
+          const existentePorCodigo = porCodigo.get(codigoNormalizado);
+
+          if (existentePorCodigo) {
+            // Si coincide el código, actualizamos solo los campos incluidos en el CSV.
+            // Se preservan fotos, costo, catálogo virtual y cualquier otro campo omitido.
+            const cambios = { nombre: item.nombre };
+            ['precio', 'precio_mayorista', 'cantidad_mayorista', 'unidades_por_bulto', 'stock'].forEach(campo => {
+              if (Object.prototype.hasOwnProperty.call(item, campo)) cambios[campo] = item[campo];
+            });
+
+            const { error } = await _supabase
+              .from('productos')
+              .update(cambios)
+              .eq('id', existentePorCodigo.id);
+
+            if (error) errores.push(`${item.codigo_barras}: ${error.message}`);
+            else {
+              actualizados++;
+              existentePorCodigo.nombre = item.nombre;
+            }
+            continue;
+          }
+
+          // Un código distinto con descripción igual o muy parecida se considera
+          // posible duplicado. Se omite el alta para revisión manual.
+          let coincidencia = null;
+          let mejorSimilitud = 0;
+          for (const prod of catalogo) {
+            const similitud = similitudDetalleArticulo(item.nombre, prod.nombre || prod.descripcion || '');
+            if (similitud > mejorSimilitud) {
+              mejorSimilitud = similitud;
+              coincidencia = prod;
+            }
+          }
+
+          // También comparamos contra filas anteriores del mismo archivo.
+          let coincidenciaCSV = null;
+          let mejorSimilitudCSV = 0;
+          for (const previo of detallesCSVProcesados) {
+            const similitud = similitudDetalleArticulo(item.nombre, previo.nombre);
+            if (similitud > mejorSimilitudCSV) {
+              mejorSimilitudCSV = similitud;
+              coincidenciaCSV = previo;
+            }
+          }
+
+          if ((coincidencia && mejorSimilitud >= 0.82) ||
+              (coincidenciaCSV && mejorSimilitudCSV >= 0.82)) {
+            omitidosPosibleDuplicado++;
+            if (coincidencia && mejorSimilitud >= 0.82) {
+              posiblesDuplicados.push(
+                `CSV ${item.codigo_barras} - ${item.nombre} | posible existente ${coincidencia.codigo_barras || coincidencia.codigo_barra || 'sin código'} - ${coincidencia.nombre || coincidencia.descripcion || ''} (${Math.round(mejorSimilitud * 100)}%)`
+              );
+            } else {
+              posiblesDuplicados.push(
+                `CSV ${item.codigo_barras} - ${item.nombre} | posible repetido en el mismo archivo: ${coincidenciaCSV.codigo_barras} - ${coincidenciaCSV.nombre} (${Math.round(mejorSimilitudCSV * 100)}%)`
+              );
+            }
+            continue;
+          }
+
+          // Para altas nuevas exigimos precio minorista: no inventamos un valor.
+          if (!Object.prototype.hasOwnProperty.call(item, 'precio') || item.precio <= 0) {
+            errores.push(`${item.codigo_barras}: producto nuevo omitido; falta informar precio minorista (precio).`);
+            continue;
+          }
+          const nuevoProducto = {
+            codigo_barras: item.codigo_barras,
+            nombre: item.nombre,
+            precio: item.precio,
+            activo: true
+          };
+          ['precio_mayorista', 'cantidad_mayorista', 'unidades_por_bulto', 'stock'].forEach(campo => {
+            if (Object.prototype.hasOwnProperty.call(item, campo)) nuevoProducto[campo] = item[campo];
+          });
+
+          const { data, error } = await _supabase
+            .from('productos')
+            .insert([nuevoProducto])
+            .select('id')
+            .single();
+
+          if (error) {
+            errores.push(`${item.codigo_barras}: ${error.message}`);
+          } else {
+            agregados++;
+            const productoCreado = { id: data.id, ...nuevoProducto };
+            porCodigo.set(codigoNormalizado, productoCreado);
+            catalogo.push(productoCreado);
+            detallesCSVProcesados.push({ codigo_barras: item.codigo_barras, nombre: item.nombre });
+          }
+        }
+
+        await cargarProductos();
+
+        const resumen = `Carga finalizada.\nProductos actualizados: ${actualizados}\nProductos nuevos: ${agregados}\nPosibles duplicados omitidos: ${omitidosPosibleDuplicado}\nErrores: ${errores.length}`;
+        const detalleDuplicados = posiblesDuplicados.length
+          ? '\n\nREVISAR POSIBLES DUPLICADOS:\n' + posiblesDuplicados.slice(0, 20).join('\n')
+          : '';
+        const detalleErrores = errores.length
+          ? '\n\nERRORES:\n' + errores.slice(0, 8).join('\n')
+          : '';
+
+        if (errores.length || posiblesDuplicados.length) {
+          console.warn('Resultado de carga masiva:', { posiblesDuplicados, errores });
+          alert(resumen + detalleDuplicados + detalleErrores);
+        } else {
+          alert('✓ ' + resumen);
+          cerrarModalCargaMasiva();
+        }
+      } catch (error) {
+        console.error('Error en carga masiva:', error);
+        alert('No se pudo completar la carga masiva: ' + (error.message || error));
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Procesar Catálogo en Supabase';
+      }
+    }
+
+    function escaparCampoCSV(valor) {
+      if (valor === null || valor === undefined) return '""';
+      return '"' + String(valor).replace(/"/g, '""') + '"';
+    }
+
+    function obtenerInventarioMinimo(prod) {
+      if (!prod) return '';
+      const valor = prod["Inv. Minimo"] ?? prod.inv_minimo ?? prod.inventario_minimo ?? prod.stock_minimo ?? prod.stock_min;
+      return valor === null || valor === undefined ? '' : valor;
+    }
+
+    function obtenerDepartamentoProducto(prod) {
+      if (!prod) return '';
+      const valor = prod.Departamento ?? prod.departamento ?? '';
+      return valor === null || valor === undefined ? '' : valor;
     }
 
     function descargarReporteProductosCSV() {
-      let csv = "codigo;nombre;precio;stock;costo\n";
-      todosLosProductos.forEach(p => { csv += `"${obtenerCodigoBarras(p)}";"${p.nombre}";"${p.precio}";"${p.stock || 0}";"${obtenerCostoProducto(p)}"\n`; });
+      // Mantiene el mismo esquema del modelo de importación recibido:
+      // los campos de precio/cantidad pueden editarse y volver a importarse.
+      // Costo, foto, inventario mínimo y departamento se exportan como referencia,
+      // pero el importador actual no los modifica para preservar esos datos.
+      const columnas = [
+        'codigo_barras',
+        'nombre',
+        'precio',
+        'precio_mayorista',
+        'cantidad_mayorista',
+        'unidades_por_bulto',
+        'stock',
+        'Precio Costo',
+        'imagen_url',
+        'Inv. Minimo',
+        'Departamento'
+      ];
+      const filas = [columnas.map(escaparCampoCSV).join(';')];
+
+      todosLosProductos.forEach(p => {
+        const imagen = p.imagen_url ?? p.foto ?? '';
+        const fila = [
+          obtenerCodigoBarras(p),
+          p.nombre ?? '',
+          p.precio ?? '',
+          obtenerPrecioMayorista(p) || '',
+          obtenerCantMayorista(p) || '',
+          obtenerUnidadesPorBulto(p) || '',
+          p.stock ?? '',
+          obtenerCostoProducto(p) || '',
+          imagen,
+          obtenerInventarioMinimo(p),
+          obtenerDepartamentoProducto(p)
+        ];
+        filas.push(fila.map(escaparCampoCSV).join(';'));
+      });
+
+      const csv = filas.join('\r\n') + '\r\n';
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "catalogo.csv"; link.click();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'catalogo_productos_modelo_carga.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function capturarFotoCamara(e) {
