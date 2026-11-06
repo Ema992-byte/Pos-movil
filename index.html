@@ -175,6 +175,10 @@
         </button>
         
         <div id="submenusAdminSidebar" class="hidden bg-white dark:bg-slate-800 px-2 py-1.5 space-y-1 text-xs border-t dark:border-slate-700">
+      <!-- Catálogo Virtual: gestión exclusiva de administradores -->
+      <button id="menuBtn_catalogoVirtual" onclick="toggleSidebarMenu(); ejecutarAccionModulo('catalogoVirtual')" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-pink-50 dark:hover:bg-pink-950/30 text-pink-700 dark:text-pink-400 font-semibold flex items-center gap-2.5">
+        <span>📖</span> Catálogo Virtual / Revista
+      </button>
           <button id="menuBtn_nuevoProducto" onclick="toggleSidebarMenu(); ejecutarAccionModulo('nuevoProducto')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2">
             <span>➕</span> Nuevo Producto
           </button>
@@ -193,9 +197,6 @@
           <button id="menuBtn_modificarPrecios" onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2">
             <span>✏️</span> Modificar Precios
           </button>
-          <button id="menuBtn_catalogoVirtual" onclick="toggleSidebarMenu(); ejecutarAccionModulo('catalogoVirtual')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-pink-700 dark:text-pink-400 font-medium flex items-center gap-2">
-            <span>📖</span> Catálogo Virtual / Revista
-          </button>
           <button id="menuBtn_reporteVentas" onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
             <span>📊</span> Reporte de Ventas
           </button>
@@ -208,6 +209,7 @@
         </div>
       </div>
 
+      
       <!-- HISTORIAL DE VENTAS -->
       <button onclick="toggleSidebarMenu(); abrirModalHistorial()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
         <span>📜</span> Historial de Ventas
@@ -1592,12 +1594,12 @@
     async function cargarProductosSilencioso() {
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
-        todosLosProductos = data.filter(p => p.en_catalogo_virtual !== false);
+        todosLosProductos = data;
         localStorage.setItem('go_pos_productos', JSON.stringify(todosLosProductos));
         
         const textoBusq = document.getElementById('buscador').value.trim();
         if (!textoBusq) {
-          mostrarProductos(todosLosProductos.slice(0, 40));
+          mostrarProductos(obtenerProductosVisiblesCatalogo().slice(0, 40));
         } else {
           filtrarProductos();
         }
@@ -1614,6 +1616,16 @@
           return;
         }
         abrirModalPermisos();
+        return;
+      }
+
+      if (accion === 'catalogoVirtual') {
+        if (!esAdminEspecial) {
+          await registrarIntentoNoAutorizado(usuarioActualEmail, accion);
+          alert('⚠️ El módulo Catálogo Virtual es exclusivo para administradores.');
+          return;
+        }
+        abrirModalCatalogoVirtual();
         return;
       }
 
@@ -1637,7 +1649,6 @@
       else if (accion === 'cargaMasiva') abrirModalCargaMasiva();
       else if (accion === 'exportarProductos') descargarReporteProductosCSV();
       else if (accion === 'modificarPrecios') abrirModalPrecios();
-      else if (accion === 'catalogoVirtual') abrirModalCatalogoVirtual();
       else if (accion === 'reporteVentas') abrirModalReporteVentas();
     }
 
@@ -1715,6 +1726,11 @@
       return emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
     }
 
+    // Solo los productos habilitados aparecen y pueden venderse en el POS de cualquier usuario.
+    function obtenerProductosVisiblesCatalogo() {
+      return todosLosProductos.filter(p => p.en_catalogo_virtual !== false);
+    }
+
     function obtenerCodigoBarras(prod) { return prod.codigo_barras || prod.codigo_barra || ''; }
     function obtenerPrecioMayorista(prod) { return parseFloat(prod.precio_mayorista || prod.precio_mayorist || 0); }
     function obtenerCantMayorista(prod) { return parseInt(prod.cantidad_mayorista || prod.cantidad_mayor || 6); }
@@ -1730,11 +1746,11 @@
       document.getElementById('posSection').classList.remove('hidden');
 
       todosLosProductos = productosData;
-      document.getElementById('cantProductos').textContent = `${todosLosProductos.length} productos`;
+      document.getElementById('cantProductos').textContent = `${obtenerProductosVisiblesCatalogo().length} productos`;
 
       await verificarYAplicarPermisos(email);
       await cargarProgresoVendedor(email);
-      mostrarProductos(todosLosProductos.slice(0, 40));
+      mostrarProductos(obtenerProductosVisiblesCatalogo().slice(0, 40));
     }
 
     async function cargarProgresoVendedor(email) {
@@ -1808,6 +1824,8 @@
       const emailLower = email.toLowerCase();
       const esAdminEspecial = emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
       const contenedorAdminSidebar = document.getElementById('contenedorMenuAdminSidebar');
+      const botonCatalogoGlobal = document.getElementById('menuBtn_catalogoVirtual');
+      if (botonCatalogoGlobal) botonCatalogoGlobal.classList.remove('hidden');
       const botonesModulos = {
         'nuevoProducto': document.getElementById('menuBtn_nuevoProducto'),
         'registrarCompra': document.getElementById('menuBtn_registrarCompra'),
@@ -1815,7 +1833,6 @@
         'cargaMasiva': document.getElementById('menuBtn_cargaMasiva'),
         'exportarProductos': document.getElementById('menuBtn_exportarProductos'),
         'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
-        'catalogoVirtual': document.getElementById('menuBtn_catalogoVirtual'),
         'reporteVentas': document.getElementById('menuBtn_reporteVentas'),
         'auditoriaEliminaciones': document.getElementById('menuBtn_auditoriaEliminaciones'),
         'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
@@ -2237,15 +2254,39 @@
     async function cambiarEstadoMasivoCatalogo(habilitar) {
       const ids = Array.from(document.querySelectorAll('.chk-item-catalogo:checked')).map(c => c.getAttribute('data-id'));
       if (ids.length === 0) { alert('Seleccione al menos un producto.'); return; }
-      await _supabase.from('productos').update({ en_catalogo_virtual: habilitar }).in('id', ids);
+
+      const { error } = await _supabase.from('productos')
+        .update({ en_catalogo_virtual: habilitar }).in('id', ids);
+      if (error) {
+        console.error('Error al actualizar visibilidad del catálogo:', error);
+        alert('No se pudo guardar el cambio. Verifique los permisos de actualización de la tabla productos en Supabase.');
+        return;
+      }
+
       await cargarProductos();
       renderizarListaCatalogoVirtual(todosLosProductos);
+      const visibles = obtenerProductosVisiblesCatalogo();
+      document.getElementById('cantProductos').textContent = `${visibles.length} productos`;
+      const busqueda = document.getElementById('buscador').value.trim();
+      if (!busqueda) mostrarProductos(visibles.slice(0, 40)); else filtrarProductos();
+      alert(`Se ${habilitar ? 'habilitaron' : 'ocultaron'} ${ids.length} producto(s) para todos los usuarios.`);
     }
 
     async function toggleEstadoIndividualCatalogo(id, nuevoEstado) {
-      await _supabase.from('productos').update({ en_catalogo_virtual: nuevoEstado }).eq('id', id);
+      const { error } = await _supabase.from('productos')
+        .update({ en_catalogo_virtual: nuevoEstado }).eq('id', id);
+      if (error) {
+        console.error('Error al actualizar visibilidad del producto:', error);
+        alert('No se pudo guardar el cambio. Verifique los permisos de actualización de la tabla productos en Supabase.');
+        return;
+      }
+
       await cargarProductos();
       renderizarListaCatalogoVirtual(todosLosProductos);
+      const visibles = obtenerProductosVisiblesCatalogo();
+      document.getElementById('cantProductos').textContent = `${visibles.length} productos`;
+      const busqueda = document.getElementById('buscador').value.trim();
+      if (!busqueda) mostrarProductos(visibles.slice(0, 40)); else filtrarProductos();
     }
 
     function generarVistaPreviaCatalogoWeb() {
@@ -2493,7 +2534,7 @@
     async function cargarProductos() {
       const { data } = await _supabase.from('productos').select('*').eq('activo', true).range(0, 1999);
       if (data) {
-        todosLosProductos = data.filter(p => p.en_catalogo_virtual !== false);
+        todosLosProductos = data;
         iniciarSesionExitosa(usuarioActualEmail, todosLosProductos);
       }
     }
@@ -2887,16 +2928,17 @@
 
     function filtrarProductos() {
       const t = document.getElementById('buscador').value.trim();
-      if (!t) { mostrarProductos(todosLosProductos.slice(0, 40)); return; }
+      const productosVisibles = obtenerProductosVisiblesCatalogo();
+      if (!t) { mostrarProductos(productosVisibles.slice(0, 40)); return; }
       const p = normalizarTexto(t).split(/\s+/);
-      mostrarProductos(todosLosProductos.filter(x => p.every(w => `${normalizarTexto(x.nombre)} ${normalizarTexto(obtenerCodigoBarras(x))}`.includes(w))).slice(0, 40));
+      mostrarProductos(productosVisibles.filter(x => p.every(w => `${normalizarTexto(x.nombre)} ${normalizarTexto(obtenerCodigoBarras(x))}`.includes(w))).slice(0, 40));
     }
 
     function detectarEnterEscaneo(e) {
       if (e.key === 'Enter') {
         const c = document.getElementById('buscador').value.trim();
-        const p = todosLosProductos.find(x => obtenerCodigoBarras(x).toLowerCase() === c.toLowerCase());
-        if (p) { agregarAlCarritoConPrecio(p.id || obtenerCodigoBarras(p), p.precio); document.getElementById('buscador').value = ''; mostrarProductos(todosLosProductos.slice(0, 40)); }
+        const p = obtenerProductosVisiblesCatalogo().find(x => obtenerCodigoBarras(x).toLowerCase() === c.toLowerCase());
+        if (p) { agregarAlCarritoConPrecio(p.id || obtenerCodigoBarras(p), p.precio); document.getElementById('buscador').value = ''; mostrarProductos(obtenerProductosVisiblesCatalogo().slice(0, 40)); }
       }
     }
 
@@ -2907,7 +2949,7 @@
       Quagga.onDetected(result => {
         if (!scannerActivo) return;
         const code = result.codeResult.code;
-        const p = todosLosProductos.find(x => obtenerCodigoBarras(x) === code);
+        const p = obtenerProductosVisiblesCatalogo().find(x => obtenerCodigoBarras(x) === code);
         if (p) { agregarAlCarritoConPrecio(p.id || code, p.precio); cerrarScannerCamara(); }
       });
     }
