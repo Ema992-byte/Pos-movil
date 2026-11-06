@@ -62,21 +62,21 @@
           </svg>
         </button>
 
-        <!-- MÓDULO INTEGRADO: AvatarPerfil con accesorios flotantes y Nivel -->
-        <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div class="relative my-1 cursor-pointer" onclick="abrirModalAvatares()" title="Cambiar Avatar Temático">
+        <!-- MÓDULO INTEGRADO: AvatarPerfil MÁS GRANDE con animación al hacer clic -->
+        <div class="flex items-center gap-3.5 bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div class="relative my-1 cursor-pointer" onclick="animarYabrirModalAvatares(this)" title="Cambiar Avatar Temático">
             <!-- Aura o brillo si nivel >= 10 -->
             <div id="avatarAura" class="absolute -inset-1 rounded-full bg-amber-400/30 blur-sm animate-pulse hidden"></div>
-            <!-- Avatar Base -->
-            <div class="relative w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-inner overflow-hidden border-2 border-indigo-500">
+            <!-- Avatar Base Agrandado (w-14 h-14 en lugar de w-11 h-11) -->
+            <div id="contenedorAvatarAnimado" class="relative w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-inner overflow-hidden border-2 border-indigo-500 transition-transform duration-300">
               <span id="avatarHeader" class="avatar-header">🦁</span>
             </div>
             <!-- Accesorio Flotante: Corona (Nivel >= 5) -->
-            <div id="accesorioCorona" class="absolute -top-3 left-1/2 -translate-x-1/2 text-sm animate-bounce hidden" title="Corona de Oro (Nivel 5+)">
+            <div id="accesorioCorona" class="absolute -top-3 left-1/2 -translate-x-1/2 text-base animate-bounce hidden" title="Corona de Oro (Nivel 5+)">
               👑
             </div>
             <!-- Accesorio Flotante: Insignia Experto (Nivel >= 3) -->
-            <div id="accesorioEscudo" class="absolute -bottom-1 -right-1 text-xs hidden" title="Insignia de Experto (Nivel 3+)">
+            <div id="accesorioEscudo" class="absolute -bottom-1 -right-1 text-sm hidden" title="Insignia de Experto (Nivel 3+)">
               🛡️
             </div>
           </div>
@@ -1158,7 +1158,7 @@
       { id: 'ninja', nombre: 'Ninja', icono: '🥷', categoria: 'Guerreros', nivelRequerido: 3 },
       { id: 'trophy_car', nombre: 'Monster Truck', icono: '🛻', categoria: 'Autos', nivelRequerido: 3 },
 
-      // Nivel 4 (NUEVO)
+      // Nivel 4
       { id: 'wolf', nombre: 'Lobo Solitario', icono: '🐺', categoria: 'Animales', nivelRequerido: 4 },
       { id: 'police_car', nombre: 'Patrullero', icono: '🚓', categoria: 'Autos', nivelRequerido: 4 },
       { id: 'wizard', nombre: 'Hechicero', icono: '🧙‍♂️', categoria: 'Fantasía', nivelRequerido: 4 },
@@ -1168,22 +1168,22 @@
       { id: 'eagle', nombre: 'Águila Imperial', icono: '🦅', categoria: 'Animales', nivelRequerido: 5 },
       { id: 'fire_car', nombre: 'Auto de Fuego', icono: '🔥', categoria: 'Autos', nivelRequerido: 5 },
 
-      // Nivel 6 (NUEVO)
+      // Nivel 6
       { id: 'samurai', nombre: 'Samurái', icono: '👺', categoria: 'Guerreros', nivelRequerido: 6 },
       { id: 'dragon', nombre: 'Dragón Místico', icono: '🐉', categoria: 'Fantasía', nivelRequerido: 6 },
       { id: 'sport_bike', nombre: 'Moto Deportiva', icono: '🏍️', categoria: 'Autos', nivelRequerido: 6 },
 
-      // Nivel 7 (NUEVO)
+      // Nivel 7
       { id: 'phoenix', nombre: 'Fénix Renacido', icono: '🐦‍🔥', categoria: 'Fantasía', nivelRequerido: 7 },
       { id: 'cyborg', nombre: 'Cíborg Táctico', icono: '🤖', categoria: 'Sci-Fi', nivelRequerido: 7 },
       { id: 'shark', nombre: 'Tiburón Blanco', icono: '🦈', categoria: 'Animales', nivelRequerido: 7 },
 
-      // Nivel 8 (NUEVO)
+      // Nivel 8
       { id: 'astronaut', nombre: 'Astronauta Estelar', icono: '👨‍🚀', categoria: 'Sci-Fi', nivelRequerido: 8 },
       { id: 'alien', nombre: 'Explorador Alien', icono: '👽', categoria: 'Sci-Fi', nivelRequerido: 8 },
       { id: 'gold_trophy', nombre: 'Trofeo de Oro', icono: '🏆', categoria: 'Especial', nivelRequerido: 8 },
 
-      // Nivel 9 (NUEVO)
+      // Nivel 9
       { id: 'wizard_master', nombre: 'Gran Mago Supremo', icono: '🧙‍♀️', categoria: 'Fantasía', nivelRequerido: 9 },
       { id: 'mecha', nombre: 'Guerrero Mecha', icono: '🦾', categoria: 'Sci-Fi', nivelRequerido: 9 },
       { id: 'diamond', nombre: 'Diamante Brutal', icono: '💎', categoria: 'Especial', nivelRequerido: 9 },
@@ -1192,6 +1192,19 @@
       { id: 'crown_king', nombre: 'Rey del POS', icono: '👑', categoria: 'Especial', nivelRequerido: 10 },
       { id: 'galaxy', nombre: 'Galaxia Infinita', icono: '🌌', categoria: 'Especial', nivelRequerido: 10 }
     ];
+
+    // Función para animar el avatar al hacer clic y luego abrir el modal
+    function animarYabrirModalAvatares(elemento) {
+      const circuloAvatar = document.getElementById('contenedorAvatarAnimado');
+      if (circuloAvatar) {
+        // Aplicar animación de escala y rotación temporal
+        circuloAvatar.style.transform = 'scale(1.2) rotate(15deg)';
+        setTimeout(() => {
+          circuloAvatar.style.transform = 'scale(1) rotate(0deg)';
+        }, 300);
+      }
+      abrirModalAvatares();
+    }
 
     // Función para cambiar de avatar en la app y guardarlo en Supabase
     async function seleccionarAvatar(emailUsuario, avatarIcono, nivelActual, nivelRequerido) {
