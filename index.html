@@ -21,6 +21,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <!-- Enlace PWA Manifest -->
   <link rel="manifest" href="manifest.json">
+  <!-- Contraste global de texto según el tema activo -->
+  <style>
+    html:not(.dark) body { color: #111827; }
+    html.dark body { color: #ffffff; }
+    html:not(.dark) body :is(label, th, td, legend, summary) { color: inherit; }
+    html.dark body :is(label, th, td, legend, summary) { color: inherit; }
+    html.dark body :is(input, select, textarea) { color: #ffffff; }
+    html:not(.dark) body :is(input, select, textarea) { color: #111827; }
+    html.dark body input::placeholder,
+    html.dark body textarea::placeholder { color: #cbd5e1; opacity: 1; }
+    html:not(.dark) body input::placeholder,
+    html:not(.dark) body textarea::placeholder { color: #64748b; opacity: 1; }
+    html.dark body option { color: #ffffff; background: #1e293b; }
+    html:not(.dark) body option { color: #111827; background: #ffffff; }
+  </style>
 </head>
 <body id="bodyApp" class="bg-slate-100 dark:bg-slate-900 min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200">
 
@@ -816,7 +831,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE GESTIÓN DE CATÁLOGO VIRTUAL / REVISTA -->
+  <!-- MODAL DE GESTIÓN DE VISIBILIDAD EN VENTAS Y CATÁLOGO VIRTUAL / REVISTA -->
   <div id="modalCatalogoVirtual" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[90vh]">
       
@@ -828,7 +843,7 @@
       </div>
 
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-        Selecciona los productos a mostrar y elige si el catálogo web utilizará la <b>Lista de Precios Mayorista</b> o <b>Minorista</b>.
+        Seleccioná los artículos que querés mantener visibles en la pantalla principal de ventas y en el catálogo. Los artículos ocultos se conservan en la base de datos, con sus fotos, precios e historial.
       </p>
 
       <div class="mb-4 bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -848,15 +863,15 @@
       <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-3 rounded-xl mb-3 flex-wrap gap-2 border dark:border-slate-700">
         <div class="flex items-center gap-2">
           <input type="checkbox" id="chkSeleccionarTodosCatalogo" onchange="alternarSeleccionTodosCatalogo(this.checked)" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500">
-          <label for="chkSeleccionarTodosCatalogo" class="text-xs font-bold text-slate-700 dark:text-slate-300">Seleccionar Todos</label>
+          <label for="chkSeleccionarTodosCatalogo" class="text-xs font-bold text-slate-700 dark:text-slate-300">Seleccionar todos los artículos visibles</label>
         </div>
 
         <div class="flex gap-2">
           <button onclick="cambiarEstadoMasivoCatalogo(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">
-            Habilitar Marcados
+            Mostrar en ventas los seleccionados
           </button>
           <button onclick="cambiarEstadoMasivoCatalogo(false)" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">
-            Deshabilitar Marcados
+            Ocultar de ventas los seleccionados
           </button>
         </div>
       </div>
@@ -1770,7 +1785,7 @@
       return emailLower === 'admini@pos.com' || emailLower === 'admine@pos.com' || emailLower === 'adminr@pos.com';
     }
 
-    // Solo los productos habilitados aparecen y pueden venderse en el POS de cualquier usuario.
+    // Solo los productos con en_catalogo_virtual distinto de false aparecen en la pantalla principal de ventas y pueden venderse desde el POS.
     function obtenerProductosVisiblesCatalogo() {
       return todosLosProductos.filter(p => p.en_catalogo_virtual !== false);
     }
@@ -2609,7 +2624,7 @@
         .update({ en_catalogo_virtual: habilitar }).in('id', ids);
       if (error) {
         console.error('Error al actualizar visibilidad del catálogo:', error);
-        alert('No se pudo guardar el cambio. Verifique los permisos de actualización de la tabla productos en Supabase.');
+        alert('No se pudo guardar el cambio de visibilidad. Verificá los permisos de actualización de la tabla productos en Supabase.');
         return;
       }
 
@@ -2619,7 +2634,7 @@
       document.getElementById('cantProductos').textContent = `${visibles.length} productos`;
       const busqueda = document.getElementById('buscador').value.trim();
       if (!busqueda) mostrarProductos(visibles.slice(0, 40)); else filtrarProductos();
-      alert(`Se ${habilitar ? 'habilitaron' : 'ocultaron'} ${ids.length} producto(s) para todos los usuarios.`);
+      alert(`Se ${habilitar ? 'mostraron en ventas' : 'ocultaron de ventas'} ${ids.length} artículo(s) para todos los usuarios. Los datos y las fotos se conservaron.`);
     }
 
     async function toggleEstadoIndividualCatalogo(id, nuevoEstado) {
@@ -2627,7 +2642,7 @@
         .update({ en_catalogo_virtual: nuevoEstado }).eq('id', id);
       if (error) {
         console.error('Error al actualizar visibilidad del producto:', error);
-        alert('No se pudo guardar el cambio. Verifique los permisos de actualización de la tabla productos en Supabase.');
+        alert('No se pudo guardar el cambio de visibilidad. Verificá los permisos de actualización de la tabla productos en Supabase.');
         return;
       }
 
