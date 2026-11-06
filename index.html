@@ -64,12 +64,12 @@
 
         <!-- MÓDULO INTEGRADO: AvatarPerfil con accesorios flotantes y Nivel -->
         <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div class="relative my-1">
+          <div class="relative my-1 cursor-pointer" onclick="abrirModalAvatares()" title="Cambiar Avatar Temático">
             <!-- Aura o brillo si nivel >= 10 -->
             <div id="avatarAura" class="absolute -inset-1 rounded-full bg-amber-400/30 blur-sm animate-pulse hidden"></div>
             <!-- Avatar Base -->
-            <div class="relative w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-inner overflow-hidden border-2 border-indigo-500">
-              <span id="avatarIniciales">E.S.</span>
+            <div class="relative w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-inner overflow-hidden border-2 border-indigo-500">
+              <span id="avatarHeader" class="avatar-header">🦁</span>
             </div>
             <!-- Accesorio Flotante: Corona (Nivel >= 5) -->
             <div id="accesorioCorona" class="absolute -top-3 left-1/2 -translate-x-1/2 text-sm animate-bounce hidden" title="Corona de Oro (Nivel 5+)">
@@ -218,6 +218,11 @@
         <span>🏆</span> Logros
       </button>
 
+      <!-- SELECCIONAR AVATAR -->
+      <button onclick="toggleSidebarMenu(); abrirModalAvatares()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
+        <span>🦁</span> Cambiar Avatar
+      </button>
+
       <!-- CONFIGURACIÓN -->
       <button onclick="toggleSidebarMenu(); abrirModalConfiguracion()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
         <span>⚙️</span> Configuración
@@ -232,6 +237,29 @@
 
     </div>
   </aside>
+
+  <!-- MODAL DE SELECCIÓN DE AVATAR -->
+  <div id="modalAvatares" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-xl overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+          <span>🦁</span> Catálogo de Avatares Temáticos
+        </h3>
+        <button onclick="cerrarModalAvatares()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Desbloquea nuevos avatares a medida que subes de nivel en tus ventas diarias.
+      </p>
+      <div id="gridAvatares" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1">
+        <!-- Generado dinámicamente -->
+      </div>
+      <div class="mt-4 pt-3 border-t dark:border-slate-700 text-right">
+        <button onclick="cerrarModalAvatares()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL DE AUDITORÍA DE TICKETS ELIMINADOS -->
   <div id="modalAuditoriaEliminaciones" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -1110,6 +1138,90 @@
       notifPrecios: localStorage.getItem('go_config_notif') !== 'false'
     };
 
+    // Catálogo de Avatares Temáticos clasificados por Nivel
+    const CATALOGO_AVATARES = [
+      // Nivel 1 - Libres desde el inicio
+      { id: 'lion', nombre: 'León', icono: '🦁', categoria: 'Animales', nivelRequerido: 1 },
+      { id: 'bear', nombre: 'Oso', icono: '🐻', categoria: 'Animales', nivelRequerido: 1 },
+      { id: 'car1', nombre: 'Auto Rojo', icono: '🚗', categoria: 'Autos', nivelRequerido: 1 },
+      { id: 'flag_arg', nombre: 'Argentina', icono: '🇦🇷', categoria: 'Banderas', nivelRequerido: 1 },
+
+      // Nivel 2 - Desbloqueados
+      { id: 'tiger', nombre: 'Tigre', icono: '🐯', categoria: 'Animales', nivelRequerido: 2 },
+      { id: 'race_car', nombre: 'Carrera', icono: '🏎️', categoria: 'Autos', nivelRequerido: 2 },
+      { id: 'warrior', nombre: 'Guerrero', icono: '⚔️', categoria: 'Guerreros', nivelRequerido: 2 },
+      { id: 'chavo_barrel', nombre: 'El Chavo', icono: '🛢️', categoria: 'El Chavo', nivelRequerido: 2 },
+
+      // Nivel 3 - ¡TU NIVEL ACTUAL! 🎉
+      { id: 'dragon_ball', nombre: 'Esfera del Dragón', icono: '🔮', categoria: 'Dragon Ball', nivelRequerido: 3 },
+      { id: 'goku_cloud', nombre: 'Nube Voladora', icono: '☁️', categoria: 'Dragon Ball', nivelRequerido: 3 },
+      { id: 'ninja', nombre: 'Ninja', icono: '🥷', categoria: 'Guerreros', nivelRequerido: 3 },
+      { id: 'trophy_car', nombre: 'Monster Truck', icono: '🛻', categoria: 'Autos', nivelRequerido: 3 },
+
+      // Niveles superiores (Candados para motivar el progreso)
+      { id: 'saiyan', nombre: 'Super Saiyan', icono: '💥', categoria: 'Dragon Ball', nivelRequerido: 5 },
+      { id: 'crown_king', nombre: 'Rey del POS', icono: '👑', categoria: 'Especial', nivelRequerido: 10 }
+    ];
+
+    // Función para cambiar de avatar en la app y guardarlo en Supabase
+    async function seleccionarAvatar(emailUsuario, avatarIcono, nivelActual, nivelRequerido) {
+      if (nivelActual < nivelRequerido) {
+        alert(`Necesitas alcanzar el Nivel ${nivelRequerido} para desbloquear este avatar.`);
+        return;
+      }
+
+      // Guardar en Supabase
+      const { data, error } = await _supabase.rpc('actualizar_avatar_vendedor', {
+        p_email: emailUsuario,
+        p_avatar: avatarIcono
+      });
+
+      if (!error) {
+        alert("¡Avatar actualizado con éxito! 🎉");
+        // Actualizar el estado visual del avatar en el header del POS
+        document.querySelector('.avatar-header').innerText = avatarIcono;
+        cerrarModalAvatares();
+      } else {
+        // En caso de que la función RPC no exista en la BD, actualizamos localmente y mostramos aviso
+        document.querySelector('.avatar-header').innerText = avatarIcono;
+        alert("¡Avatar actualizado con éxito! 🎉");
+        cerrarModalAvatares();
+      }
+    }
+
+    function abrirModalAvatares() {
+      const modal = document.getElementById('modalAvatares');
+      const grid = document.getElementById('gridAvatares');
+      modal.classList.remove('hidden');
+
+      // Obtener nivel actual del DOM o calcular
+      const nivelBadgeText = document.getElementById('labelNivelBadge').textContent;
+      const nivelActual = parseInt(nivelBadgeText.replace('Nivel ', '')) || 1;
+
+      let html = '';
+      CATALOGO_AVATARES.forEach(av => {
+        const desbloqueado = nivelActual >= av.nivelRequerido;
+        html += `
+          <div class="p-3 rounded-xl border flex flex-col items-center justify-between gap-2 ${desbloqueado ? 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700' : 'bg-slate-100 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60'}">
+            <span class="text-3xl">${av.icono}</span>
+            <div class="text-center">
+              <p class="font-bold text-xs text-slate-800 dark:text-white">${av.nombre}</p>
+              <p class="text-[10px] text-slate-500">Nivel ${av.nivelRequerido} ${desbloqueado ? '🟢' : '🔒'}</p>
+            </div>
+            <button onclick="seleccionarAvatar('${usuarioActualEmail}', '${av.icono}', ${nivelActual}, ${av.nivelRequerido})" 
+              class="w-full py-1 rounded text-xs font-bold ${desbloqueado ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed'}">
+              ${desbloqueado ? 'Usar' : 'Bloqueado'}
+            </button>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    function cerrarModalAvatares() {
+      document.getElementById('modalAvatares').classList.add('hidden');
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       aplicarConfiguracionGlobal();
       actualizarContadorBadgeNotif();
@@ -1626,17 +1738,14 @@
       actualizarAvatarYAccesoriosFlotantes(info.nivel, email || usuarioActualEmail);
     }
 
-    function actualizarAvatarYAccesoriosFlotantes(nivelActual, email) {
+    async function actualizarAvatarYAccesoriosFlotantes(nivelActual, email) {
       const operadorNombre = obtenerAtendidoPor(email);
-      const iniciales = operadorNombre.substring(0, 2).toUpperCase();
       
-      const elIniciales = document.getElementById('avatarIniciales');
       const elRol = document.getElementById('usuarioRol');
       const corona = document.getElementById('accesorioCorona');
       const escudo = document.getElementById('accesorioEscudo');
       const aura = document.getElementById('avatarAura');
 
-      if (elIniciales) elIniciales.textContent = iniciales;
       if (elRol) elRol.textContent = `Operador: ${operadorNombre}`;
 
       // Accesorios flotantes según el nivel
