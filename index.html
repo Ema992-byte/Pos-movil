@@ -321,6 +321,12 @@
         <button onclick="mostrarSubPestanaCostos('revistaIA')" id="tabRevistaIA" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
           ✨ Escanear Revista / Catálogo con IA
         </button>
+        <button onclick="mostrarSubPestanaCostos('porProveedor')" id="tabPorProveedor" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+          🏪 Artículos por proveedor
+        </button>
+        <button onclick="mostrarSubPestanaCostos('precioManual')" id="tabPrecioManual" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+          ✍️ Cargar precio individual
+        </button>
       </div>
 
       <div id="secComparativaCostos" class="space-y-3">
@@ -348,7 +354,7 @@
                 <tr>
                   <th class="p-2.5">Proveedor</th>
                   <th class="p-2.5">Última Actualización</th>
-                  <th class="p-2.5 text-right">Costo Unitario ($)</th>
+                  <th class="p-2.5 text-right">Costo equivalente por unidad ($)</th>
                 </tr>
               </thead>
               <tbody id="tablaProveedoresCosto" class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -402,6 +408,41 @@
             </table>
           </div>
         </div>
+      </div>
+
+      <div id="secPorProveedor" class="hidden space-y-3 text-xs">
+        <p class="text-slate-500 dark:text-slate-400">Elegí un proveedor para consultar todos los artículos que tiene registrados, sus presentaciones y precios equivalentes por unidad. Incluye proveedores a los que todavía no les compraste.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold mb-1">Proveedor:</label>
+            <select id="filtroProveedorCostos" onchange="cargarArticulosPorProveedor()" class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"><option value="">Seleccionar proveedor...</option></select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Buscar artículo:</label>
+            <input id="buscarArticuloProveedor" oninput="filtrarTablaArticulosProveedor()" placeholder="Nombre o código..." class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+          </div>
+        </div>
+        <div class="border dark:border-slate-700 rounded-lg overflow-auto max-h-80">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-700 sticky top-0"><tr><th class="p-2">Artículo</th><th class="p-2">Presentación</th><th class="p-2 text-right">Precio presentación</th><th class="p-2 text-right">Precio/unidad</th><th class="p-2">Fecha</th><th class="p-2">Origen</th></tr></thead>
+            <tbody id="tablaArticulosProveedor"><tr><td colspan="6" class="p-4 text-center text-slate-400">Seleccioná un proveedor.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="secPrecioManual" class="hidden space-y-3 text-xs">
+        <p class="text-slate-500 dark:text-slate-400">Registrá un precio recibido por mensaje, teléfono, cotización o cualquier otro medio. No requiere factura ni compra realizada.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label class="block font-semibold mb-1">Proveedor *</label><input id="manualProveedor" list="listaProveedoresCostos" placeholder="Nombre del proveedor" class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"><datalist id="listaProveedoresCostos"></datalist></div>
+          <div><label class="block font-semibold mb-1">Fecha del precio *</label><input type="date" id="manualFechaPrecio" class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></div>
+          <div class="sm:col-span-2"><label class="block font-semibold mb-1">Buscar y vincular artículo del inventario *</label><input id="manualBuscarProducto" oninput="buscarProductoPrecioManual()" placeholder="Escribí código o descripción..." class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"><div id="manualResultadosProducto" class="hidden border dark:border-slate-700 rounded-lg max-h-36 overflow-auto mt-1"></div><input type="hidden" id="manualCodigoProducto"><input type="hidden" id="manualNombreProducto"></div>
+          <div><label class="block font-semibold mb-1">Precio de la presentación *</label><input type="number" min="0.01" step="0.01" id="manualPrecioPresentacion" oninput="calcularPrecioUnitarioManual()" placeholder="Ej. 12000" class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></div>
+          <div><label class="block font-semibold mb-1">Unidades por presentación *</label><input type="number" min="1" step="1" value="1" id="manualCantidadUnidades" oninput="calcularPrecioUnitarioManual()" class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></div>
+          <div><label class="block font-semibold mb-1">Costo equivalente por unidad</label><input id="manualPrecioUnitario" readonly class="w-full px-3 py-2 border rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white" placeholder="$0,00"></div>
+          <div><label class="block font-semibold mb-1">Origen del precio</label><select id="manualOrigenPrecio" class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"><option value="Cotización">Cotización</option><option value="Lista de precios">Lista de precios</option><option value="Revista">Revista</option><option value="Compra real">Compra real</option><option value="WhatsApp">WhatsApp</option></select></div>
+          <div class="sm:col-span-2"><label class="block font-semibold mb-1">Observaciones</label><input id="manualObservaciones" placeholder="Condición de pago, vigencia, bonificación, etc." class="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></div>
+        </div>
+        <button onclick="guardarPrecioProveedorManual()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-bold">Guardar precio del proveedor</button>
       </div>
 
       <div class="mt-6 pt-3 border-t dark:border-slate-700 text-right">
@@ -1928,6 +1969,7 @@
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
       document.getElementById('modalCostosProveedores').classList.remove('hidden');
       mostrarSubPestanaCostos('comparativa');
+      prepararCargaPrecioManual();
     }
 
     function cerrarModalCostosProveedores() {
@@ -1938,18 +1980,25 @@
       const btnComp = document.getElementById('tabComparativaCostos');
       const btnLista = document.getElementById('tabListaProveedor');
       const btnIA = document.getElementById('tabRevistaIA');
+      const btnProv = document.getElementById('tabPorProveedor');
+      const btnManual = document.getElementById('tabPrecioManual');
 
       const secComp = document.getElementById('secComparativaCostos');
       const secLista = document.getElementById('secListaProveedor');
       const secIA = document.getElementById('secRevistaIA');
+      const secProv = document.getElementById('secPorProveedor');
+      const secManual = document.getElementById('secPrecioManual');
 
       btnComp.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
       btnLista.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
       btnIA.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+      btnProv.className = btnManual.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
 
       secComp.classList.add('hidden');
       secLista.classList.add('hidden');
       secIA.classList.add('hidden');
+      secProv.classList.add('hidden');
+      secManual.classList.add('hidden');
 
       if (pestana === 'comparativa') {
         btnComp.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
@@ -1960,6 +2009,14 @@
       } else if (pestana === 'revistaIA') {
         btnIA.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
         secIA.classList.remove('hidden');
+      } else if (pestana === 'porProveedor') {
+        btnProv.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        secProv.classList.remove('hidden');
+        cargarProveedoresFiltroCostos();
+      } else if (pestana === 'precioManual') {
+        btnManual.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white";
+        secManual.classList.remove('hidden');
+        prepararCargaPrecioManual();
       }
     }
 
@@ -2027,36 +2084,180 @@
       }
     }
 
+    function normalizarArticuloCostos(valor) {
+      return String(valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+    }
+
+    function buscarProductoInventarioCostos(codigo, nombre) {
+      const cod = String(codigo || '').trim();
+      if (cod) {
+        const porCodigo = todosLosProductos.find(p => String(obtenerCodigoBarras(p) || '').trim() === cod);
+        if (porCodigo) return porCodigo;
+      }
+      const buscado = normalizarArticuloCostos(nombre);
+      if (!buscado) return null;
+      const exacto = todosLosProductos.find(p => normalizarArticuloCostos(p.nombre) === buscado);
+      if (exacto) return exacto;
+      const similares = todosLosProductos.filter(p => {
+        const n = normalizarArticuloCostos(p.nombre);
+        return n && (n.includes(buscado) || buscado.includes(n));
+      });
+      return similares.length === 1 ? similares[0] : null;
+    }
+
+    async function guardarRegistroPrecioProveedor(registro) {
+      // Se conserva la estructura base existente y se amplía con datos de presentación/origen.
+      const payload = {
+        codigo_barras: registro.codigo_barras || null,
+        nombre_producto: registro.nombre_producto,
+        proveedor: registro.proveedor,
+        precio_costo: Number(registro.precio_unitario),
+        actualizado_en: registro.fecha ? new Date(registro.fecha + 'T12:00:00').toISOString() : new Date().toISOString(),
+        precio_presentacion: Number(registro.precio_presentacion || registro.precio_unitario),
+        cantidad_unidades: Number(registro.cantidad_unidades || 1),
+        origen_precio: registro.origen_precio || 'Lista de precios',
+        observaciones: registro.observaciones || null
+      };
+      // Evita depender de ON CONFLICT cuando el proveedor informa artículos sin código.
+      let consulta = _supabase.from('producto_proveedores').select('codigo_barras,nombre_producto').eq('proveedor', payload.proveedor);
+      if (payload.codigo_barras) consulta = consulta.eq('codigo_barras', payload.codigo_barras);
+      else consulta = consulta.is('codigo_barras', null).ilike('nombre_producto', payload.nombre_producto);
+      const { data: existentes, error: errorBuscar } = await consulta.limit(1);
+      if (errorBuscar) throw errorBuscar;
+      if (existentes && existentes.length) {
+        let actualizacion = _supabase.from('producto_proveedores').update(payload).eq('proveedor', payload.proveedor);
+        if (payload.codigo_barras) actualizacion = actualizacion.eq('codigo_barras', payload.codigo_barras);
+        else actualizacion = actualizacion.is('codigo_barras', null).ilike('nombre_producto', payload.nombre_producto);
+        const { error } = await actualizacion;
+        if (error) throw error;
+      } else {
+        const { error } = await _supabase.from('producto_proveedores').insert([payload]);
+        if (error) throw error;
+      }
+    }
+
     async function procesarListaPreciosProveedor() {
       const proveedor = document.getElementById('nombreProveedorLista').value.trim();
       const archivo = document.getElementById('inputCsvProveedor').files[0];
       if (!proveedor || !archivo) { alert('Indique el nombre del proveedor y seleccione un archivo CSV.'); return; }
-
       const lector = new FileReader();
       lector.onload = async function(e) {
-        const lineas = e.target.result.split(/\r\n|\n/);
-        let count = 0;
-        for (let i = 1; i < lineas.length; i++) {
-          if (!lineas[i].trim()) continue;
-          const v = lineas[i].split(';').map(x => x.trim().replace(/^"|"$/g, ''));
-          const codigo = v[0] || null;
-          const nombre = v[1];
-          const costo = parseFloat(v[2]) || 0;
-
-          if (nombre && costo > 0) {
-            await _supabase.from('producto_proveedores').upsert([{
-              codigo_barras: codigo,
-              nombre_producto: nombre,
-              proveedor: proveedor,
-              precio_costo: costo,
-              actualizado_en: new Date()
-            }], { onConflict: 'codigo_barras,proveedor' });
+        try {
+          const lineas = String(e.target.result || '').replace(/^\uFEFF/, '').split(/\r?\n/).filter(x => x.trim());
+          if (lineas.length < 2) { alert('El CSV no contiene filas para importar.'); return; }
+          const separador = (lineas[0].match(/;/g) || []).length >= (lineas[0].match(/,/g) || []).length ? ';' : ',';
+          const parsear = linea => { const out=[]; let actual=''; let comillas=false; for(let i=0;i<linea.length;i++){const c=linea[i]; if(c==='"'){if(comillas && linea[i+1]==='"'){actual+='"';i++;}else comillas=!comillas;} else if(c===separador && !comillas){out.push(actual.trim());actual='';}else actual+=c;} out.push(actual.trim()); return out; };
+          const encabezados = parsear(lineas[0]).map(x => normalizarArticuloCostos(x).replace(/ /g,'_'));
+          const indice = (...nombres) => encabezados.findIndex(h => nombres.includes(h));
+          const numeroPrecio = valor => { let t=String(valor||'').trim().replace(/[^0-9,.-]/g,''); if(t.includes(',') && t.includes('.')) t=t.replace(/\./g,'').replace(',','.'); else if(t.includes(',')) t=t.replace(',','.'); return Number(t); };
+          const iCod=indice('codigo','codigo_barras','codigobarras','ean');
+          const iNom=indice('nombre','articulo','producto','descripcion','detalle');
+          const iPrecio=indice('precio','costo','precio_costo','precio_presentacion');
+          const iCant=indice('cantidad_unidades','unidades_por_presentacion','unidades_por_bulto','presentacion_unidades','cantidad');
+          const iFecha=indice('fecha','fecha_precio','actualizado_en');
+          if(iNom<0 || iPrecio<0){alert('El CSV debe incluir encabezados de artículo/nombre y precio/costo.');return;}
+          let count=0, omitidos=0, vinculados=0;
+          for(let i=1;i<lineas.length;i++){
+            const v=parsear(lineas[i]); const nombre=v[iNom]||''; const costo=numeroPrecio(v[iPrecio]);
+            if(!nombre || !Number.isFinite(costo) || costo<=0){omitidos++;continue;}
+            const codigo=v[iCod]||''; const cantidad=Math.max(1,parseFloat(String(v[iCant]||'1').replace(',','.'))||1);
+            const prod=buscarProductoInventarioCostos(codigo,nombre);
+            if(prod) vinculados++;
+            const codigoFinal=prod ? (obtenerCodigoBarras(prod)||codigo||null) : (codigo||null);
+            const nombreFinal=prod ? prod.nombre : nombre;
+            await guardarRegistroPrecioProveedor({codigo_barras:codigoFinal,nombre_producto:nombreFinal,proveedor,precio_presentacion:costo,cantidad_unidades:cantidad,precio_unitario:costo/cantidad,fecha:v[iFecha]||new Date().toISOString().slice(0,10),origen_precio:'Lista de precios'});
             count++;
           }
-        }
-        alert(`✓ ¡Lista procesada! Se actualizaron o registraron ${count} costos para el proveedor "${proveedor}".`);
+          alert(`Lista procesada para ${proveedor}.\nPrecios registrados: ${count}.\nArtículos vinculados al inventario: ${vinculados}.\nFilas omitidas: ${omitidos}.`);
+          document.getElementById('inputCsvProveedor').value='';
+        } catch(err) { console.error(err); alert('No se pudo procesar la lista: '+(err.message||err)); }
       };
-      lector.readAsText(archivo, 'UTF-8');
+      lector.readAsText(archivo,'UTF-8');
+    }
+
+    async function prepararCargaPrecioManual() {
+      const fecha=document.getElementById('manualFechaPrecio');
+      if(fecha && !fecha.value) fecha.value=new Date().toISOString().slice(0,10);
+      try {
+        const {data,error}=await _supabase.from('producto_proveedores').select('proveedor');
+        if(error) throw error;
+        const nombres=[...new Set((data||[]).map(x=>x.proveedor).filter(Boolean))].sort();
+        document.getElementById('listaProveedoresCostos').innerHTML=nombres.map(n=>`<option value="${String(n).replace(/"/g,'&quot;')}"></option>`).join('');
+      } catch(e) { console.warn('No se pudieron cargar proveedores existentes',e); }
+    }
+
+    function buscarProductoPrecioManual() {
+      const q=normalizarArticuloCostos(document.getElementById('manualBuscarProducto').value);
+      const cont=document.getElementById('manualResultadosProducto');
+      if(q.length<2){cont.classList.add('hidden');return;}
+      const encontrados=todosLosProductos.filter(p=>normalizarArticuloCostos(p.nombre).includes(q)||String(obtenerCodigoBarras(p)||'').toLowerCase().includes(q)).slice(0,12);
+      cont.innerHTML=encontrados.length?encontrados.map((p,i)=>`<button type="button" onclick="seleccionarProductoPrecioManual(${i})" class="block w-full text-left p-2 hover:bg-indigo-50 dark:hover:bg-slate-700 border-b dark:border-slate-700">${String(obtenerCodigoBarras(p)||'S/C')} · ${String(p.nombre).replace(/</g,'&lt;')}</button>`).join(''):'<div class="p-2 text-slate-400">No se encontraron artículos.</div>';
+      window._resultadosPrecioManual=encontrados; cont.classList.remove('hidden');
+    }
+
+    function seleccionarProductoPrecioManual(indice) {
+      const p=(window._resultadosPrecioManual||[])[indice]; if(!p)return;
+      document.getElementById('manualBuscarProducto').value=`${obtenerCodigoBarras(p)||'S/C'} · ${p.nombre}`;
+      document.getElementById('manualCodigoProducto').value=obtenerCodigoBarras(p)||'';
+      document.getElementById('manualNombreProducto').value=p.nombre||'';
+      document.getElementById('manualResultadosProducto').classList.add('hidden');
+    }
+
+    function calcularPrecioUnitarioManual() {
+      const precio=parseFloat(document.getElementById('manualPrecioPresentacion').value)||0;
+      const cantidad=Math.max(1,parseFloat(document.getElementById('manualCantidadUnidades').value)||1);
+      document.getElementById('manualPrecioUnitario').value=precio>0?'$'+(precio/cantidad).toFixed(2):'';
+    }
+
+    async function guardarPrecioProveedorManual() {
+      const proveedor=document.getElementById('manualProveedor').value.trim();
+      const codigo=document.getElementById('manualCodigoProducto').value.trim();
+      const nombre=document.getElementById('manualNombreProducto').value.trim();
+      const precio=parseFloat(document.getElementById('manualPrecioPresentacion').value);
+      const cantidad=Math.max(1,parseFloat(document.getElementById('manualCantidadUnidades').value)||1);
+      const fecha=document.getElementById('manualFechaPrecio').value;
+      if(!proveedor||!nombre||!Number.isFinite(precio)||precio<=0||!fecha){alert('Completá proveedor, artículo, precio y fecha.');return;}
+      try {
+        await guardarRegistroPrecioProveedor({proveedor,codigo_barras:codigo,nombre_producto:nombre,precio_presentacion:precio,cantidad_unidades:cantidad,precio_unitario:precio/cantidad,fecha,origen_precio:document.getElementById('manualOrigenPrecio').value,observaciones:document.getElementById('manualObservaciones').value.trim()});
+        alert('Precio del proveedor guardado. No se modificó el costo del inventario.');
+        document.getElementById('manualPrecioPresentacion').value=''; document.getElementById('manualCantidadUnidades').value='1'; document.getElementById('manualObservaciones').value=''; document.getElementById('manualBuscarProducto').value=''; document.getElementById('manualCodigoProducto').value=''; document.getElementById('manualNombreProducto').value=''; document.getElementById('manualPrecioUnitario').value='';
+      } catch(e) { console.error(e); alert('No se pudo guardar el precio: '+(e.message||e)); }
+    }
+
+    async function cargarProveedoresFiltroCostos() {
+      const sel=document.getElementById('filtroProveedorCostos');
+      sel.innerHTML='<option value="">Cargando proveedores...</option>';
+      try {
+        const {data,error}=await _supabase.from('producto_proveedores').select('proveedor').order('proveedor');
+        if(error) throw error;
+        const nombres=[...new Set((data||[]).map(x=>x.proveedor).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+        sel.innerHTML='<option value="">Seleccionar proveedor...</option>'+nombres.map(n=>`<option value="${String(n).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">${String(n).replace(/</g,'&lt;')}</option>`).join('');
+      } catch(e) { sel.innerHTML='<option value="">Error al cargar proveedores</option>'; console.error(e); }
+    }
+
+    async function cargarArticulosPorProveedor() {
+      const proveedor=document.getElementById('filtroProveedorCostos').value;
+      const tbody=document.getElementById('tablaArticulosProveedor');
+      if(!proveedor){tbody.innerHTML='<tr><td colspan="6" class="p-4 text-center text-slate-400">Seleccioná un proveedor.</td></tr>';return;}
+      tbody.innerHTML='<tr><td colspan="6" class="p-4 text-center text-slate-400">Consultando artículos...</td></tr>';
+      try {
+        const {data,error}=await _supabase.from('producto_proveedores').select('*').eq('proveedor',proveedor).order('nombre_producto');
+        if(error) throw error;
+        window._articulosProveedorActual=data||[];
+        renderizarArticulosProveedor(window._articulosProveedorActual);
+      } catch(e) { tbody.innerHTML=`<tr><td colspan="6" class="p-4 text-center text-rose-500">${String(e.message||e)}</td></tr>`; }
+    }
+
+    function renderizarArticulosProveedor(items) {
+      const tbody=document.getElementById('tablaArticulosProveedor');
+      if(!items.length){tbody.innerHTML='<tr><td colspan="6" class="p-4 text-center text-slate-400">Este proveedor no tiene artículos registrados.</td></tr>';return;}
+      tbody.innerHTML=items.map(p=>{const cant=Math.max(1,Number(p.cantidad_unidades)||1);const total=Number(p.precio_presentacion)||Number(p.precio_costo)||0;const unit=Number(p.precio_costo)||total/cant;const fecha=p.actualizado_en?new Date(p.actualizado_en).toLocaleDateString('es-AR'):'N/D';return `<tr class="border-t dark:border-slate-700"><td class="p-2"><div class="font-semibold">${String(p.nombre_producto||'').replace(/</g,'&lt;')}</div><div class="text-slate-400">${p.codigo_barras||'Sin código'}</div></td><td class="p-2">${cant} unidad(es)</td><td class="p-2 text-right">$${total.toFixed(2)}</td><td class="p-2 text-right font-bold text-emerald-600">$${unit.toFixed(2)}</td><td class="p-2">${fecha}</td><td class="p-2">${p.origen_precio||'Registro anterior'}</td></tr>`;}).join('');
+    }
+
+    function filtrarTablaArticulosProveedor() {
+      const q=normalizarArticuloCostos(document.getElementById('buscarArticuloProveedor').value);
+      const items=window._articulosProveedorActual||[];
+      renderizarArticulosProveedor(q?items.filter(p=>normalizarArticuloCostos(p.nombre_producto).includes(q)||String(p.codigo_barras||'').toLowerCase().includes(q)):items);
     }
 
     function analizarRevistaConIA(event) {
