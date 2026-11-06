@@ -13,8 +13,10 @@
   </script>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- PDF.js para extraer texto seleccionable de revistas y listas en PDF (no realiza OCR de escaneos) -->
+  <!-- PDF.js para extraer texto de revistas y listas en PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Tesseract.js para OCR de PDF escaneados e imágenes -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <!-- QuaggaJS para escaneo de códigos de barras por cámara -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <!-- Enlace PWA Manifest -->
@@ -387,9 +389,9 @@
       <div id="secRevistaIA" class="hidden space-y-3 text-xs">
         <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-700 dark:to-slate-700 border dark:border-slate-600 rounded-xl">
           <h4 class="font-bold text-indigo-900 dark:text-indigo-300 text-sm mb-1">✨ Análisis Inteligente de Revistas y Catálogos con IA</h4>
-          <p class="text-slate-600 dark:text-slate-300 mb-3">Adjuntá una revista o lista de precios en PDF. Se extraerá el texto del documento y se identificarán posibles artículos y precios para que los revises antes de guardarlos. También podés cargar imágenes.</p>
+          <p class="text-slate-600 dark:text-slate-300 mb-3">Adjuntá una revista o lista de precios en PDF. Se leerán PDF con texto seleccionable y PDF escaneados mediante OCR. También podés cargar imágenes. Los artículos y precios detectados se muestran para que los revises antes de guardarlos.</p>
           <input type="file" id="inputFotoRevistaIA" accept="application/pdf,.pdf,image/*" class="w-full px-3 py-2 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900" onchange="analizarRevistaConIA(event)">
-          <p class="text-[11px] text-slate-500 mt-2">Importante: los PDF escaneados como imagen requieren OCR; esta versión procesa PDF con texto seleccionable. No inventa precios ni guarda cambios automáticamente.</p>
+          <p class="text-[11px] text-slate-500 mt-2">El OCR puede tardar según la cantidad de páginas y la calidad del escaneo. Revisá los precios detectados: no se guardan automáticamente.</p>
         </div>
 
         <div id="contenedorResultadoIA" class="hidden space-y-2">
@@ -1669,11 +1671,6 @@
         return;
       }
 
-      if (accion === 'costosProveedores' && !esAdminEspecial) {
-        alert('⚠️ Gestión de costos y proveedores es exclusiva para administradores.');
-        return;
-      }
-
       if (accion === 'auditoriaEliminaciones') {
         if (!esAdminEspecial) {
           alert('⚠️ Módulo de auditoría exclusivo para los administradores principales.');
@@ -1898,7 +1895,7 @@
           let tieneAlgunPermiso = false;
           Object.keys(botonesModulos).forEach(key => {
             const btn = botonesModulos[key];
-            if (btn && key !== 'gestionarPermisos' && key !== 'auditoriaEliminaciones' && key !== 'costosProveedores' && modulos[key] === true) {
+            if (btn && key !== 'gestionarPermisos' && key !== 'auditoriaEliminaciones' && modulos[key] === true) {
               btn.classList.remove('hidden');
               tieneAlgunPermiso = true;
             }
@@ -1969,7 +1966,6 @@
     }
 
     function abrirModalCostosProveedores() {
-      if (!esUsuarioAdmin()) { alert('Gestión de costos y proveedores es exclusiva para administradores.'); return; }
       document.getElementById('buscadorProductoCostos').value = '';
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
       document.getElementById('modalCostosProveedores').classList.remove('hidden');
@@ -2050,7 +2046,6 @@
     }
 
     async function seleccionarProductoParaCostos(codigo, nombre, costoActual) {
-      if (!esUsuarioAdmin()) return;
       document.getElementById('listaResultadosCostos').classList.add('hidden');
       document.getElementById('buscadorProductoCostos').value = nombre;
       document.getElementById('tituloProductoSeleccionadoCostos').textContent = `Producto: ${nombre} (Cód: ${codigo || 'S/C'})`;
@@ -2112,7 +2107,6 @@
     }
 
     async function guardarRegistroPrecioProveedor(registro) {
-      if (!esUsuarioAdmin()) throw new Error('Solo los administradores pueden gestionar precios de proveedores.');
       // Se conserva la estructura base existente y se amplía con datos de presentación/origen.
       const payload = {
         codigo_barras: registro.codigo_barras || null,
@@ -2144,7 +2138,6 @@
     }
 
     async function procesarListaPreciosProveedor() {
-      if (!esUsuarioAdmin()) { alert('Solo los administradores pueden importar listas de precios.'); return; }
       const proveedor = document.getElementById('nombreProveedorLista').value.trim();
       const archivo = document.getElementById('inputCsvProveedor').files[0];
       if (!proveedor || !archivo) { alert('Indique el nombre del proveedor y seleccione un archivo CSV.'); return; }
@@ -2218,7 +2211,6 @@
     }
 
     async function guardarPrecioProveedorManual() {
-      if (!esUsuarioAdmin()) { alert('Solo los administradores pueden registrar precios.'); return; }
       const proveedor=document.getElementById('manualProveedor').value.trim();
       const codigo=document.getElementById('manualCodigoProducto').value.trim();
       const nombre=document.getElementById('manualNombreProducto').value.trim();
@@ -2234,7 +2226,6 @@
     }
 
     async function cargarProveedoresFiltroCostos() {
-      if (!esUsuarioAdmin()) return;
       const sel=document.getElementById('filtroProveedorCostos');
       sel.innerHTML='<option value="">Cargando proveedores...</option>';
       try {
@@ -2246,7 +2237,6 @@
     }
 
     async function cargarArticulosPorProveedor() {
-      if (!esUsuarioAdmin()) return;
       const proveedor=document.getElementById('filtroProveedorCostos').value;
       const tbody=document.getElementById('tablaArticulosProveedor');
       if(!proveedor){tbody.innerHTML='<tr><td colspan="6" class="p-4 text-center text-slate-400">Seleccioná un proveedor.</td></tr>';return;}
@@ -2272,38 +2262,74 @@
     }
 
     async function analizarRevistaConIA(event) {
-      if (!esUsuarioAdmin()) { if (event && event.target) event.target.value = ''; alert('Solo los administradores pueden analizar revistas y listas de precios.'); return; }
       const archivo = event.target.files && event.target.files[0];
       if (!archivo) return;
       const contenedorRes = document.getElementById('contenedorResultadoIA');
       const tbody = document.getElementById('tablaItemsRevistaIA');
       contenedorRes.classList.remove('hidden');
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-indigo-600">Procesando archivo...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-indigo-600">Preparando lectura del archivo...</td></tr>';
+      let worker = null;
       try {
         let texto = '';
-        if (archivo.type === 'application/pdf' || archivo.name.toLowerCase().endsWith('.pdf')) {
+        const esPDF = archivo.type === 'application/pdf' || archivo.name.toLowerCase().endsWith('.pdf');
+        const actualizarEstado = (mensaje) => {
+          tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-indigo-600">${mensaje}</td></tr>`;
+        };
+        const ejecutarOCR = async (fuente, etiqueta) => {
+          if (!window.Tesseract || !window.Tesseract.createWorker) {
+            throw new Error('No se pudo cargar el motor OCR. Verificá la conexión a internet, recargá el POS e intentá nuevamente.');
+          }
+          if (!worker) {
+            actualizarEstado('Cargando motor OCR en español e inglés...');
+            worker = await Tesseract.createWorker('spa+eng', 1, {
+              logger: info => {
+                if (info.status === 'recognizing text') {
+                  actualizarEstado(`${etiqueta}: reconocimiento OCR ${Math.round((info.progress || 0) * 100)}%...`);
+                }
+              }
+            });
+          }
+          const resultado = await worker.recognize(fuente);
+          return resultado && resultado.data ? (resultado.data.text || '') : '';
+        };
+
+        if (esPDF) {
           if (!window.pdfjsLib) throw new Error('No se pudo cargar el lector PDF. Revisá la conexión a internet y recargá la página.');
           pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
           const bytes = await archivo.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+          if (pdf.numPages > 40) throw new Error('El PDF tiene más de 40 páginas. Dividilo en partes para evitar que el navegador se quede sin memoria.');
           for (let n = 1; n <= pdf.numPages; n++) {
+            actualizarEstado(`Leyendo página ${n} de ${pdf.numPages}...`);
             const page = await pdf.getPage(n);
             const content = await page.getTextContent();
-            // Agrupa los fragmentos por coordenada vertical para reconstruir renglones del PDF.
             const renglones = new Map();
             for (const item of content.items) {
               const y = Math.round((item.transform && item.transform[5]) || 0);
               renglones.set(y, (renglones.get(y) || '') + ' ' + (item.str || ''));
             }
-            texto += '\n' + [...renglones.entries()].sort((a,b)=>b[0]-a[0]).map(x=>x[1]).join('\n');
+            let textoPagina = [...renglones.entries()].sort((a,b)=>b[0]-a[0]).map(x=>x[1]).join('\n').trim();
+            // Si la página no contiene texto seleccionable, renderizarla y aplicar OCR.
+            if (textoPagina.length < 25) {
+              const viewport = page.getViewport({scale: 2.0});
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d', {willReadFrequently: true});
+              canvas.width = Math.ceil(viewport.width);
+              canvas.height = Math.ceil(viewport.height);
+              await page.render({canvasContext: context, viewport}).promise;
+              textoPagina = await ejecutarOCR(canvas, `Página ${n}/${pdf.numPages}`);
+              canvas.width = 0;
+              canvas.height = 0;
+            }
+            texto += '\n' + textoPagina;
           }
-          if (!texto.trim()) throw new Error('El PDF no contiene texto seleccionable. Parece estar escaneado como imagen; hace falta OCR para leerlo.');
         } else if (archivo.type.startsWith('image/')) {
-          throw new Error('La lectura automática de imágenes todavía no está conectada a un servicio OCR. Adjuntá un PDF con texto seleccionable o una lista CSV.');
+          texto = await ejecutarOCR(archivo, 'Imagen');
         } else {
           throw new Error('Formato no admitido. Seleccioná un archivo PDF o una imagen.');
         }
 
+        if (!texto.trim()) throw new Error('No se pudo reconocer texto. Probá con un archivo más nítido o con mayor resolución.');
         // Busca importes en el texto extraído. Se requiere revisión humana antes de aplicar.
         const lineas = texto.split(/\n|(?<=[.;])\s{2,}/).map(x => x.replace(/\s+/g,' ').trim()).filter(Boolean);
         const candidatos = [];
@@ -2327,13 +2353,19 @@
         for (const x of candidatos) { const k=normalizarArticuloCostos(x.nombre)+'|'+x.precioSugerido; if(!vistos.has(k)){vistos.add(k);unicos.push(x);} }
         window._productosRevistaExtraidos = unicos;
         if (!unicos.length) {
-          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-amber-600">Se pudo abrir el PDF, pero no se detectaron renglones claros con artículo y precio. Probá con una lista CSV o un PDF con texto mejor estructurado.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-amber-600">Se pudo leer el archivo, pero no se detectaron renglones claros con artículo y precio. Revisá la calidad del escaneo o probá con una lista CSV.</td></tr>';
           return;
         }
         tbody.innerHTML = unicos.map((item,i)=>`<tr><td class="p-2 font-medium text-slate-800 dark:text-white">${String(item.nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</td><td class="p-2 text-right font-bold text-emerald-600">$${item.precioSugerido.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td class="p-2 text-center"><button onclick="prepararAplicacionPrecioRevista(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-[10px] font-bold">Revisar / aplicar</button></td></tr>`).join('');
       } catch (e) {
         console.error('Error al leer revista:', e);
         tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-rose-500">${String(e.message||e).replace(/</g,'&lt;')}</td></tr>`;
+      } finally {
+        if (worker) {
+          try { await worker.terminate(); } catch (e) { console.warn('No se pudo cerrar el motor OCR:', e); }
+        }
+        // Permite volver a seleccionar el mismo archivo para reintentar.
+        event.target.value = '';
       }
     }
 
