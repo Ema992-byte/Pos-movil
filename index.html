@@ -133,7 +133,7 @@
         
         <!-- Buscador y Escáner de Código de Barras -->
         <div class="mb-3 flex gap-2">
-          <input type="text" id="buscador" placeholder="🔍 Buscar palabras clave (ej: ace gir 900)..." oninput="filtrarProductosDebounced()" onkeypress="detectarEnterEscaneo(event)"
+          <input type="text" id="buscador" placeholder="🔍 Buscar por nombre o código (resultados A-Z)..." oninput="filtrarProductosDebounced()" onkeypress="detectarEnterEscaneo(event)"
             class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
           <button onclick="abrirScannerCamara()" title="Escanear con cámara"
             class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center shrink-0">
@@ -877,7 +877,7 @@
       </div>
 
       <div class="mb-3">
-        <input type="text" id="buscadorModalCatalogo" placeholder="🔍 Filtrar productos en esta lista..." oninput="filtrarListaCatalogoVirtual()"
+        <input type="text" id="buscadorModalCatalogo" placeholder="🔍 Buscar por nombre o código (orden A-Z)..." oninput="filtrarListaCatalogoVirtual()"
           class="w-full px-3 py-2 text-xs border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
       </div>
 
@@ -2577,6 +2577,13 @@
       }
     }
 
+    // Ordena los artículos alfabéticamente, ignorando mayúsculas y acentos.
+    function ordenarProductosAlfabeticamente(lista) {
+      return [...(lista || [])].sort((a, b) =>
+        (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base', numeric: true })
+      );
+    }
+
     function renderizarListaCatalogoVirtual(lista) {
       const contenedor = document.getElementById('contenedorItemsCatalogoVirtual');
       if (!lista || lista.length === 0) {
@@ -2585,15 +2592,18 @@
       }
 
       let html = '';
-      lista.forEach(prod => {
+      const productosOrdenados = ordenarProductosAlfabeticamente(lista);
+      productosOrdenados.forEach((prod, idx) => {
+        const posicion = idx + 1;
         const cod = obtenerCodigoBarras(prod) || 'S/C';
         const enCatalogo = prod.en_catalogo_virtual !== false;
 
         html += `
           <div class="flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 text-xs shadow-sm">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-7 h-7 shrink-0 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px]">${posicion}</span>
               <input type="checkbox" class="chk-item-catalogo w-4 h-4 rounded text-indigo-600" data-id="${prod.id}" ${enCatalogo ? 'checked' : ''}>
-              <div>
+              <div class="min-w-0">
                 <p class="font-bold text-slate-800 dark:text-white">${prod.nombre}</p>
                 <p class="text-[10px] text-slate-500">Cód: ${cod} | P. Min: $${parseFloat(prod.precio || 0).toFixed(2)}</p>
               </div>
@@ -2917,7 +2927,9 @@
         : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-grow border border-slate-100 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-900 transition-colors";
 
       let htmlContent = '';
-      productos.forEach((prod, idx) => {
+      const productosOrdenados = ordenarProductosAlfabeticamente(productos);
+      productosOrdenados.forEach((prod, idx) => {
+        const posicion = idx + 1;
         const codBarra = obtenerCodigoBarras(prod);
         const idUnico = prod.id || codBarra || idx;
         const fotoUrl = prod.imagen_url || prod.foto || '';
@@ -2938,7 +2950,7 @@
               <div class="flex items-center gap-3 overflow-hidden">
                 ${imagenTagList}
                 <div class="overflow-hidden">
-                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate">${prod.nombre}</p>
+                  <p class="font-bold text-slate-800 dark:text-white text-xs truncate"><span class="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px]">${posicion}</span>${prod.nombre}</p>
                   <p class="text-[11px] text-slate-500">Cód: ${codBarra || 'S/C'} | Stock: ${prod.stock || 0}</p>
                 </div>
               </div>
@@ -2958,6 +2970,7 @@
             <div class="relative bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
               ${btnEditarHtml}
               <div>
+                <div class="flex items-center gap-1 mb-1"><span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">${posicion}</span><span class="text-[9px] text-slate-400">Posición alfabética</span></div>
                 ${imagenTagGrid}
                 <p class="font-bold text-slate-800 dark:text-white text-xs mt-2 line-clamp-2 h-8" title="${prod.nombre}">${prod.nombre}</p>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 space-y-0.5">
