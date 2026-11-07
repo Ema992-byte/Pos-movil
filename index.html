@@ -2666,11 +2666,64 @@
 
     function generarVistaPreviaCatalogoWeb() {
       const win = window.open('', '_blank');
+      if (!win) {
+        alert('El navegador bloqueó la ventana del catálogo. Permití las ventanas emergentes para este sitio e intentá nuevamente.');
+        return;
+      }
+
+      const escaparHTML = (valor) => String(valor ?? '').replace(/[&<>"']/g, caracter => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[caracter]);
+
+      const productos = todosLosProductos
+        .filter(p => p.en_catalogo_virtual !== false)
+        .sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' }));
+
       let itemsHtml = '';
-      todosLosProductos.filter(p => p.en_catalogo_virtual !== false).forEach(p => {
-        itemsHtml += `<div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center; background: white;"><h4 style="font-size: 13px; font-weight: bold;">${p.nombre}</h4><p style="font-size: 14px; color: #2563eb; font-weight: bold;">$${parseFloat(p.precio).toFixed(2)}</p></div>`;
+      productos.forEach((p, indice) => {
+        const nombre = escaparHTML(p.nombre || 'Producto sin nombre');
+        const foto = escaparHTML(p.imagen_url || p.foto || '');
+        const precioNumero = Number.parseFloat(p.precio);
+        const precio = Number.isFinite(precioNumero)
+          ? precioNumero.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : 'Consultar';
+        const imagenHtml = foto
+          ? `<img class="producto-foto" src="${foto}" alt="${nombre}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="sin-foto" style="display:none;">📦<span>Sin foto</span></div>`
+          : `<div class="sin-foto">📦<span>Sin foto</span></div>`;
+
+        itemsHtml += `<article class="producto"><div class="numero">${indice + 1}</div><div class="contenedor-foto">${imagenHtml}</div><h2>${nombre}</h2><p class="precio">$ ${precio}</p></article>`;
       });
-      win.document.write(`<html><head><title>Catálogo</title></head><body style="font-family:sans-serif;background:#f8fafc;padding:16px;"><h1 style="text-align:center;color:#4f46e5;">Catálogo Digital</h1><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;max-width:950px;margin:0 auto;">${itemsHtml}</div></body></html>`);
+
+      win.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo Digital</title>
+<style>
+*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:22px}
+.encabezado{max-width:1100px;margin:0 auto 22px;text-align:center}.encabezado h1{color:#4338ca;margin:0 0 6px;font-size:28px}.encabezado p{margin:0;color:#64748b;font-size:13px}
+.catalogo{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;max-width:1100px;margin:0 auto}
+.producto{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:12px;text-align:center;break-inside:avoid;page-break-inside:avoid;box-shadow:0 1px 3px #0f172a12}
+.numero{position:absolute;top:8px;left:8px;background:#e0e7ff;color:#3730a3;border-radius:20px;padding:4px 8px;font-size:11px;font-weight:bold}
+.contenedor-foto{height:135px;display:flex;align-items:center;justify-content:center;margin:8px 0 10px;background:#fff;border-radius:8px;overflow:hidden}
+.producto-foto{display:block;width:100%;height:100%;object-fit:contain}.sin-foto{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:#f1f5f9;color:#94a3b8;font-size:30px}.sin-foto span{font-size:11px}
+.producto h2{font-size:13px;line-height:1.35;margin:5px 0 9px;min-height:35px}.precio{font-size:16px;font-weight:bold;color:#2563eb;margin:0}
+.acciones{max-width:1100px;margin:0 auto 16px;text-align:right}.acciones button{border:0;border-radius:8px;background:#4338ca;color:white;padding:10px 16px;font-weight:bold;cursor:pointer}
+@media(max-width:480px){body{padding:12px}.catalogo{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.producto{padding:9px}.contenedor-foto{height:115px}}
+@media print{body{background:#fff;padding:0}.acciones{display:none}.catalogo{grid-template-columns:repeat(4,1fr);gap:9px}.producto{box-shadow:none;border:1px solid #cbd5e1}.encabezado{margin-bottom:14px}}
+</style></head>
+<body><header class="encabezado"><h1>Catálogo Digital</h1><p>${productos.length} productos</p></header>
+<div class="acciones"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div>
+<main class="catalogo">${itemsHtml || '<p>No hay productos habilitados para el catálogo.</p>'}</main>
+<script>
+window.addEventListener('load', () => {
+  const imagenes = Array.from(document.images);
+  Promise.all(imagenes.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
+    img.addEventListener('load', resolve, { once: true });
+    img.addEventListener('error', resolve, { once: true });
+  })));
+});
+<\/script></body></html>`);
       win.document.close();
     }
 
