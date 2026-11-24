@@ -1003,11 +1003,12 @@
         <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900">
           <img id="previewFoto" src="" alt="Vista previa" class="w-28 h-28 object-contain rounded-lg mb-2 hidden">
           <div id="placeholderFoto" class="text-slate-400 text-xs text-center mb-2">📸 Sin foto asignada</div>
-          <input type="file" id="inputFotoCamara" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="capturarFotoCamara(event)">
-          <button type="button" onclick="document.getElementById('inputFotoCamara').click()" 
-            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow flex items-center gap-2">
-            🖼️ Elegir de Galería o Tomar Foto
-          </button>
+          <input type="file" id="inputFotoCamara" accept="image/*" capture="environment" class="hidden" onchange="capturarFotoCamara(event)">
+          <input type="file" id="inputFotoGaleria" accept="image/*" class="hidden" onchange="capturarFotoCamara(event)">
+          <div class="flex flex-wrap justify-center gap-2">
+            <button type="button" onclick="document.getElementById('inputFotoCamara').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow">📷 Tomar foto</button>
+            <button type="button" onclick="document.getElementById('inputFotoGaleria').click()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow">🖼️ Elegir de galería</button>
+          </div>
         </div>
 
         <div>
@@ -3684,6 +3685,7 @@ window.addEventListener('load', () => {
     function capturarFotoCamara(e) {
       const arch = e.target.files[0];
       if (!arch) return;
+      e.target.value = "";
       const lector = new FileReader();
       lector.onload = function(ev) {
         const img = new Image();
