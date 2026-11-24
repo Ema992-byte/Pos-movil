@@ -181,7 +181,7 @@
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 z-50" onclick="toggleSidebarMenu()"></div>
   <aside id="sidebarMenu" class="fixed top-0 left-[-300px] w-[280px] h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transition-all duration-300 flex flex-col border-r dark:border-slate-700">
     <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
-      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Menú Principal GO! <small class="text-xs">V1.5.2</small></h3>
+      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Menú Principal GO! <small class="text-xs">V1.5.3</small></h3>
       <button onclick="toggleSidebarMenu()" class="text-white hover:bg-indigo-700 p-1.5 rounded-lg font-bold">✕</button>
     </div>
     
@@ -688,10 +688,6 @@
       </div>
 
       <div id="secListaUsuarios" class="hidden space-y-3 text-sm">
-        <section id="repGestion" class="hidden border rounded-lg p-3 space-y-2 dark:border-slate-600">
-          <h4 class="font-bold">📦 Permisos de Reposición de Mercadería</h4>
-          <p id="repGestionEstado" role="status"></p><div id="repGestionLista"></div>
-        </section>
         <div id="contenedorListaUsuariosPos" class="space-y-2 max-h-60 overflow-y-auto pr-1">
           <p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>
         </div>
@@ -719,6 +715,10 @@
             </label>
           </div>
 
+          <label class="flex items-center gap-2 border rounded p-2">
+            <input type="checkbox" id="chk_reposicion" disabled> 📦 Reposición de Mercadería
+          </label>
+          <p id="repGestionEstado" role="status" class="text-xs"></p>
           <button onclick="guardarPermisosUsuario()" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold shadow">
             Guardar Permisos de Módulos
           </button>
@@ -2799,7 +2799,7 @@ window.addEventListener('load', () => {
       document.getElementById('secAdminLogros').classList.add('hidden');
 
       if (pestana === 'crear') { document.getElementById('tabCrearUser').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secCrearUsuario').classList.remove('hidden'); }
-      else if (pestana === 'lista') { document.getElementById('tabListaUser').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secListaUsuarios').classList.remove('hidden'); cargarListaUsuariosPOS(); void repGestionCargar(); }
+      else if (pestana === 'lista') { document.getElementById('tabListaUser').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secListaUsuarios').classList.remove('hidden'); cargarListaUsuariosPOS(); }
       else if (pestana === 'logros') { document.getElementById('tabLogrosAdmin').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secAdminLogros').classList.remove('hidden'); cargarCatalogoLogrosAdmin(); }
     }
 
@@ -2899,6 +2899,7 @@ window.addEventListener('load', () => {
 
     async function seleccionarUsuarioParaModulos(email) {
       usuarioEditandoPermisos = email;
+      void repGestionCargar(email);
       document.getElementById('lblUsuarioEditando').textContent = `Editando Módulos de: ${email}`;
       const { data } = await _supabase.from('usuarios_pos').select('modulos_activos').eq('email', email).maybeSingle();
       const m = data ? data.modulos_activos || {} : {};
@@ -4241,21 +4242,19 @@ async function repRPC(name,args={}) { const {data,error}=await _supabase.rpc(nam
 async function repAccess(){const epoch=++repEpoch;const status=repEl('repMenuEstado');status.textContent='Verificando acceso…';try{const allowed=await repRPC('tiene_permiso_reposicion');if(epoch===repEpoch)status.textContent=allowed===true?'Acceso habilitado':'Sin permiso de reposición';}catch(e){if(epoch===repEpoch)status.textContent='Error al verificar: '+e.message;}}
 
 let repGestionEpoch=0;
-async function repGestionCargar(){
- const epoch=++repGestionEpoch, panel=repEl('repGestion'), status=repEl('repGestionEstado'), lista=repEl('repGestionLista');
- panel.classList.add('hidden'); lista.replaceChildren(); status.textContent='';
+async function repGestionCargar(email){
+ const epoch=++repGestionEpoch, chk=repEl('chk_reposicion'), status=repEl('repGestionEstado');
+ chk.disabled=true; chk.checked=false; chk.onchange=null; status.textContent='Verificando permiso de reposición…';
  try {
-  const admin=await repRPC('es_admin_reposicion'); if(epoch!==repGestionEpoch)return; if(admin!==true){panel.classList.remove('hidden');status.textContent='Solo el administrador principal habilitado puede gestionar estos permisos.';return;}
-  panel.classList.remove('hidden'); status.textContent='Cargando permisos...';
+  const admin=await repRPC('es_admin_reposicion'); if(epoch!==repGestionEpoch)return;
+  if(admin!==true){status.textContent='Solo el administrador principal habilitado puede cambiar este permiso.';return;}
   const rows=await repRPC('listar_permisos_reposicion'); if(epoch!==repGestionEpoch)return;
-  status.textContent='Los cambios se guardan inmediatamente.';
-  for(const r of rows||[]){
-   const label=repNode('label',null,lista); label.className='flex items-center gap-2 py-2 border-b dark:border-slate-600';
-   const chk=repNode('input',null,label); chk.type='checkbox'; chk.checked=r.habilitado; chk.disabled=r.es_administrador;
-   repNode('span',r.email+(r.es_administrador?' (Administrador principal)':''),label);
-   chk.onchange=async()=>{const next=chk.checked;chk.disabled=true;try{await repRPC('configurar_permiso_reposicion',{p_usuario_id:r.usuario_id,p_habilitado:next});status.textContent='Permiso actualizado.';await repAccess();}catch(e){chk.checked=!next;status.textContent='Error: '+e.message;}finally{chk.disabled=false;}};
-  }
- }catch(e){if(epoch===repGestionEpoch){panel.classList.remove('hidden');status.textContent='No se pudieron consultar permisos de reposición: '+e.message;}}
+  const r=(rows||[]).find(x=>String(x.email).toLowerCase()===String(email).toLowerCase());
+  if(!r){status.textContent='Usuario no registrado en permisos de reposición.';return;}
+  chk.checked=!!r.habilitado; chk.disabled=!!r.es_administrador;
+  status.textContent=r.es_administrador?'Administrador principal protegido.':'Este permiso se guarda al cambiar la casilla.';
+  chk.onchange=async()=>{const next=chk.checked;chk.disabled=true;try{await repRPC('configurar_permiso_reposicion',{p_usuario_id:r.usuario_id,p_habilitado:next});if(epoch===repGestionEpoch)status.textContent='Permiso de reposición guardado.';await repAccess();}catch(e){if(epoch===repGestionEpoch){chk.checked=!next;status.textContent='Error: '+e.message;}}finally{if(epoch===repGestionEpoch)chk.disabled=!!r.es_administrador;}};
+ }catch(e){if(epoch===repGestionEpoch)status.textContent='Error al consultar permiso: '+e.message;}
 }
 
 function repClose(){++repEpoch; repEl('repDialog').close(); repEl('repContent').replaceChildren(); repEl('repNav').replaceChildren(); repAdmin=false; repRows=[];}
