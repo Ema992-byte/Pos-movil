@@ -2480,6 +2480,7 @@
       if (Number.isNaN(d.getTime())) return texto.slice(0,10);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
+    let productosCostoReporte = [];
     async function abrirModalReporteVentas() {
       document.getElementById('modalReporteVentas').classList.remove('hidden');
       const hoy = new Date(), desde = new Date();
@@ -2509,6 +2510,22 @@
           if (siguiente == null || siguiente === ultimoId) throw new Error('Paginación inválida');
           ultimoId = siguiente;
         }
+        // Consultar costos vigentes directamente, incluyendo productos inactivos.
+        const productos = [];
+        let ultimoProducto = null;
+        while (true) {
+          let consulta = _supabase.from('productos').select('*').order('id',{ascending:true}).limit(500);
+          if (ultimoProducto !== null) consulta = consulta.gt('id',ultimoProducto);
+          const {data,error} = await consulta;
+          if (solicitud !== solicitudReporteVentas) return;
+          if (error) throw error;
+          if (!data || !data.length) break;
+          productos.push(...data);
+          const siguiente = data[data.length-1].id;
+          if (siguiente == null || siguiente === ultimoProducto) throw new Error('Paginación de productos inválida');
+          ultimoProducto = siguiente;
+        }
+        productosCostoReporte = productos;
         ventasCacheReporte = ventas;
         estadoReporteVentas = 'listo';
         aplicarFiltrosReporteVentas();
@@ -2526,9 +2543,9 @@
       const desde = valor('filtroFechaDesde'), hasta = valor('filtroFechaHasta');
       const cliente = normalizarTexto(valor('filtroCliente').trim()), vendedor = normalizarTexto(valor('filtroVendedor').trim());
       const filas = [];
-      const porId = new Map(todosLosProductos.map(p=>[String(p.id),p]));
+      const porId = new Map(productosCostoReporte.map(p=>[String(p.id),p]));
       const porNombre = new Map();
-      for (const p of todosLosProductos) { const n=normalizarTexto(p.nombre||''); if (!porNombre.has(n)) porNombre.set(n,p); }
+      for (const p of productosCostoReporte) { const n=normalizarTexto(p.nombre||''); if (n) porNombre.set(n,porNombre.has(n)?null:p); }
       for (const v of ventasCacheReporte) {
         const fecha = fechaLocalReporte(v.fecha), c = v.cliente || 'Consumidor Final', ven = v.atendido_por || '';
         if ((desde && fecha < desde) || (hasta && fecha > hasta) || (cliente && !normalizarTexto(c).includes(cliente)) || (vendedor && !normalizarTexto(ven).includes(vendedor))) continue;
@@ -2536,12 +2553,12 @@
           const nombre = item.nombre || 'Producto general';
           const cantidad = Number(item.cantidad ?? 1), precio = Number(item.precio ?? 0);
           const prod = porId.get(String(item.idUnico)) || porNombre.get(normalizarTexto(nombre));
-          const historico = item.costoUnitario != null && item.costoUnitario !== '' && Number.isFinite(Number(item.costoUnitario)) && Number(item.costoUnitario)>=0;
-          const costoActual = prod ? obtenerCostoProducto(prod) : NaN;
-          const costo = historico ? Number(item.costoUnitario) : Number.isFinite(costoActual) ? costoActual : null;
+          const valorCosto = prod ? [prod["Precio Costo"],prod.precio_costo,prod.costo].find(x=>x!=null && String(x).trim()!=='') : undefined;
+          const costoActual = valorCosto === undefined ? NaN : Number(valorCosto);
+          const costo = Number.isFinite(costoActual) && costoActual>=0 ? costoActual : null;
           const subtotal = cantidad*precio, costoTotal = costo === null ? null : cantidad*costo;
           const ganancia = costoTotal === null ? null : subtotal-costoTotal;
-          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || costoTotal===0 ? null : ganancia/costoTotal*100,origen:historico?'Registrado en venta':costo===null?'Sin costo disponible':'Costo actual estimado'});
+          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || costoTotal===0 ? null : ganancia/costoTotal*100,origen:costo===null?'Sin costo actual disponible':'Costo actual del producto'});
         }
       }
       return filas;
