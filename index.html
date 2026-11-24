@@ -2472,13 +2472,15 @@
 
     let estadoReporteVentas = 'pendiente';
     let solicitudReporteVentas = 0;
+    // La fecha de facturación es un día calendario, no un instante UTC.
     function fechaLocalReporte(fecha) {
       if (!fecha) return '';
-      const texto = String(fecha);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
-      const d = new Date(texto);
-      if (Number.isNaN(d.getTime())) return texto.slice(0,10);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (fecha instanceof Date) {
+        if (Number.isNaN(fecha.getTime())) return '';
+        return `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}-${String(fecha.getDate()).padStart(2,'0')}`;
+      }
+      const coincidencia = String(fecha).match(/^(\d{4}-\d{2}-\d{2})(?:$|T| )/);
+      return coincidencia ? coincidencia[1] : '';
     }
     let productosCostoReporte = [];
     async function abrirModalReporteVentas() {
@@ -2548,7 +2550,7 @@
       for (const p of productosCostoReporte) { const n=normalizarTexto(p.nombre||''); if (n) porNombre.set(n,porNombre.has(n)?null:p); }
       for (const v of ventasCacheReporte) {
         const fecha = fechaLocalReporte(v.fecha), c = v.cliente || 'Consumidor Final', ven = v.atendido_por || '';
-        if ((desde && fecha < desde) || (hasta && fecha > hasta) || (cliente && !normalizarTexto(c).includes(cliente)) || (vendedor && !normalizarTexto(ven).includes(vendedor))) continue;
+        if (!fecha || (desde && fecha < desde) || (hasta && fecha > hasta) || (cliente && !normalizarTexto(c).includes(cliente)) || (vendedor && !normalizarTexto(ven).includes(vendedor))) continue;
         for (const item of Array.isArray(v.detalles) ? v.detalles : []) {
           const nombre = item.nombre || 'Producto general';
           const cantidad = Number(item.cantidad ?? 1), precio = Number(item.precio ?? 0);
@@ -4027,7 +4029,7 @@ window.addEventListener('load', () => {
         }[caracter]));
 
         contenedor.innerHTML = ventas.map(venta => {
-          const fecha = escaparHTML(venta.fecha || '');
+          const fecha = escaparHTML(fechaLocalReporte(venta.fecha));
           const hora = escaparHTML(venta.hora || '');
           const cliente = escaparHTML(venta.cliente || 'Consumidor Final');
           const operador = escaparHTML(venta.atendido_por || 'Sin identificar');
@@ -4168,10 +4170,10 @@ window.addEventListener('load', () => {
           return;
         }
 
-        const partesFecha = String(venta.fecha || '').split('-');
+        const partesFecha = fechaLocalReporte(venta.fecha).split('-');
         const fechaFormateada = partesFecha.length === 3
           ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`
-          : (venta.fecha || '');
+          : fechaLocalReporte(venta.fecha);
 
         imprimirTicketConOperadorFijo(
           venta.detalles,
