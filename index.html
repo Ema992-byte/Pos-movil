@@ -181,7 +181,7 @@
   <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 z-50" onclick="toggleSidebarMenu()"></div>
   <aside id="sidebarMenu" class="fixed top-0 left-[-300px] w-[280px] h-full bg-white dark:bg-slate-800 shadow-2xl z-50 transition-all duration-300 flex flex-col border-r dark:border-slate-700">
     <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
-      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Menú Principal GO!</h3>
+      <h3 class="font-bold text-lg flex items-center gap-2"><span>📂</span> Menú Principal GO! <small class="text-xs">V1.5.2</small></h3>
       <button onclick="toggleSidebarMenu()" class="text-white hover:bg-indigo-700 p-1.5 rounded-lg font-bold">✕</button>
     </div>
     
@@ -223,6 +223,7 @@
           <button id="menuBtn_auditoriaEliminaciones" onclick="toggleSidebarMenu(); ejecutarAccionModulo('auditoriaEliminaciones')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-rose-700 dark:text-rose-400 font-medium flex items-center gap-2">
             <span>🛡️</span> Auditoría de Tickets Borrados
           </button>
+          <button id="repMenu" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-teal-600 dark:text-teal-400 font-medium" onclick="repOpen()">📦 Reposición de Mercadería <small id="repMenuEstado" class="block text-xs opacity-75" role="status">Verificando acceso…</small></button>
           <button id="menuBtn_gestionarPermisos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('gestionarPermisos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
             <span>🛡️</span> Gestión de Usuarios
           </button>
@@ -230,7 +231,7 @@
       </div>
 
       
-      <button id="repMenu" class="hidden w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 font-medium" onclick="toggleSidebarMenu(); repOpen()">📦 Reposición de Mercadería</button>
+
       <!-- HISTORIAL DE VENTAS -->
       <button onclick="toggleSidebarMenu(); abrirModalHistorial()" class="w-full text-left px-3.5 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2.5">
         <span>📜</span> Historial de Ventas
@@ -4237,14 +4238,14 @@ window.addEventListener('load', () => {
 let repAdmin=false, repBusy=false, repRows=[], repRetry=null, repEpoch=0;
 const repEl=id=>document.getElementById(id);
 async function repRPC(name,args={}) { const {data,error}=await _supabase.rpc(name,args); if(error) throw Error(error.message); return data; }
-async function repAccess(){const epoch=++repEpoch; repEl('repMenu').classList.add('hidden'); try {const allowed=await repRPC('tiene_permiso_reposicion'); if(epoch===repEpoch) repEl('repMenu').classList.toggle('hidden',!allowed);}catch(e){console.warn('Permiso de reposición:',e.message);}}
+async function repAccess(){const epoch=++repEpoch;const status=repEl('repMenuEstado');status.textContent='Verificando acceso…';try{const allowed=await repRPC('tiene_permiso_reposicion');if(epoch===repEpoch)status.textContent=allowed===true?'Acceso habilitado':'Sin permiso de reposición';}catch(e){if(epoch===repEpoch)status.textContent='Error al verificar: '+e.message;}}
 
 let repGestionEpoch=0;
 async function repGestionCargar(){
  const epoch=++repGestionEpoch, panel=repEl('repGestion'), status=repEl('repGestionEstado'), lista=repEl('repGestionLista');
  panel.classList.add('hidden'); lista.replaceChildren(); status.textContent='';
  try {
-  if(!await repRPC('es_admin_reposicion') || epoch!==repGestionEpoch)return;
+  const admin=await repRPC('es_admin_reposicion'); if(epoch!==repGestionEpoch)return; if(admin!==true){panel.classList.remove('hidden');status.textContent='Solo el administrador principal habilitado puede gestionar estos permisos.';return;}
   panel.classList.remove('hidden'); status.textContent='Cargando permisos...';
   const rows=await repRPC('listar_permisos_reposicion'); if(epoch!==repGestionEpoch)return;
   status.textContent='Los cambios se guardan inmediatamente.';
@@ -4263,7 +4264,7 @@ function repBtn(parent,text,fn){const b=repNode('button',text,parent);b.classNam
 function repInput(parent,placeholder,type='text'){const n=repNode('input',null,parent);n.type=type;n.placeholder=placeholder;n.className='border rounded p-2 m-1 dark:bg-slate-700';return n;}
 function repTable(parent,headers){const wrap=repNode('div',null,parent);wrap.className='overflow-x-auto';const t=repNode('table',null,wrap);t.className='w-full text-sm text-left';const tr=repNode('tr',null,repNode('thead',null,t));headers.forEach(h=>repNode('th',h,tr).className='p-2 border-b');return repNode('tbody',null,t);}
 function repRow(body,values){const tr=repNode('tr',null,body);values.forEach(v=>repNode('td',v??'',tr).className='p-2 border-b');return tr;}
-async function repOpen(){try{if(!await repRPC('tiene_permiso_reposicion'))throw Error('Sin permiso de reposición');repAdmin=await repRPC('es_admin_reposicion');const nav=repEl('repNav');nav.replaceChildren();repBtn(nav,'Pendientes',repPending);repBtn(nav,'Agregar artículos',repSearch);repBtn(nav,'Historial',repHistory);repBtn(nav,'Excel',repExcel);if(repAdmin)repBtn(nav,'Permisos',repPermissions);repEl('repDialog').showModal();await repPending();}catch(e){alert(e.message);}}
+async function repOpen(){try{if(await repRPC('tiene_permiso_reposicion')!==true)throw Error('Sin permiso de reposición. El administrador principal debe habilitar tu cuenta.');toggleSidebarMenu();repAdmin=await repRPC('es_admin_reposicion');const nav=repEl('repNav');nav.replaceChildren();repBtn(nav,'Pendientes',repPending);repBtn(nav,'Agregar artículos',repSearch);repBtn(nav,'Historial',repHistory);repBtn(nav,'Excel',repExcel);if(repAdmin)repBtn(nav,'Permisos',repPermissions);repEl('repDialog').showModal();await repPending();}catch(e){alert(e.message);}}
 async function repOperation(tipo,p,cantidad){if(!Number.isSafeInteger(cantidad)||cantidad<=0)throw Error('Ingresá una cantidad entera positiva');const {data:{user}}=await _supabase.auth.getUser();if(!user)throw Error('Sesión vencida');const key='rep_retry_'+user.id;const payload={p_tipo:tipo,p_producto_id:p.producto_id,p_cantidad:cantidad,p_observaciones:null};let old=JSON.parse(localStorage.getItem(key)||'null');if(old&&JSON.stringify(old.payload)!==JSON.stringify(payload))throw Error('Hay una operación sin confirmar. Reintentá la misma cantidad y producto antes de iniciar otra.');if(!old){old={id:crypto.randomUUID(),payload};localStorage.setItem(key,JSON.stringify(old));}try{const saldo=await repRPC('ejecutar_operacion_reposicion',{p_operacion_id:old.id,...payload});localStorage.removeItem(key);repEl('repStatus').textContent='Movimiento registrado. Saldo: '+saldo;}catch(e){throw Error('No se confirmó la operación: '+e.message+'. Reintentá la misma operación.');}}
 async function repPending(){const rows=await repRPC('consultar_reposicion')||[];repRows=rows;const c=repEl('repContent');c.replaceChildren();repNode('p',rows.length+' artículos · '+rows.reduce((a,r)=>a+Number(r.saldo_pendiente),0)+' unidades pendientes',c).className='font-bold my-2';const filter=repInput(c,'Filtrar producto o código');const body=repTable(c,['Código','Producto','Vendidas','Adicionales','Repuestas','Pendientes','Acción']);function draw(){body.replaceChildren();const q=filter.value.toLowerCase();rows.filter(r=>String(r.producto).toLowerCase().includes(q)||String(r.codigo_barras||'').includes(q)).forEach(r=>{const tr=repRow(body,[r.codigo_barras,r.producto,r.cantidad_vendida,r.cantidad_adicional,r.cantidad_repuesta,r.saldo_pendiente]);const td=repNode('td',null,tr);repBtn(td,'Reponer',async()=>{const v=prompt('Unidades a reponer (saldo '+r.saldo_pendiente+')',String(r.saldo_pendiente));if(v===null)return;const n=Number(v);if(n>Number(r.saldo_pendiente))throw Error('Supera el saldo');await repOperation('reposicion',r,n);await repPending();});});}filter.oninput=draw;draw();}
 async function repSearch(){const c=repEl('repContent');c.replaceChildren();const q=repInput(c,'Nombre o código de barras');const body=repTable(c,['Código','Producto','Pendiente','Unidades por bulto','Acción']);repBtn(c,'Buscar',async()=>{const rows=await repRPC('buscar_productos_reposicion',{p_busqueda:q.value});body.replaceChildren();rows.forEach(r=>{const tr=repRow(body,[r.codigo_barras,r.producto,r.saldo_pendiente,r.unidades_por_bulto]);const td=repNode('td',null,tr);repBtn(td,'Agregar unidades',async()=>{const v=prompt('Cantidad adicional en unidades');if(v===null)return;await repOperation('solicitud_manual',r,Number(v));await repPending();});if(Number(r.unidades_por_bulto)>0)repBtn(td,'Agregar bultos',async()=>{const v=prompt('Cantidad de bultos');if(v===null)return;const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw Error('Cantidad inválida');await repOperation('solicitud_manual',r,n*Number(r.unidades_por_bulto));await repPending();});});});}
