@@ -6,6 +6,7 @@
   <title>POS Móvil - GO! PRO</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -542,7 +543,7 @@
       <div class="flex justify-between items-center border-t dark:border-slate-700 pt-3">
         <div class="flex gap-2">
           <button onclick="exportarReporteVentasFiltradoCSV()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow flex items-center gap-1.5">
-            <span>📥</span> Exportar Filtrado a CSV
+            <span>📥</span> Exportar Filtrado a Excel
           </button>
         </div>
         <button onclick="cerrarModalReporteVentas()" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-5 py-2 rounded-lg text-xs font-bold">
@@ -2540,7 +2541,7 @@
           const costo = historico ? Number(item.costoUnitario) : Number.isFinite(costoActual) ? costoActual : null;
           const subtotal = cantidad*precio, costoTotal = costo === null ? null : cantidad*costo;
           const ganancia = costoTotal === null ? null : subtotal-costoTotal;
-          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || subtotal===0 ? null : ganancia/subtotal*100,origen:historico?'Registrado en venta':costo===null?'Sin costo disponible':'Costo actual estimado'});
+          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || costoTotal===0 ? null : ganancia/costoTotal*100,origen:historico?'Registrado en venta':costo===null?'Sin costo disponible':'Costo actual estimado'});
         }
       }
       return filas;
@@ -2563,8 +2564,24 @@
       const texto = v => { let t=String(v??''); if (/^[\s]*[=+@-]|^[\t\r\n]/.test(t)) t="'"+t; return '"'+t.replace(/"/g,'""')+'"'; };
       const numero = v => v===null || !Number.isFinite(v) ? '' : v.toFixed(2).replace('.',',');
       const encabezado = ['Nro. ticket','Fecha','Hora','Cliente','Vendedor','Código de barras','Producto','Cantidad','Precio unitario','Costo unitario','Importe total','Costo total','Ganancia bruta','Margen (%)','Origen del costo'];
-      const csv = [encabezado.map(texto).join(';'),...filas.map(f=>[texto(f.id),texto(f.fecha),texto(f.hora),texto(f.cliente),texto(f.vendedor),texto(f.codigo),texto(f.nombre),numero(f.cantidad),numero(f.precio),numero(f.costo),numero(f.subtotal),numero(f.costoTotal),numero(f.ganancia),numero(f.margen),texto(f.origen)].join(';'))].join('\r\n');
-      const url = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+      const nombreArchivo = `reporte_ventas_${document.getElementById('filtroFechaDesde').value||'inicio'}_${document.getElementById('filtroFechaHasta').value||'fin'}`;
+      if (typeof XLSX !== 'undefined') {
+        const n = v => Number.isFinite(v) ? v : null;
+        const hoja = XLSX.utils.aoa_to_sheet([encabezado,...filas.map(f=>[String(f.id??''),f.fecha,f.hora,f.cliente,f.vendedor,String(f.codigo??''),f.nombre,n(f.cantidad),n(f.precio),n(f.costo),n(f.subtotal),n(f.costoTotal),n(f.ganancia),f.margen===null?null:n(f.margen/100),f.origen])]);
+        for (let r=1;r<=filas.length;r++) {
+          for (let c=7;c<=13;c++) {
+            const celda=hoja[XLSX.utils.encode_cell({r,c})];
+            if (celda && celda.t==='n') celda.z=c===7?'0':c===13?'0.00%':'0.00';
+          }
+        }
+        const libro=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libro,hoja,'Ventas');
+        XLSX.writeFile(libro,nombreArchivo+'.xlsx');
+        return;
+      }
+      alert('No se pudo cargar la biblioteca Excel. Se descargará un CSV alternativo.');
+      const csv = [encabezado.map(texto).join(';'),...filas.map(f=>[texto(f.id),texto(f.fecha),texto(f.hora),texto(f.cliente),texto(f.vendedor),texto(f.codigo),texto(f.nombre),Number.isFinite(f.cantidad)?String(f.cantidad).replace('.',','):'',numero(f.precio),numero(f.costo),numero(f.subtotal),numero(f.costoTotal),numero(f.ganancia),f.margen===null?'':numero(f.margen)+'%',texto(f.origen)].join(';'))].join('\r\n');
+      const url = URL.createObjectURL(new Blob(['\uFEFFsep=;\r\n'+csv],{type:'text/csv;charset=utf-8;'}));
       const enlace = document.createElement('a');
       enlace.href=url;
       enlace.download=`reporte_ventas_${document.getElementById('filtroFechaDesde').value||'inicio'}_${document.getElementById('filtroFechaHasta').value||'fin'}.csv`;
