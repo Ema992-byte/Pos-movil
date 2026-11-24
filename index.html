@@ -514,7 +514,7 @@
           <p id="lblReporteTotalCostos" class="text-lg font-bold text-emerald-900 dark:text-emerald-100">$0.00</p>
         </div>
         <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3 rounded-xl">
-          <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Ganancia Neta Estimada</p>
+          <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Ganancia Bruta Estimada</p>
           <p id="lblReporteGananciaNeta" class="text-lg font-bold text-amber-900 dark:text-amber-100">$0.00</p>
         </div>
       </div>
@@ -2469,93 +2469,108 @@
       }
     }
 
+    let estadoReporteVentas = 'pendiente';
+    let solicitudReporteVentas = 0;
+    function fechaLocalReporte(fecha) {
+      if (!fecha) return '';
+      const texto = String(fecha);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
+      const d = new Date(texto);
+      if (Number.isNaN(d.getTime())) return texto.slice(0,10);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
     async function abrirModalReporteVentas() {
       document.getElementById('modalReporteVentas').classList.remove('hidden');
-      const hoy = new Date();
-      const hace30Dias = new Date();
-      hace30Dias.setDate(hoy.getDate() - 30);
-      
-      document.getElementById('filtroFechaDesde').value = hace30Dias.toISOString().split('T')[0];
-      document.getElementById('filtroFechaHasta').value = hoy.toISOString().split('T')[0];
+      const hoy = new Date(), desde = new Date();
+      desde.setDate(hoy.getDate()-30);
+      document.getElementById('filtroFechaDesde').value = fechaLocalReporte(desde);
+      document.getElementById('filtroFechaHasta').value = fechaLocalReporte(hoy);
       document.getElementById('filtroCliente').value = '';
       document.getElementById('filtroVendedor').value = '';
-
       const tbody = document.getElementById('tablaReporteVentasItems');
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-slate-400">Cargando ventas y costos...</td></tr>';
-
+      const solicitud = ++solicitudReporteVentas;
+      estadoReporteVentas = 'cargando';
+      ventasCacheReporte = [];
+      for (const id of ['lblReporteTotalVentas','lblReporteTotalCostos','lblReporteGananciaNeta']) document.getElementById(id).textContent = '—';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">Cargando ventas y costos...</td></tr>';
       try {
-        const { data, error } = await _supabase.from('ventas').select('*').order('id', { ascending: false });
-        if (error) throw error;
-        ventasCacheReporte = data || [];
+        const ventas = [];
+        let ultimoId = null;
+        while (true) {
+          let consulta = _supabase.from('ventas').select('*').order('id',{ascending:false}).limit(500);
+          if (ultimoId !== null) consulta = consulta.lt('id',ultimoId);
+          const {data,error} = await consulta;
+          if (solicitud !== solicitudReporteVentas) return;
+          if (error) throw error;
+          if (!data || !data.length) break;
+          ventas.push(...data);
+          const siguiente = data[data.length-1].id;
+          if (siguiente == null || siguiente === ultimoId) throw new Error('Paginación inválida');
+          ultimoId = siguiente;
+        }
+        ventasCacheReporte = ventas;
+        estadoReporteVentas = 'listo';
         aplicarFiltrosReporteVentas();
       } catch (err) {
+        if (solicitud !== solicitudReporteVentas) return;
+        estadoReporteVentas = 'error';
+        ventasCacheReporte = [];
+        console.error('Error en reporte de ventas:',err);
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-rose-500">Error al cargar el reporte de ventas.</td></tr>';
       }
     }
-
     function cerrarModalReporteVentas() { document.getElementById('modalReporteVentas').classList.add('hidden'); }
-
-    function aplicarFiltrosReporteVentas() {
-      const fechaDesde = document.getElementById('filtroFechaDesde').value;
-      const fechaHasta = document.getElementById('filtroFechaHasta').value;
-      const filtroCliente = normalizarTexto(document.getElementById('filtroCliente').value.trim());
-      const filtroVendedor = normalizarTexto(document.getElementById('filtroVendedor').value.trim());
-
-      const tbody = document.getElementById('tablaReporteVentasItems');
-      let totalVentasFiltradas = 0;
-      let totalCostosFiltrados = 0;
-      let htmlFilas = '';
-
-      ventasCacheReporte.forEach(v => {
-        const fechaVenta = v.fecha || '';
-        const clienteVenta = v.cliente || 'Consumidor Final';
-        const vendedorVenta = v.atendido_por || '';
-
-        if (fechaDesde && fechaVenta < fechaDesde) return;
-        if (fechaHasta && fechaVenta > fechaHasta) return;
-        if (filtroCliente && !normalizarTexto(clienteVenta).includes(filtroCliente)) return;
-        if (filtroVendedor && !normalizarTexto(vendedorVenta).includes(filtroVendedor)) return;
-
-        const detalles = v.detalles || [];
-        if (detalles.length > 0) {
-          detalles.forEach(item => {
-            const nombreProd = item.nombre || 'Producto general';
-            const cantidad = item.cantidad || 1;
-            const precioUnit = parseFloat(item.precio || 0);
-            const subtotal = cantidad * precioUnit;
-
-            let costoUnit = 0;
-            const prodMatch = todosLosProductos.find(p => String(p.id) === String(item.idUnico) || normalizarTexto(p.nombre) === normalizarTexto(nombreProd));
-            if (prodMatch) costoUnit = obtenerCostoProducto(prodMatch);
-
-            const subtotalCosto = cantidad * costoUnit;
-            totalVentasFiltradas += subtotal;
-            totalCostosFiltrados += subtotalCosto;
-
-            htmlFilas += `
-              <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                <td class="p-2.5 text-slate-700 dark:text-slate-300"><b>#${v.id}</b><br><span class="text-[10px] text-slate-400">${fechaVenta} ${v.hora || ''}</span></td>
-                <td class="p-2.5 text-slate-800 dark:text-white font-medium">${clienteVenta}</td>
-                <td class="p-2.5 text-slate-600 dark:text-slate-300">${vendedorVenta}</td>
-                <td class="p-2.5 text-slate-800 dark:text-white">${nombreProd}</td>
-                <td class="p-2.5 text-center text-slate-700 dark:text-slate-300">${cantidad}</td>
-                <td class="p-2.5 text-right text-blue-600 dark:text-blue-400 font-semibold">$${precioUnit.toFixed(2)}</td>
-                <td class="p-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">$${costoUnit.toFixed(2)}</td>
-                <td class="p-2.5 text-right text-slate-900 dark:text-white font-bold">$${subtotal.toFixed(2)}</td>
-              </tr>
-            `;
-          });
+    function filasReporteVentas() {
+      const valor = id => document.getElementById(id).value;
+      const desde = valor('filtroFechaDesde'), hasta = valor('filtroFechaHasta');
+      const cliente = normalizarTexto(valor('filtroCliente').trim()), vendedor = normalizarTexto(valor('filtroVendedor').trim());
+      const filas = [];
+      const porId = new Map(todosLosProductos.map(p=>[String(p.id),p]));
+      const porNombre = new Map();
+      for (const p of todosLosProductos) { const n=normalizarTexto(p.nombre||''); if (!porNombre.has(n)) porNombre.set(n,p); }
+      for (const v of ventasCacheReporte) {
+        const fecha = fechaLocalReporte(v.fecha), c = v.cliente || 'Consumidor Final', ven = v.atendido_por || '';
+        if ((desde && fecha < desde) || (hasta && fecha > hasta) || (cliente && !normalizarTexto(c).includes(cliente)) || (vendedor && !normalizarTexto(ven).includes(vendedor))) continue;
+        for (const item of Array.isArray(v.detalles) ? v.detalles : []) {
+          const nombre = item.nombre || 'Producto general';
+          const cantidad = Number(item.cantidad ?? 1), precio = Number(item.precio ?? 0);
+          const prod = porId.get(String(item.idUnico)) || porNombre.get(normalizarTexto(nombre));
+          const historico = item.costoUnitario != null && item.costoUnitario !== '' && Number.isFinite(Number(item.costoUnitario)) && Number(item.costoUnitario)>=0;
+          const costoActual = prod ? obtenerCostoProducto(prod) : NaN;
+          const costo = historico ? Number(item.costoUnitario) : Number.isFinite(costoActual) ? costoActual : null;
+          const subtotal = cantidad*precio, costoTotal = costo === null ? null : cantidad*costo;
+          const ganancia = costoTotal === null ? null : subtotal-costoTotal;
+          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || subtotal===0 ? null : ganancia/subtotal*100,origen:historico?'Registrado en venta':costo===null?'Sin costo disponible':'Costo actual estimado'});
         }
-      });
-
-      tbody.innerHTML = htmlFilas || '<tr><td colspan="8" class="text-center py-6 text-slate-400">No se encontraron registros.</td></tr>';
-      const gananciaNeta = totalVentasFiltradas - totalCostosFiltrados;
-      document.getElementById('lblReporteTotalVentas').textContent = '$' + totalVentasFiltradas.toFixed(2);
-      document.getElementById('lblReporteTotalCostos').textContent = '$' + totalCostosFiltrados.toFixed(2);
-      document.getElementById('lblReporteGananciaNeta').textContent = '$' + gananciaNeta.toFixed(2);
+      }
+      return filas;
     }
-
-    function exportarReporteVentasFiltradoCSV() {}
+    function aplicarFiltrosReporteVentas() {
+      if (estadoReporteVentas !== 'listo') return;
+      const filas = filasReporteVentas();
+      const esc = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const dinero = n => n===null ? '—' : '$'+n.toFixed(2);
+      document.getElementById('tablaReporteVentasItems').innerHTML = filas.map(f=>`<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50"><td class="p-2.5"><b>#${esc(f.id)}</b><br><span class="text-[10px]">${esc(f.fecha)} ${esc(f.hora)}</span></td><td class="p-2.5">${esc(f.cliente)}</td><td class="p-2.5">${esc(f.vendedor)}</td><td class="p-2.5">${esc(f.nombre)}</td><td class="p-2.5 text-center">${f.cantidad}</td><td class="p-2.5 text-right">${dinero(f.precio)}</td><td class="p-2.5 text-right" title="${esc(f.origen)}">${dinero(f.costo)}</td><td class="p-2.5 text-right font-bold">${dinero(f.subtotal)}</td></tr>`).join('') || '<tr><td colspan="8" class="text-center py-6 text-slate-400">No se encontraron registros.</td></tr>';
+      const ventas = filas.reduce((a,f)=>a+f.subtotal,0), costos = filas.reduce((a,f)=>a+(f.costoTotal??0),0), incompleto = filas.some(f=>f.costo===null);
+      document.getElementById('lblReporteTotalVentas').textContent = dinero(ventas);
+      document.getElementById('lblReporteTotalCostos').textContent = incompleto ? 'Incompleto' : dinero(costos);
+      document.getElementById('lblReporteGananciaNeta').textContent = incompleto ? 'No disponible' : dinero(ventas-costos);
+    }
+    function exportarReporteVentasFiltradoCSV() {
+      if (estadoReporteVentas !== 'listo') { alert('El reporte todavía no está disponible.'); return; }
+      const filas = filasReporteVentas();
+      if (!filas.length) { alert('No hay ventas para los filtros seleccionados.'); return; }
+      const texto = v => { let t=String(v??''); if (/^[\s]*[=+@-]|^[\t\r\n]/.test(t)) t="'"+t; return '"'+t.replace(/"/g,'""')+'"'; };
+      const numero = v => v===null || !Number.isFinite(v) ? '' : v.toFixed(2).replace('.',',');
+      const encabezado = ['Nro. ticket','Fecha','Hora','Cliente','Vendedor','Código de barras','Producto','Cantidad','Precio unitario','Costo unitario','Importe total','Costo total','Ganancia bruta','Margen (%)','Origen del costo'];
+      const csv = [encabezado.map(texto).join(';'),...filas.map(f=>[texto(f.id),texto(f.fecha),texto(f.hora),texto(f.cliente),texto(f.vendedor),texto(f.codigo),texto(f.nombre),numero(f.cantidad),numero(f.precio),numero(f.costo),numero(f.subtotal),numero(f.costoTotal),numero(f.ganancia),numero(f.margen),texto(f.origen)].join(';'))].join('\r\n');
+      const url = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+      const enlace = document.createElement('a');
+      enlace.href=url;
+      enlace.download=`reporte_ventas_${document.getElementById('filtroFechaDesde').value||'inicio'}_${document.getElementById('filtroFechaHasta').value||'fin'}.csv`;
+      document.body.appendChild(enlace); enlace.click(); enlace.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
 
     function abrirModalCatalogoVirtual() {
       document.getElementById('modalCatalogoVirtual').classList.remove('hidden');
