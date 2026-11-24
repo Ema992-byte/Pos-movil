@@ -220,6 +220,7 @@
           <button id="menuBtn_reporteVentas" onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
             <span>📊</span> Reporte de Ventas
           </button>
+          <button id="menuBtn_analisisVentas" onclick="toggleSidebarMenu(); abrirAnalisisVentas()" class="hidden w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium">📈 Análisis de Ventas y Rentabilidad</button>
           <button id="menuBtn_auditoriaEliminaciones" onclick="toggleSidebarMenu(); ejecutarAccionModulo('auditoriaEliminaciones')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-rose-700 dark:text-rose-400 font-medium flex items-center gap-2">
             <span>🛡️</span> Auditoría de Tickets Borrados
           </button>
@@ -706,6 +707,7 @@
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_cargaMasiva" class="rounded text-indigo-600 chk-modulo-item"> 📄 Carga Masiva</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_exportarProductos" class="rounded text-indigo-600 chk-modulo-item"> 📦 Exportar Prod.</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_modificarPrecios" class="rounded text-indigo-600 chk-modulo-item"> ✏️ Modif. Precios</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_analisisVentas" class="rounded text-indigo-600 chk-modulo-item"> 📈 Análisis de ventas</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" id="chk_reporteVentas" class="rounded text-indigo-600 chk-modulo-item"> 📊 Rep. Ventas</label>
             <label class="col-span-2 flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded border border-indigo-200 dark:border-indigo-800">
               <input type="checkbox" id="chk_edicionCuadricula" class="rounded text-indigo-600 chk-modulo-item"> ✏️ Permiso para Editar Datos Directos en Cuadrícula
@@ -1902,6 +1904,7 @@
         'exportarProductos': document.getElementById('menuBtn_exportarProductos'),
         'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
         'reporteVentas': document.getElementById('menuBtn_reporteVentas'),
+        'analisisVentas': document.getElementById('menuBtn_analisisVentas'),
         'auditoriaEliminaciones': document.getElementById('menuBtn_auditoriaEliminaciones'),
         'gestionarPermisos': document.getElementById('menuBtn_gestionarPermisos')
       };
@@ -2552,6 +2555,9 @@
       const valor = id => document.getElementById(id).value;
       const desde = valor('filtroFechaDesde'), hasta = valor('filtroFechaHasta');
       const cliente = normalizarTexto(valor('filtroCliente').trim()), vendedor = normalizarTexto(valor('filtroVendedor').trim());
+      return calcularFilasVentas(ventasCacheReporte,productosCostoReporte,desde,hasta,cliente,vendedor);
+    }
+    function calcularFilasVentas(ventasCacheReporte,productosCostoReporte,desde,hasta,cliente='',vendedor='') {
       const filas = [];
       const porId = new Map(productosCostoReporte.map(p=>[String(p.id),p]));
       const porNombre = new Map();
@@ -2568,7 +2574,7 @@
           const costo = Number.isFinite(costoActual) && costoActual>=0 ? costoActual : null;
           const subtotal = cantidad*precio, costoTotal = costo === null ? null : cantidad*costo;
           const ganancia = costoTotal === null ? null : subtotal-costoTotal;
-          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || costoTotal===0 ? null : ganancia/costoTotal*100,origen:costo===null?'Sin costo actual disponible':'Costo actual del producto'});
+          filas.push({id:v.id,fecha,hora:v.hora||'',cliente:c,vendedor:ven,codigo:item.codigo_barras || (prod ? obtenerCodigoBarras(prod) : ''),nombre,rubro:prod?.rubro || prod?.Departamento || 'Sin rubro',cantidad,precio,costo,subtotal,costoTotal,ganancia,margen:ganancia===null || costoTotal===0 ? null : ganancia/costoTotal*100,origen:costo===null?'Sin costo actual disponible':'Costo actual del producto'});
         }
       }
       return filas;
@@ -2909,6 +2915,7 @@ window.addEventListener('load', () => {
       document.getElementById('chk_exportarProductos').checked = !!m.exportarProductos;
       document.getElementById('chk_modificarPrecios').checked = !!m.modificarPrecios;
       document.getElementById('chk_reporteVentas').checked = !!m.reporteVentas;
+      document.getElementById('chk_analisisVentas').checked = !!m.analisisVentas;
       document.getElementById('chk_edicionCuadricula').checked = !!m.edicionCuadricula;
       document.getElementById('chk_eliminarVentas').checked = !!m.eliminarVentas;
       document.getElementById('contenedorCheckboxesModulos').classList.remove('hidden');
@@ -2928,6 +2935,7 @@ window.addEventListener('load', () => {
         exportarProductos: document.getElementById('chk_exportarProductos').checked,
         modificarPrecios: document.getElementById('chk_modificarPrecios').checked,
         reporteVentas: document.getElementById('chk_reporteVentas').checked,
+        analisisVentas: document.getElementById('chk_analisisVentas').checked,
         edicionCuadricula: document.getElementById('chk_edicionCuadricula').checked,
         eliminarVentas: document.getElementById('chk_eliminarVentas').checked
       };
@@ -4224,6 +4232,7 @@ window.addEventListener('load', () => {
     }
 
     async function cerrarSesion() {
+      cerrarAnalisisVentas();
       repClose(); document.getElementById("repMenu").classList.add("hidden");
       await _supabase.auth.signOut();
       document.getElementById('posSection').classList.add('hidden');
@@ -4321,6 +4330,31 @@ if(!l.finalizado){
 const b=repTable(c,['Código','Producto','Bultos vendidos','Bultos adicionales','Bultos repuestos','Reponer bultos','Saldo bultos']);for(const r of rows){const tr=repRow(b,[r.codigo_barras,r.producto,repB(r,r.cantidad_vendida),repB(r,r.cantidad_adicional),repB(r,r.cantidad_repuesta)]);if(!l.finalizado){const td=tr.children[3];const a=repInput(td,'Sumar bultos','number');a.min=1;a.step=1;a.style.width='85px';repBtn(td,'Sumar',()=>agregar(r,Number(a.value)));}const n=repInput(repNode('td',null,tr),'0','number');n.min=0;n.max=repB(r,r.saldo_pendiente);n.step=1;n.value=0;n.disabled=l.finalizado||Number(r.saldo_pendiente)===0;const saldo=repNode('td',repB(r,r.saldo_pendiente),tr);saldo.className='rep-saldo';saldo.dataset.zero=String(Number(saldo.textContent)===0);n.oninput=()=>{saldo.textContent=repB(r,r.saldo_pendiente)-Number(n.value);saldo.dataset.zero=String(Number(saldo.textContent)===0);};inputs.push({r,n});}
 const actions=repNode('div',null,c);actions.className='rep-actions';if(!l.finalizado){repBtn(actions,'Guardar cambios',async()=>{if(inputs.some(x=>!x.n.checkValidity()))throw Error('Revisá cantidades');const key='rep7_'+id;let items=JSON.parse(localStorage.getItem(key)||'null');if(!items){items=inputs.filter(x=>Number(x.n.value)>0).map(x=>({producto_id:x.r.producto_id,cantidad:Number(x.n.value)*repFactor(x.r),operacion_id:crypto.randomUUID()}));localStorage.setItem(key,JSON.stringify(items));}await repRPC('rep7_guardar',{p_id:id,p_items:items});localStorage.removeItem(key);await rep7Open(id);repEl('repStatus').textContent='Cambios guardados';});repBtn(actions,'Finalizar listado',async()=>{if(inputs.some(x=>Number(x.n.value)>0))throw Error('Guardá primero los cambios');await repRPC('rep7_finalizar',{p_id:id});await rep7Open(id);});}
 for(const completo of [false,true])repBtn(actions,completo?'Excel completo':'Excel pendientes',()=>{if(inputs.some(x=>Number(x.n.value)>0))throw Error('Guardá primero los cambios');const sheet=XLSX.utils.aoa_to_sheet([['Código','Producto','Bultos vendidos','Bultos adicionales','Bultos repuestos','Bultos pendientes'],...rows.filter(r=>completo||Number(r.saldo_pendiente)>0).map(r=>[String(r.codigo_barras||''),r.producto,repB(r,r.cantidad_vendida),repB(r,r.cantidad_adicional),repB(r,r.cantidad_repuesta),repB(r,r.saldo_pendiente)])]);const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,sheet,'Reposición');XLSX.writeFile(book,'Reposicion_'+id.slice(0,8)+'.xlsx');});}
+</script>
+
+<style>
+#avModal:not(.hidden){display:flex} #avModal{position:fixed;inset:0;z-index:90;background:#000a;padding:12px;align-items:center;justify-content:center} #avShell{width:100%;max-width:1600px;max-height:96vh;overflow:auto;border-radius:16px;background:#f1f5f9;color:#102b46;padding:16px} .dark #avShell{background:#172033;color:#f1f5f9} #avShell button{padding:9px 14px;border-radius:8px;font-weight:600;background:#24476a;color:white} #avShell button:disabled{opacity:.45} #avShell input{padding:8px;border:1px solid #94a3b8;border-radius:8px;background:transparent} #avReport{background:#f1f5f9;color:#102b46;padding:12px;border-radius:10px} #avReport h2,#avReport h3{background:#153451;color:white;padding:9px;border-radius:7px;font-weight:700} #avReport .avgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:10px 0} #avReport .avcard{background:white;border:1px solid #cbd5e1;border-radius:9px;padding:10px;min-width:0} #avReport .avnum{font-size:clamp(17px,2vw,27px);font-weight:800;color:#126b40} #avReport table{width:100%;font-size:12px;border-collapse:collapse} #avReport td,#avReport th{color:#102b46!important;padding:7px;border-bottom:1px solid #dbe3eb;text-align:right} #avReport td:first-child,#avReport th:first-child{text-align:left} #avReport .avcharts{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px} #avReport .avbar{height:12px;background:#e2e8f0;border-radius:4px;overflow:hidden} #avReport .avbar i{display:block;height:100%;background:#1976d2} #avReport .avrow{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-top:8px} @media print{body.avPrinting>*:not(#avModal){display:none!important} body.avPrinting #avModal{position:static;background:white;padding:0;display:block!important} body.avPrinting #avShell{max-height:none;overflow:visible;padding:0} body.avPrinting .avcontrols{display:none!important} #avReport .avcard{break-inside:avoid} @page{size:landscape;margin:8mm}}
+</style>
+<div id="avModal" class="hidden" role="dialog" aria-label="Análisis de ventas"><div id="avShell"><div class="avcontrols flex flex-wrap items-center gap-3 mb-3"><h2 class="text-xl font-bold flex-1">📊 Análisis de Ventas y Rentabilidad</h2><button onclick="cerrarAnalisisVentas()">✕ Cerrar</button></div><div class="avcontrols flex flex-wrap items-end gap-3 mb-3"><label>Desde <input type="date" id="avDesde"></label><label>Hasta <input type="date" id="avHasta"></label><button onclick="avPeriodo(0)">Hoy</button><button onclick="avPeriodo(1)">Ayer</button><button onclick="avPeriodo(7)">Últimos 7 días</button><button onclick="avPeriodo(30)">Este mes</button><button onclick="avGenerar()">Generar análisis</button></div><div class="avcontrols flex flex-wrap gap-2 mb-3"><button onclick="avVista('general')">Resumen</button><button onclick="avVista('vendedor')">Vendedores</button><button onclick="avVista('producto')">Productos</button><button onclick="avVista('temporal')">Temporal</button><button onclick="avVista('rubro')">Rubros</button><button onclick="avExcel()">Excel</button><button onclick="avPNG()">Imagen PNG</button><button onclick="avPrint()">Imprimir / PDF</button></div><p id="avStatus" role="status" class="mb-2"></p><div id="avReport"></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+let avData=null,avVersion=0,avTab='general';
+const avEl=id=>document.getElementById(id), avEsc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const avMoney=n=>n==null?'—':n.toLocaleString('es-AR',{style:'currency',currency:'ARS'}),avNum=n=>n==null?'—':n.toLocaleString('es-AR',{maximumFractionDigits:2}),avPct=n=>n==null?'—':avNum(n)+' %';
+function cerrarAnalisisVentas(){++avVersion;avData=null;avEl('avModal').classList.add('hidden');avEl('avReport').replaceChildren();}
+async function abrirAnalisisVentas(){if(!await validarAccionConAlerta('analisisVentas'))return;avEl('avModal').classList.remove('hidden');avData=null;avTab='general';avEl('avReport').replaceChildren();avEl('avStatus').textContent='Seleccioná un período y generá el análisis.';avPeriodo(0);}
+function avPeriodo(n){const hoy=new Date(),d=new Date();if(n===1){d.setDate(d.getDate()-1);hoy.setDate(hoy.getDate()-1);}else if(n===7)d.setDate(d.getDate()-6);else if(n===30)d.setDate(1);avEl('avDesde').value=fechaLocalReporte(d);avEl('avHasta').value=fechaLocalReporte(hoy);}
+async function avPaginar(tabla,version){let out=[],last=null;while(true){let q=_supabase.from(tabla).select('*').order('id',{ascending:true}).limit(500);if(last!==null)q=q.gt('id',last);const {data,error}=await q;if(version!==avVersion)throw Error('Consulta cancelada');if(error)throw error;if(!data?.length)return out;out.push(...data);const next=data.at(-1).id;if(next==null||next===last)throw Error('Paginación inválida');last=next;}}
+async function avGenerar(){const d=avEl('avDesde').value,h=avEl('avHasta').value;if(!d||!h||d>h){avEl('avStatus').textContent='Seleccioná un período válido.';return;}const v=++avVersion;avData=null;avEl('avReport').replaceChildren();avEl('avStatus').textContent='Consultando ventas y costos vigentes…';try{if(!await validarAccionConAlerta('analisisVentas'))throw Error('Sin permiso');const [ventas,productos]=await Promise.all([avPaginar('ventas',v),avPaginar('productos',v)]);if(v!==avVersion)return;const filas=calcularFilasVentas(ventas,productos,d,h);if(filas.some(f=>!Number.isFinite(f.subtotal)||!Number.isFinite(f.cantidad)))throw Error('Existen cantidades o precios inválidos');avData={d,h,filas};avEl('avStatus').textContent=filas.length?'Costos actuales del catálogo; no son costos históricos.':'No hay artículos vendidos en este período.';avRender();}catch(e){if(v===avVersion)avEl('avStatus').textContent='Error: '+e.message;}}
+function avResumen(f){const fact=f.reduce((a,x)=>a+x.subtotal,0),missing=f.filter(x=>x.costoTotal===null||!Number.isFinite(x.costoTotal)).length,costo=missing?null:f.reduce((a,x)=>a+x.costoTotal,0),gan=costo===null?null:fact-costo,tickets=new Set(f.map(x=>x.id)).size;return {fact,costo,gan,tickets,unidades:f.reduce((a,x)=>a+x.cantidad,0),rent:costo>0?gan/costo*100:null,prom:tickets?fact/tickets:null,missing};}
+function avGrupo(f,key){const m=new Map();for(const x of f){const k=key(x)||'Sin identificar';if(!m.has(k))m.set(k,[]);m.get(k).push(x);}return [...m].map(([nombre,rows])=>({nombre,...avResumen(rows)})).sort((a,b)=>b.fact-a.fact);}
+function avTabla(g,total){return '<div style="overflow:auto"><table><thead><tr>'+['Grupo','Facturación','Costo','Ganancia','Tickets','Unidades','Rentabilidad','Ticket promedio','Participación'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+[...g,{nombre:'TOTAL',...total}].map(x=>'<tr>'+[avEsc(x.nombre),avMoney(x.fact),avMoney(x.costo),avMoney(x.gan),avNum(x.tickets),avNum(x.unidades),avPct(x.rent),avMoney(x.prom),avPct(total.fact?x.fact/total.fact*100:null)].map(y=>'<td>'+y+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
+function avGraf(g,key,title,fmt){const a=g.filter(x=>x[key]!=null).sort((a,b)=>b[key]-a[key]).slice(0,12),max=Math.max(1,...a.map(x=>Math.abs(x[key])));return '<div class="avcard"><h3>'+title+'</h3>'+a.map(x=>'<div class="avrow"><span>'+avEsc(x.nombre)+'</span><b>'+fmt(x[key])+'</b></div><div class="avbar"><i style="width:'+Math.abs(x[key])/max*100+'%;background:'+(x[key]<0?'#b91c1c':'#1976d2')+'"></i></div>').join('')+'</div>';}
+function avVista(t){avTab=t;if(avData)avRender();}
+function avRender(){const {d,h,filas:f}=avData,t=avResumen(f),v=avGrupo(f,x=>x.vendedor),p=avGrupo(f,x=>x.nombre),r=avGrupo(f,x=>x.rubro),dia=avGrupo(f,x=>x.fecha),hora=avGrupo(f,x=>String(x.hora||'').match(/^(\d{1,2}):/)?.[1]||'Sin hora');let g=avTab==='producto'?p:avTab==='rubro'?r:avTab==='temporal'?dia:v;let html='<h2>Informe de Ventas y Rentabilidad · POS GO! PRO<br><small>Período: '+d+' al '+h+'</small></h2><div class="avgrid">'+[['Facturación',avMoney(t.fact)],['Ganancia bruta',avMoney(t.gan)],['Tickets',avNum(t.tickets)],['Unidades',avNum(t.unidades)],['Costo actual',avMoney(t.costo)],['Rentabilidad sobre costo',avPct(t.rent)],['Ticket promedio',avMoney(t.prom)],['Vendedores activos',avNum(v.filter(x=>x.nombre!=='Sin identificar').length)]].map(([k,n])=>'<div class="avcard">'+k+'<div class="avnum">'+n+'</div></div>').join('')+'</div>';if(t.missing)html+='<p style="color:#b45309">'+t.missing+' líneas sin costo válido: ganancia y rentabilidad incompletas.</p>';html+='<div class="avcharts">'+avGraf(g,'fact','Facturación',avMoney)+avGraf(g,'gan','Ganancia bruta',avMoney)+avGraf(g,'tickets','Tickets',avNum)+avGraf(g,'unidades','Unidades vendidas',avNum)+avGraf(g,'rent','Rentabilidad sobre costo',avPct)+avGraf(g,'prom','Ticket promedio',avMoney)+(avTab==='temporal'?avGraf(hora,'fact','Facturación por hora',avMoney):'')+'</div><div class="avcard"><h3>Cuadro comparativo</h3>'+avTabla(g,t)+'</div><p style="font-size:11px">Facturación según líneas del Reporte de Ventas. Costos vigentes. Los tickets por producto o rubro pueden repetirse entre grupos.</p>';avEl('avReport').innerHTML=html;}
+function avExcel(){if(!avData)return alert('Generá primero el análisis');if(typeof XLSX==='undefined')return alert('Excel no disponible');const f=avData.filas,b=XLSX.utils.book_new();for(const [n,g] of [['Vendedores',avGrupo(f,x=>x.vendedor)],['Productos',avGrupo(f,x=>x.nombre)],['Rubros',avGrupo(f,x=>x.rubro)],['Días',avGrupo(f,x=>x.fecha)]]){const sh=XLSX.utils.aoa_to_sheet([['Grupo','Facturación','Costo','Ganancia','Tickets','Unidades','Rentabilidad','Ticket promedio'],...g.map(x=>[x.nombre,x.fact,x.costo,x.gan,x.tickets,x.unidades,x.rent==null?null:x.rent/100,x.prom])]);for(let i=1;i<=g.length;i++){const c=sh['G'+(i+1)];if(c)c.z='0.00%';}XLSX.utils.book_append_sheet(b,sh,n);}XLSX.writeFile(b,'Analisis_'+avData.d+'_'+avData.h+'.xlsx');}
+async function avPNG(){if(!avData)return alert('Generá primero el análisis');try{if(typeof html2canvas==='undefined')throw Error('Biblioteca no disponible');const c=await html2canvas(avEl('avReport'),{scale:2,backgroundColor:'#f1f5f9'});const a=document.createElement('a');a.download='Analisis_ventas.png';a.href=c.toDataURL('image/png');a.click();}catch(e){alert('No se pudo exportar: '+e.message);}}
+function avPrint(){if(!avData)return alert('Generá primero el análisis');document.body.classList.add('avPrinting');try{window.print();}finally{document.body.classList.remove('avPrinting');}}
 </script>
 
 </body>
