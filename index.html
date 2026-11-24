@@ -687,6 +687,10 @@
       </div>
 
       <div id="secListaUsuarios" class="hidden space-y-3 text-sm">
+        <section id="repGestion" class="hidden border rounded-lg p-3 space-y-2 dark:border-slate-600">
+          <h4 class="font-bold">📦 Permisos de Reposición de Mercadería</h4>
+          <p id="repGestionEstado" role="status"></p><div id="repGestionLista"></div>
+        </section>
         <div id="contenedorListaUsuariosPos" class="space-y-2 max-h-60 overflow-y-auto pr-1">
           <p class="text-slate-400 text-center py-2 text-xs">Cargando usuarios...</p>
         </div>
@@ -1340,6 +1344,7 @@
         overlay.classList.add('opacity-0', 'pointer-events-none');
       } else {
         sidebar.style.left = '0px';
+        void repAccess();
         overlay.classList.remove('opacity-0', 'pointer-events-none');
       }
     }
@@ -2793,7 +2798,7 @@ window.addEventListener('load', () => {
       document.getElementById('secAdminLogros').classList.add('hidden');
 
       if (pestana === 'crear') { document.getElementById('tabCrearUser').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secCrearUsuario').classList.remove('hidden'); }
-      else if (pestana === 'lista') { document.getElementById('tabListaUser').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secListaUsuarios').classList.remove('hidden'); cargarListaUsuariosPOS(); }
+      else if (pestana === 'lista') { document.getElementById('tabListaUser').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secListaUsuarios').classList.remove('hidden'); cargarListaUsuariosPOS(); void repGestionCargar(); }
       else if (pestana === 'logros') { document.getElementById('tabLogrosAdmin').className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white"; document.getElementById('secAdminLogros').classList.remove('hidden'); cargarCatalogoLogrosAdmin(); }
     }
 
@@ -4232,7 +4237,26 @@ window.addEventListener('load', () => {
 let repAdmin=false, repBusy=false, repRows=[], repRetry=null, repEpoch=0;
 const repEl=id=>document.getElementById(id);
 async function repRPC(name,args={}) { const {data,error}=await _supabase.rpc(name,args); if(error) throw Error(error.message); return data; }
-async function repAccess(){const epoch=++repEpoch; repEl('repMenu').classList.add('hidden'); try {const allowed=await repRPC('tiene_permiso_reposicion'); if(epoch===repEpoch) repEl('repMenu').classList.toggle('hidden',!allowed);}catch(e){}}
+async function repAccess(){const epoch=++repEpoch; repEl('repMenu').classList.add('hidden'); try {const allowed=await repRPC('tiene_permiso_reposicion'); if(epoch===repEpoch) repEl('repMenu').classList.toggle('hidden',!allowed);}catch(e){console.warn('Permiso de reposición:',e.message);}}
+
+let repGestionEpoch=0;
+async function repGestionCargar(){
+ const epoch=++repGestionEpoch, panel=repEl('repGestion'), status=repEl('repGestionEstado'), lista=repEl('repGestionLista');
+ panel.classList.add('hidden'); lista.replaceChildren(); status.textContent='';
+ try {
+  if(!await repRPC('es_admin_reposicion') || epoch!==repGestionEpoch)return;
+  panel.classList.remove('hidden'); status.textContent='Cargando permisos...';
+  const rows=await repRPC('listar_permisos_reposicion'); if(epoch!==repGestionEpoch)return;
+  status.textContent='Los cambios se guardan inmediatamente.';
+  for(const r of rows||[]){
+   const label=repNode('label',null,lista); label.className='flex items-center gap-2 py-2 border-b dark:border-slate-600';
+   const chk=repNode('input',null,label); chk.type='checkbox'; chk.checked=r.habilitado; chk.disabled=r.es_administrador;
+   repNode('span',r.email+(r.es_administrador?' (Administrador principal)':''),label);
+   chk.onchange=async()=>{const next=chk.checked;chk.disabled=true;try{await repRPC('configurar_permiso_reposicion',{p_usuario_id:r.usuario_id,p_habilitado:next});status.textContent='Permiso actualizado.';await repAccess();}catch(e){chk.checked=!next;status.textContent='Error: '+e.message;}finally{chk.disabled=false;}};
+  }
+ }catch(e){if(epoch===repGestionEpoch){panel.classList.remove('hidden');status.textContent='No se pudieron consultar permisos de reposición: '+e.message;}}
+}
+
 function repClose(){++repEpoch; repEl('repDialog').close(); repEl('repContent').replaceChildren(); repEl('repNav').replaceChildren(); repAdmin=false; repRows=[];}
 function repNode(tag,text,parent){const n=document.createElement(tag); if(text!=null)n.textContent=String(text); if(parent)parent.append(n);return n;}
 function repBtn(parent,text,fn){const b=repNode('button',text,parent);b.className='px-3 py-2 rounded bg-indigo-600 text-white m-1 disabled:opacity-50';b.onclick=async()=>{if(repBusy)return;repBusy=true;b.disabled=true;try{repEl('repStatus').textContent='';await fn();}catch(e){repEl('repStatus').textContent=e.message;}finally{repBusy=false;b.disabled=false;}};return b;}
