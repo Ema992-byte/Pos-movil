@@ -1130,24 +1130,22 @@
     </div>
   </div>
 
-  <!-- PLANTILLA DE TICKET TÉRMICA 80MM V2.0.2 -->
-  <div id="ticketImpresion" class="hidden" style="font-family: 'Courier New', monospace; font-size:16px; width:72mm; margin:0 auto; color:#000; background:#fff; line-height:1.2;">
+  <!-- PLANTILLA DE TICKET TÉRMICA 80MM V2.0.3 -->
+  <div id="ticketImpresion" class="hidden" style="font-family: 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif; font-size:15px; width:72mm; margin:0 auto; color:#000; background:#fff; line-height:1.08;">
     <div style="text-align:center;font-weight:bold;font-size:26px;">GO!</div>
-    <div style="text-align:center;font-size:16px;">Punto de Venta Móvil</div>
-    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+    <div style="text-align:center;font-size:15px;">Punto de Venta Móvil</div>
+    <div style="border-top:1px dashed #000;margin:3px 0;"></div>
     <div style="text-align:center;font-weight:bold;font-size:18px;">TICKET DE COMPRA</div>
-    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-    <div>Fecha: <span id="ticketFecha"></span></div>
-    <div>Hora: <span id="ticketHora"></span></div>
-    <div>Comprobante: <span id="ticketNro"></span></div>
+    <div style="border-top:1px dashed #000;margin:3px 0;"></div>
+    <div style="display:flex;justify-content:space-between;gap:4px;flex-wrap:wrap;font-size:13px;"><span>Fecha: <span id="ticketFecha"></span> <span id="ticketHora"></span></span><span>Nro: <span id="ticketNro"></span></span></div>
     <div>Atendido por: <span id="ticketAtendidoPor"></span></div>
     <div>Cliente: <span id="ticketCliente"></span></div>
-    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-    <table style="width:100%;border-collapse:collapse;table-layout:fixed;"><tbody id="ticketItemsTabla"></tbody></table>
-    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-weight:bold;font-size:24px;"><span>TOTAL</span><span id="ticketTotal"></span></div>
-    <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-    <div style="text-align:center;font-size:16px;font-weight:bold;">¡GRACIAS POR SU VISITA!</div>
+    <div style="border-top:1px dashed #000;margin:3px 0;"></div>
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;"><colgroup><col style="width:65%"><col style="width:35%"></colgroup><thead><tr><td>Cant. x Prec. Unit.</td><td style="text-align:right">Importe</td></tr></thead><tbody id="ticketItemsTabla"></tbody></table>
+    <div style="border-top:1px dashed #000;margin:3px 0;"></div>
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-weight:bold;font-size:23px;"><span>TOTAL</span><span id="ticketTotal"></span></div>
+    <div style="border-top:1px dashed #000;margin:3px 0;"></div>
+    <div style="text-align:center;font-size:15px;font-weight:bold;">¡GRACIAS POR SU VISITA!</div>
   </div>
 
   <!-- SCRIPT DE LÓGICA COMPLETA -->
@@ -3930,46 +3928,52 @@ window.addEventListener('load', () => {
     function imprimirTicketConOperadorFijo(items, total, fechaStr, horaStr, cliente, operador, ticketId) {
       document.getElementById('ticketFecha').textContent = fechaStr;
       document.getElementById('ticketHora').textContent = horaStr;
-      document.getElementById('ticketNro').textContent = `Ticket #${ticketId}`;
+      document.getElementById('ticketNro').textContent = String(ticketId).padStart(6, '0');
       document.getElementById('ticketAtendidoPor').textContent = operador;
       document.getElementById('ticketCliente').textContent = cliente;
       
       const tbody = document.getElementById('ticketItemsTabla'); 
       tbody.innerHTML = '';
       
-      const monedaTicket = n => Number(n).toLocaleString('es-AR', {style:'currency',currency:'ARS',minimumFractionDigits:2,maximumFractionDigits:2});
+      const monedaTicket = n => Number(n).toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2});
       items.forEach(i => {
         const cantidad = Number(i.cantidad);
         const precio = Number(i.precio);
         const factor = Number(i.unidadesBulto);
         const bultos = factor > 0 ? Math.floor(cantidad / factor) : 0;
         const sueltas = bultos > 0 ? cantidad % factor : cantidad;
-        const trNombre = tbody.insertRow();
-        const nombre = trNombre.insertCell();
-        nombre.style.cssText = 'font-size:18px;font-weight:bold;padding:5px 0 2px;overflow-wrap:anywhere;';
-        nombre.textContent = i.nombre || 'Artículo';
-        const detalle = tbody.insertRow().insertCell();
-        detalle.style.cssText = 'font-size:17px;padding:0 0 5px;';
-        const linea = document.createElement('div');
-        linea.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:2px 6px;';
-        const cantidadEl = document.createElement('span');
+        const nombre = tbody.insertRow().insertCell();
+        nombre.colSpan = 2;
+        nombre.style.cssText = 'font-size:16px;font-weight:normal;padding:3px 0 0;overflow-wrap:anywhere;';
+        nombre.textContent = String(i.nombre || 'Artículo').toUpperCase();
         const partes = [];
-        if (bultos > 0) partes.push(`${bultos} B x ${monedaTicket(precio * factor)}`);
-        if (sueltas > 0 || !bultos) partes.push(`${sueltas} U x ${monedaTicket(precio)}`);
-        cantidadEl.textContent = partes.join(' + ');
-        const importe = document.createElement('strong');
-        importe.style.cssText = 'font-size:18px;margin-left:auto;white-space:nowrap;';
-        importe.textContent = monedaTicket(precio * cantidad);
-        linea.append(cantidadEl, importe);
-        detalle.append(linea);
+        if (bultos > 0) partes.push(`${bultos} B x $${monedaTicket(precio * factor)}`);
+        if (sueltas > 0 || !bultos) partes.push(`${sueltas} U x $${monedaTicket(precio)}`);
+        partes.forEach((parte, idx) => {
+          const fila = tbody.insertRow();
+          const detalle = fila.insertCell();
+          detalle.style.cssText = 'font-size:15px;padding:0;vertical-align:top;overflow-wrap:anywhere;';
+          detalle.textContent = parte;
+          const importe = fila.insertCell();
+          importe.style.cssText = 'font-size:15px;text-align:right;vertical-align:top;overflow-wrap:anywhere;';
+          if (idx === partes.length - 1) importe.textContent = monedaTicket(precio * cantidad);
+        });
+        const prod = todosLosProductos.find(p => String(p.id) === String(i.idUnico) || (obtenerCodigoBarras(p) && String(obtenerCodigoBarras(p)) === String(i.idUnico)));
+        const codigo = i.codigo_interno || prod?.Codigo || i.codigo_barras || (prod && obtenerCodigoBarras(prod));
+        if (codigo) {
+          const celda = tbody.insertRow().insertCell();
+          celda.colSpan = 2;
+          celda.style.cssText = 'font-size:13px;padding:0 0 2px;';
+          celda.textContent = 'Cod: ' + codigo;
+        }
       });
-      document.getElementById('ticketTotal').textContent = monedaTicket(total);
+      document.getElementById('ticketTotal').textContent = '$ ' + monedaTicket(total);
 
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><style>@page { size: 80mm auto; margin: 0; } body { font-family: 'Courier New', monospace; font-size: 16px; width: 72mm; max-width: 72mm; box-sizing: border-box; margin: 0 auto; padding: 0; background: #fff; color: #000; line-height: 1.2; overflow-wrap: anywhere; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
+        w.document.write(`<html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap"><style>@page { size: 80mm auto; margin: 0; } body { font-family: 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif; font-size: 15px; width: 72mm; max-width: 72mm; box-sizing: border-box; margin: 0 auto; padding: 0; background: #fff; color: #000; line-height: 1.08; overflow-wrap: anywhere; font-stretch: condensed; }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
         w.document.close(); 
-        setTimeout(() => w.print(), 300); 
+        Promise.race([w.document.fonts?.ready || Promise.resolve(), new Promise(resolve => setTimeout(resolve, 1800))]).then(() => setTimeout(() => w.print(), 150)); 
       }
     }
 
