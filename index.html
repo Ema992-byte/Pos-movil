@@ -4037,7 +4037,8 @@ window.addEventListener('load', () => {
                 <p class="text-[10px] text-slate-500 dark:text-slate-400">Atendió: ${operador}</p>
               </div>
               <div class="flex gap-1 shrink-0">
-                <button onclick="reimprimirTicketAnterior(${Number(venta.id)})" class="bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded text-[10px]" title="Volver a imprimir">🖨️ Reimprimir</button>
+                <button onclick="reimprimirTicketAnterior(${Number(venta.id)})" class="bg-sky-600 hover:bg-sky-700 text-white px-2 py-1 rounded text-[10px]" title="Volver a imprimir">🖨️ Reimprimir 80 mm</button>
+                <button onclick="reimprimirA4(${Number(venta.id)})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-[10px]">📄 A4 / PDF</button>
                 ${botonEliminar}
               </div>
             </div>`;
@@ -4145,6 +4146,30 @@ window.addEventListener('load', () => {
         await abrirModalHistorial();
         alert('❌ No se pudo completar la eliminación: ' + (err.message || err));
       }
+    }
+
+
+    async function reimprimirA4(id) {
+      const w = window.open('', '_blank');
+      if (!w) return alert('Permití las ventanas emergentes para imprimir.');
+      w.document.body.textContent = 'Cargando comprobante…';
+      try {
+        const {data:v,error} = await _supabase.from('ventas').select('*').eq('id',id).single();
+        if(error || !v || !Array.isArray(v.detalles) || !v.detalles.length) throw new Error('Venta sin detalle disponible');
+        const esc = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const money = x => Number(x).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const rows = v.detalles.map(i=>{
+          const q=Number(i.cantidad), f=Number(i.unidadesBulto), b=f>0?Math.floor(q/f):0, u=b?q%f:q;
+          const qty=[b?b+' B':'',u||!b?u+' U':''].filter(Boolean).join(' + ');
+          const prod=todosLosProductos.find(p=>String(p.id)===String(i.idUnico)||(obtenerCodigoBarras(p)&&String(obtenerCodigoBarras(p))===String(i.idUnico)));
+          const codigo=i.codigo_interno||prod?.Codigo||i.codigo_barras||(prod&&obtenerCodigoBarras(prod))||'—';
+          return `<tr><td>${esc(qty)}</td><td>${esc(codigo)}</td><td>${esc(i.nombre||'Artículo')}</td><td class="num">${money(i.precio)}</td><td class="num">${money(q*Number(i.precio))}</td></tr>`;
+        }).join('');
+        const fecha=fechaLocalReporte(v.fecha).split('-').reverse().join('/');
+        w.document.open();
+        w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Comprobante ${esc(v.id)}</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#111;margin:0}header{display:flex;border:1px solid #333;justify-content:space-between;padding:14px;gap:16px}h1{font-size:26px;margin:0}h2{font-size:17px;margin:0 0 8px}.meta{border:1px solid #333;border-top:0;padding:12px;line-height:1.6;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;margin-top:14px;table-layout:fixed}th{background:#eee;border-block:1px solid #333;text-align:left}td,th{padding:7px 5px;overflow-wrap:anywhere}td{border-bottom:1px solid #ddd;vertical-align:top}.num{text-align:right}thead{display:table-header-group}tr{break-inside:avoid}.total{margin-top:20px;border:1px solid #333;padding:14px;display:flex;justify-content:space-between;font-size:20px;font-weight:bold;break-inside:avoid}.note{margin-top:12px;font-size:11px}.tools{margin:12px 0}button{padding:10px;cursor:pointer}@media screen{body{max-width:186mm;margin:20px auto;padding:12px}}@media print{.tools{display:none}}</style></head><body><div class="tools"><button onclick="window.print()">Imprimir / Guardar como PDF</button></div><header><div><h1>GO!</h1>POS GO! PRO<br>Punto de Venta Móvil</div><div><h2>COMPROBANTE DE VENTA</h2>N.º ${esc(String(v.id).padStart(6,'0'))}<br>Fecha: ${esc(fecha)} ${esc(v.hora||'')}<br>Reimpresión</div></header><div class="meta"><strong>Cliente:</strong> ${esc(v.cliente||'Consumidor Final')}<br><strong>Atendido por:</strong> ${esc(v.atendido_por||'Sin identificar')}</div><table><colgroup><col style="width:14%"><col style="width:17%"><col style="width:37%"><col style="width:15%"><col style="width:17%"></colgroup><thead><tr><th>Cantidad</th><th>Código</th><th>Descripción</th><th class="num">Precio unit.</th><th class="num">Importe</th></tr></thead><tbody>${rows}</tbody></table><div class="total"><span>TOTAL</span><span>$ ${money(v.total)}</span></div><p class="note">B: bultos · U: unidades. Documento no válido como factura fiscal.</p><p>¡Gracias por su visita!</p></body></html>`);
+        w.document.close();
+      } catch(e){w.close();console.error(e);alert('No se pudo recuperar el comprobante A4.');}
     }
 
     async function reimprimirTicketAnterior(id) {
