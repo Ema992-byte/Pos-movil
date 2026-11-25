@@ -2756,7 +2756,8 @@ window.addEventListener('load', () => {
     img.addEventListener('error', resolve, { once: true });
   })));
 });
-<\/script></body></html>`);
+<\/script><style>@media print{body.a4printing #a4paper{zoom:1!important}}</style>
+</body></html>`);
       win.document.close();
     }
 
@@ -3970,7 +3971,8 @@ window.addEventListener('load', () => {
       if (soloVista) return document.getElementById('ticketImpresion').innerHTML;
       const w = window.open('', '_blank', 'width=380,height=600');
       if (w) { 
-        w.document.write(`<html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap"><style>@page { margin: 0; } html { width: 100%; margin: 0; padding: 0; } body { font-family: 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif; font-size: 15px; width: 100%; max-width: 80mm; box-sizing: border-box; margin: 0; padding: 0 0.5mm; background: #fff; color: #000; line-height: 1.08; overflow-wrap: anywhere; font-stretch: condensed; } @media print { html, body { width: 100%; max-width: none; margin: 0; } }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}</body></html>`); 
+        w.document.write(`<html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap"><style>@page { margin: 0; } html { width: 100%; margin: 0; padding: 0; } body { font-family: 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif; font-size: 15px; width: 100%; max-width: 80mm; box-sizing: border-box; margin: 0; padding: 0 0.5mm; background: #fff; color: #000; line-height: 1.08; overflow-wrap: anywhere; font-stretch: condensed; } @media print { html, body { width: 100%; max-width: none; margin: 0; } }</style></head><body>${document.getElementById('ticketImpresion').innerHTML}<style>@media print{body.a4printing #a4paper{zoom:1!important}}</style>
+</body></html>`); 
         w.document.close(); 
         Promise.race([w.document.fonts?.ready || Promise.resolve(), new Promise(resolve => setTimeout(resolve, 1800))]).then(() => setTimeout(() => w.print(), 150)); 
       }
@@ -4174,26 +4176,37 @@ window.addEventListener('load', () => {
         const a4HTML=paper.innerHTML;
         const ticketHTML=imprimirTicketConOperadorFijo(v.detalles,Number(v.total),fecha,v.hora||'',v.cliente||'Consumidor Final',v.atendido_por||'Sin identificar',v.id,true);
         function cambiarFormato(){const termico=formato.value==='80';paper.classList.toggle('ticket80',termico);paper.innerHTML=termico?ticketHTML:a4HTML;paper.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));overlay.querySelector('[data-action="print"]').textContent=termico?'Imprimir 80 mm':'Imprimir A4';status.textContent='';}
-        formato.onchange=cambiarFormato;cambiarFormato();busy(false);
+        function ajustarVista(){paper.style.zoom='1';const area=overlay.querySelector('.a4scroll');paper.style.zoom=String(Math.min(1,Math.max(0.1,(area.clientWidth-24)/paper.offsetWidth)));} const resizeObserver=new ResizeObserver(()=>{if(!formato.disabled)ajustarVista();});resizeObserver.observe(overlay.querySelector('.a4scroll'));overlay.querySelector('[data-action="close"]').onclick=()=>{resizeObserver.disconnect();overlay.remove();};formato.onchange=()=>{cambiarFormato();ajustarVista();};cambiarFormato();busy(false);ajustarVista();
         const name='Comprobante_'+id;
         async function makeFile(kind){
           if(typeof html2canvas!=='function')throw Error('No se cargó la biblioteca de imágenes');
+          paper.style.zoom='1';
           await document.fonts?.ready;
           const termico=formato.value==='80', nombre=name+(termico?'_80mm':'_A4');
           const canvas=await html2canvas(paper,{scale:2,backgroundColor:'#fff',windowWidth:1200});
           if(kind==='png'){const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('No se pudo generar la imagen');return new File([blob],nombre+'.png',{type:'image/png'});}
-          if(!window.jspdf?.jsPDF)throw Error('No se cargó la biblioteca PDF');
-          if(termico){const h=canvas.height/canvas.width*80;if(h>5000)throw Error('Ticket demasiado largo para PDF; elegí A4');const pdf=new window.jspdf.jsPDF({orientation:h>=80?'portrait':'landscape',unit:'mm',format:[80,Math.max(1,h)]});pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,80,h);return new File([pdf.output('blob')],nombre+'.pdf',{type:'application/pdf'});}
-          const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-          const width=186, maxH=273, pxPerMM=canvas.width/width;
-          // Split only at row boundaries when possible.
-          const rect=paper.getBoundingClientRect(), ratio=canvas.height/rect.height;
-          const cuts=[...paper.querySelectorAll('tr,.total,.note,p')].map(e=>Math.round((e.getBoundingClientRect().bottom-rect.top)*ratio)).filter(n=>n>0).sort((a,b)=>a-b);
-          let y=0; while(y<canvas.height){let stop=Math.min(canvas.height,y+Math.floor(maxH*pxPerMM));if(stop<canvas.height){const safe=cuts.filter(n=>n>y+100&&n<=stop).pop();if(safe)stop=safe;}const part=document.createElement('canvas');part.width=canvas.width;part.height=stop-y;part.getContext('2d').drawImage(canvas,0,y,canvas.width,part.height,0,0,canvas.width,part.height);if(y)pdf.addPage();pdf.addImage(part.toDataURL('image/png'),'PNG',12,12,width,part.height/pxPerMM);y=stop;}
-          return new File([pdf.output('blob')],nombre+'.pdf',{type:'application/pdf'});
+          // PDF autónomo: imágenes JPEG incrustadas, sin dependencia de jsPDF.
+          const pages=[];
+          function addPage(image,w,h,x,y,iw,ih){pages.push({image,w,h,x,y,iw,ih});}
+          if(termico){const h=canvas.height/canvas.width*80;if(h>5000)throw Error('Ticket demasiado largo para PDF; elegí A4');addPage(canvas,80,h,0,0,80,h);}
+          else {
+            const width=186,maxH=273,pxPerMM=canvas.width/width;
+            const rect=paper.getBoundingClientRect(),ratio=canvas.height/rect.height;
+            const cuts=[...paper.querySelectorAll('tr,.total,.note,p')].map(e=>Math.round((e.getBoundingClientRect().bottom-rect.top)*ratio)).filter(n=>n>0).sort((a,b)=>a-b);
+            let y=0;while(y<canvas.height){let stop=Math.min(canvas.height,y+Math.max(1,Math.floor(maxH*pxPerMM)));if(stop<canvas.height){const safe=cuts.filter(n=>n>y+100&&n<=stop).pop();if(safe)stop=safe;}const part=document.createElement('canvas');part.width=canvas.width;part.height=stop-y;part.getContext('2d').drawImage(canvas,0,y,canvas.width,part.height,0,0,canvas.width,part.height);addPage(part,210,297,12,12,width,part.height/pxPerMM);y=stop;}
+          }
+          const enc=new TextEncoder(),chunks=[],offsets=[0];let length=0;
+          function put(v){const bytes=typeof v==='string'?enc.encode(v):v;chunks.push(bytes);length+=bytes.length;}
+          function obj(n,body){offsets[n]=length;put(n+' 0 obj\n');put(body);put('\nendobj\n');}
+          function stream(n,dict,bytes){offsets[n]=length;put(n+' 0 obj\n<< '+dict+' /Length '+bytes.length+' >>\nstream\n');put(bytes);put('\nendstream\nendobj\n');}
+          const pt=n=>(n*72/25.4).toFixed(4);
+          put('%PDF-1.4\n');obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2,'<< /Type /Pages /Count '+pages.length+' /Kids ['+pages.map((_,i)=>(3+i*3)+' 0 R').join(' ')+'] >>');
+          pages.forEach((p,i)=>{const n=3+i*3;const raw=atob(p.image.toDataURL('image/jpeg',0.94).split(',')[1]);const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));obj(n,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pt(p.w)+' '+pt(p.h)+'] /Resources << /XObject << /Im0 '+(n+1)+' 0 R >> >> /Contents '+(n+2)+' 0 R >>');stream(n+1,'/Type /XObject /Subtype /Image /Width '+p.image.width+' /Height '+p.image.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode',bytes);stream(n+2,'',enc.encode('q '+pt(p.iw)+' 0 0 '+pt(p.ih)+' '+pt(p.x)+' '+pt(p.h-p.y-p.ih)+' cm /Im0 Do Q\n'));});
+          const xref=length;put('xref\n0 '+offsets.length+'\n0000000000 65535 f \n');for(let i=1;i<offsets.length;i++)put(String(offsets[i]).padStart(10,'0')+' 00000 n \n');put('trailer\n<< /Size '+offsets.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+          return new File(chunks,nombre+'.pdf',{type:'application/pdf'});
         }
         function download(file){const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
-        buttons.filter(b=>b.dataset.action!=='close').forEach(b=>b.onclick=async()=>{const action=b.dataset.action;if(action==='print'){if(formato.value==='80'){imprimirTicketConOperadorFijo(v.detalles,Number(v.total),fecha,v.hora||'',v.cliente||'Consumidor Final',v.atendido_por||'Sin identificar',v.id);return;}document.body.classList.add('a4printing');try{window.print();}finally{document.body.classList.remove('a4printing');}return;}busy(true);status.textContent='Preparando archivo…';try{const file=await makeFile(action.endsWith('png')?'png':'pdf');if(action.startsWith('share')){if(navigator.canShare?.({files:[file]})){status.textContent='Archivo listo. ';const share=document.createElement('button');share.textContent='Compartir ahora';status.appendChild(share);share.onclick=async()=>{try{await navigator.share({files:[file]});}catch(e){if(e.name!=='AbortError'){download(file);status.textContent='No se pudo compartir; archivo descargado.';}}};}else{download(file);status.textContent='Compartir no disponible; archivo descargado.';}}else{download(file);status.textContent='Archivo generado.';}}catch(e){status.textContent=e.message;}finally{busy(false);}});
+        buttons.filter(b=>b.dataset.action!=='close').forEach(b=>b.onclick=async()=>{const action=b.dataset.action;if(action==='print'){if(formato.value==='80'){imprimirTicketConOperadorFijo(v.detalles,Number(v.total),fecha,v.hora||'',v.cliente||'Consumidor Final',v.atendido_por||'Sin identificar',v.id);return;}document.body.classList.add('a4printing');try{window.print();}finally{document.body.classList.remove('a4printing');}return;}busy(true);status.textContent='Preparando archivo…';try{const file=await makeFile(action.endsWith('png')?'png':'pdf');if(action.startsWith('share')){if(navigator.canShare?.({files:[file]})){status.textContent='Archivo listo. ';const share=document.createElement('button');share.textContent='Compartir ahora';status.appendChild(share);share.onclick=async()=>{try{await navigator.share({files:[file]});}catch(e){if(e.name!=='AbortError'){download(file);status.textContent='No se pudo compartir; archivo descargado.';}}};}else{download(file);status.textContent='Compartir no disponible; archivo descargado.';}}else{download(file);status.textContent='Archivo generado.';}}catch(e){status.textContent=e.message;}finally{busy(false);ajustarVista();}});
       }catch(e){status.textContent='No se pudo recuperar el comprobante: '+e.message;console.error(e);}
     }
 
@@ -4385,6 +4398,7 @@ function avPrint(){if(!avData)return alert('Generá primero el análisis');docum
 #a4Overlay{position:fixed;inset:0;z-index:2147483647;background:#182233;display:flex;flex-direction:column;color:#fff}#a4Overlay .a4toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:12px;align-items:center}#a4Overlay button{background:#4f46e5;color:white;padding:10px;border-radius:6px;cursor:pointer}#a4Overlay button:disabled{opacity:.5}#a4Overlay .a4scroll{overflow:auto;flex:1;padding:12px}#a4paper{box-sizing:border-box;width:186mm;min-height:273mm;margin:auto;background:white;color:#111;font:12px Arial,sans-serif;padding:0}#a4paper:not(.ticket80) header{display:flex;border:1px solid #333;justify-content:space-between;padding:14px;gap:16px}#a4paper:not(.ticket80) h1{font-size:26px;margin:0}#a4paper:not(.ticket80) h2{font-size:17px;margin:0 0 8px}#a4paper:not(.ticket80) .meta{border:1px solid #333;border-top:0;padding:12px;line-height:1.6}#a4paper:not(.ticket80) table{width:100%;border-collapse:collapse;margin-top:14px;table-layout:fixed}#a4paper:not(.ticket80) th,#a4paper:not(.ticket80) td{padding:7px 5px;overflow-wrap:anywhere;text-align:left;border-bottom:1px solid #ddd}#a4paper:not(.ticket80) th{background:#eee}#a4paper:not(.ticket80) .num{text-align:right}#a4paper:not(.ticket80) .total{margin-top:20px;border:1px solid #333;padding:14px;display:flex;justify-content:space-between;font-size:20px;font-weight:bold;break-inside:avoid}#a4paper:not(.ticket80) .note{margin-top:12px;font-size:11px}#a4paper:not(.ticket80) thead{display:table-header-group}#a4paper:not(.ticket80) tr{break-inside:avoid}
 #a4paper.ticket80{width:80mm;min-height:0;padding:0 .5mm;font:15px/1.08 'Roboto Condensed','Arial Narrow',sans-serif;color:#000;background:#fff;overflow-wrap:anywhere}#a4paper.ticket80 table{border-collapse:collapse;width:100%;table-layout:fixed}#a4paper.ticket80 td{border:0;padding:0;vertical-align:top}#a4paper.ticket80 p{margin:0}
 @media print{@page{size:auto;margin:12mm}body.a4printing>*:not(#a4Overlay){display:none!important}body.a4printing #a4Overlay{position:static!important;display:block!important;background:white!important}body.a4printing #a4Overlay .a4toolbar{display:none!important}body.a4printing #a4Overlay .a4scroll{overflow:visible!important;padding:0!important;display:block!important}body.a4printing #a4paper{width:100%!important;min-height:0!important;margin:0!important} }
-</style><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+</style>
+<style>@media print{body.a4printing #a4paper{zoom:1!important}}</style>
 </body>
 </html>
