@@ -330,7 +330,7 @@
   <div id="modalCostosProveedores" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Gestión Avanzada de Costos, Proveedores e IA</h3>
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Gestión Inteligente de Costos y Proveedores · V2.2.0</h3>
         <button onclick="cerrarModalCostosProveedores()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
@@ -353,6 +353,8 @@
       </div>
 
       <div id="secComparativaCostos" class="space-y-3">
+<div id="cost220panel" class="p-3 rounded-xl border dark:border-slate-700 text-sm">Consultando historial…</div>
+<button onclick="cost220Panel()" class="text-xs text-indigo-500 font-bold">Actualizar indicadores</button>
         <p class="text-xs text-slate-500 dark:text-slate-400">Busca un producto para comparar los costos registrados entre todos sus proveedores.</p>
         <div class="mb-2">
           <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Buscar Producto:</label>
@@ -376,7 +378,7 @@
               <thead class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 sticky top-0">
                 <tr>
                   <th class="p-2.5">Proveedor</th>
-                  <th class="p-2.5">Última Actualización</th>
+                  <th class="p-2.5">Origen</th><th class="p-2.5">Fecha</th>
                   <th class="p-2.5 text-right">Costo equivalente por unidad ($)</th>
                 </tr>
               </thead>
@@ -385,6 +387,8 @@
               </tbody>
             </table>
           </div>
+          <div id="cost220history" class="space-y-2"></div>
+          <div id="cost220sim" class="p-3 border dark:border-slate-700 rounded-xl"></div>
         </div>
       </div>
 
@@ -1967,6 +1971,7 @@
       document.getElementById('detalleComparativaProveedores').classList.add('hidden');
       document.getElementById('modalCostosProveedores').classList.remove('hidden');
       mostrarSubPestanaCostos('comparativa');
+      cost220Panel();
       prepararCargaPrecioManual();
     }
 
@@ -2018,68 +2023,23 @@
       }
     }
 
-    function filtrarProductosParaCostos() {
-      const texto = document.getElementById('buscadorProductoCostos').value.trim().toLowerCase();
-      const contenedor = document.getElementById('listaResultadosCostos');
-      if (!texto || texto.length < 2) { contenedor.classList.add('hidden'); return; }
-
-      const encontrados = todosLosProductos.filter(p => (p.nombre || '').toLowerCase().includes(texto) || String(obtenerCodigoBarras(p)).toLowerCase().includes(texto)).slice(0, 10);
-      if (encontrados.length === 0) { contenedor.innerHTML = '<div class="p-2 text-slate-400 text-center">No se encontró producto</div>'; contenedor.classList.remove('hidden'); return; }
-
-      let html = '';
-      encontrados.forEach(p => {
-        const codProd = obtenerCodigoBarras(p);
-        const nombreSeguro = (p.nombre || '').replace(/'/g, "").replace(/"/g, "");
-        const costoActual = obtenerCostoProducto(p);
-        html += `
-          <div onclick="seleccionarProductoParaCostos('${codProd}', '${nombreSeguro}', ${costoActual})" 
-               class="p-2 hover:bg-indigo-50 dark:hover:bg-slate-700 cursor-pointer border-b flex justify-between items-center text-slate-800 dark:text-slate-200">
-            <span>[${codProd || 'S/C'}] ${p.nombre}</span>
-            <span class="text-indigo-600 dark:text-indigo-400 font-semibold">$${costoActual.toFixed(2)}</span>
-          </div>`;
-      });
-      contenedor.innerHTML = html;
-      contenedor.classList.remove('hidden');
-    }
-
-    async function seleccionarProductoParaCostos(codigo, nombre, costoActual) {
-      document.getElementById('listaResultadosCostos').classList.add('hidden');
-      document.getElementById('buscadorProductoCostos').value = nombre;
-      document.getElementById('tituloProductoSeleccionadoCostos').textContent = `Producto: ${nombre} (Cód: ${codigo || 'S/C'})`;
-      document.getElementById('lblCostoActualInventario').textContent = '$' + costoActual.toFixed(2);
-      
-      const tbody = document.getElementById('tablaProveedoresCosto');
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">Consultando múltiples proveedores...</td></tr>';
-      document.getElementById('detalleComparativaProveedores').classList.remove('hidden');
-
-      try {
-        let { data } = await _supabase
-          .from('producto_proveedores')
-          .select('*')
-          .or(`codigo_barras.eq.${codigo},nombre_producto.ilike.%${nombre}%`);
-
-        if (!data || data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">Sin proveedores registrados. Costo actual: $${costoActual.toFixed(2)}</td></tr>`;
-          return;
-        }
-
-        data.sort((a, b) => a.precio_costo - b.precio_costo);
-        let html = '';
-        data.forEach((p, idx) => {
-          const badgeMejor = idx === 0 ? `<span class="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0.5 rounded ml-1 font-bold">⭐ Mejor Precio</span>` : '';
-          const fechaAct = p.actualizado_en ? new Date(p.actualizado_en).toLocaleDateString() : 'N/D';
-          html += `
-            <tr class="${idx === 0 ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : ''}">
-              <td class="p-2.5 text-slate-800 dark:text-white">${p.proveedor} ${badgeMejor}</td>
-              <td class="p-2.5 text-slate-600 dark:text-slate-400">${fechaAct}</td>
-              <td class="p-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">$${parseFloat(p.precio_costo).toFixed(2)}</td>
-            </tr>
-          `;
-        });
-        tbody.innerHTML = html;
-      } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-rose-500">Error al consultar proveedores.</td></tr>';
-      }
+    const cost220Money=n=>Number(n).toLocaleString('es-AR',{style:'currency',currency:'ARS'});
+    const cost220Esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const cost220Date=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'Sin fecha';
+    let cost220Seq=0,cost220Rows=[];
+    async function cost220Fetch(id){const {data,error}=await _supabase.rpc('costos_historial_v220',{p_producto:id});if(error)throw error;return data||[];}
+    async function cost220Panel(){const el=document.getElementById('cost220panel');el.textContent='Consultando historial…';try{const r=await cost220Fetch(null);el.textContent=`Historial vinculado: ${new Set(r.map(x=>x.producto_id)).size} productos · ${new Set(r.map(x=>x.proveedor)).size} proveedores · ${new Set(r.map(x=>x.compra_id)).size} comprobantes (hasta 1000 registros por consulta).`;}catch(e){el.textContent='Historial no disponible: '+e.message;}}
+    function filtrarProductosParaCostos(){const q=document.getElementById('buscadorProductoCostos').value.trim().toLowerCase(),el=document.getElementById('listaResultadosCostos');el.replaceChildren();el.classList.toggle('hidden',q.length<2);if(q.length<2)return;const matches=todosLosProductos.filter(p=>p.activo!==false&&(String(p.nombre||'').toLowerCase().includes(q)||String(obtenerCodigoBarras(p)).includes(q))).slice(0,20);for(const p of matches){const btn=document.createElement('button');btn.className='block w-full text-left p-2 hover:bg-indigo-100 dark:hover:bg-slate-700';btn.textContent=(p.nombre||'Sin nombre')+' · '+cost220Money(obtenerCostoProducto(p));btn.onclick=()=>seleccionarProductoParaCostos(p);el.append(btn);}if(!matches.length)el.textContent='Sin resultados';}
+    async function seleccionarProductoParaCostos(p){const seq=++cost220Seq,code=String(obtenerCodigoBarras(p)||'').trim(),name=String(p.nombre||''),cost=obtenerCostoProducto(p);document.getElementById('listaResultadosCostos').classList.add('hidden');document.getElementById('buscadorProductoCostos').value=name;document.getElementById('tituloProductoSeleccionadoCostos').textContent=name;document.getElementById('lblCostoActualInventario').textContent=cost220Money(cost);document.getElementById('detalleComparativaProveedores').classList.remove('hidden');const tb=document.getElementById('tablaProveedoresCosto'),h=document.getElementById('cost220history'),sim=document.getElementById('cost220sim');tb.innerHTML='<tr><td colspan="4">Consultando…</td></tr>';h.textContent='';sim.textContent='';cost220Rows=[];
+      const unique=code&&todosLosProductos.filter(x=>String(obtenerCodigoBarras(x)||'').trim()===code).length===1;
+      const [hist,offers]=await Promise.allSettled([cost220Fetch(p.id),unique?_supabase.from('producto_proveedores').select('*').eq('codigo_barras',code):Promise.resolve({data:[]})]);if(seq!==cost220Seq)return;
+      const rows=hist.status==='fulfilled'?hist.value:[], latest=new Map();for(const r of rows){const key=r.proveedor.trim().toLowerCase();if(!latest.has(key))latest.set(key,r);}
+      const actual=[...latest.values()].sort((a,b)=>a.costo-b.costo);const off=offers.status==='fulfilled'&&!offers.value.error?(offers.value.data||[]):[];
+      const line=(provider,origin,date,value)=>`<tr><td class="p-2">${cost220Esc(provider)}</td><td class="p-2">${cost220Esc(origin)}</td><td class="p-2">${cost220Date(date)}</td><td class="p-2 text-right">${cost220Money(value)}</td></tr>`;
+      tb.innerHTML=actual.map((r,i)=>line(r.proveedor,i===0?'Compra real · menor último costo':'Compra real',r.fecha,r.costo)).join('')+off.map(r=>line(r.proveedor,'Precio informado · equivalencia a verificar',r.actualizado_en,r.precio_costo)).join('')||'<tr><td colspan="4">Sin datos vinculados de forma segura</td></tr>';
+      cost220Rows=rows;h.innerHTML='<h4 class="font-bold">Historial de compras reales</h4><p class="text-xs">Costo por unidad comercial registrada. No representa una oferta vigente. Compras antiguas sin vínculo y ofertas sin código único no se incluyen.</p>'+ (hist.status==='rejected'?'<p class="text-rose-500">'+cost220Esc(hist.reason.message)+'</p>':'')+(offers.status==='rejected'||offers.value?.error?'<p> No se pudieron consultar las ofertas.</p>':'')+'<div class="overflow-auto max-h-64"><table class="w-full text-xs"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Comprobante ID</th><th>Cantidad comercial</th><th>Costo</th></tr></thead><tbody>'+rows.map(r=>`<tr class="border-b"><td>${cost220Date(r.fecha)}</td><td>${cost220Esc(r.proveedor)}</td><td>${r.compra_id}</td><td>${r.cantidad}</td><td>${cost220Money(r.costo)}</td></tr>`).join('')+'</tbody></table></div><button id="cost220export" class="text-indigo-500 font-bold text-xs">Exportar historial CSV (Excel)</button>';
+      document.getElementById('cost220export').onclick=()=>{const safe=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replace(/"/g,'""')+'"';const csv=['Fecha;Proveedor;Comprobante ID;Cantidad comercial;Costo',...cost220Rows.map(r=>[r.fecha,r.proveedor,r.compra_id,r.cantidad,String(r.costo).replace('.',',')].map(safe).join(';'))].join('\r\n');const u=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download='historial_costos.csv';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
+      sim.innerHTML='<h4 class="font-bold">Simulador de rentabilidad sobre costo</h4><label>Costo comercial <input id="cost220c" type="number" min="0" step="0.01" class="border rounded p-1 dark:bg-slate-900"></label> <label>Rentabilidad % <input id="cost220m" type="number" min="0" value="30" class="border rounded p-1 dark:bg-slate-900"></label><p id="cost220result"></p>';const c=document.getElementById('cost220c'),m=document.getElementById('cost220m'),out=document.getElementById('cost220result');c.value=cost;const calc=()=>{out.textContent=Number(c.value)>0&&Number(m.value)>=0?'Precio sugerido: '+cost220Money(Number(c.value)*(1+Number(m.value)/100)):'Ingresá valores válidos';};c.oninput=m.oninput=calc;calc();
     }
 
     function normalizarArticuloCostos(valor) {
