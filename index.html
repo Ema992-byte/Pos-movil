@@ -327,7 +327,7 @@
   <div id="modalCostosProveedores" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Gestión Inteligente de Costos y Proveedores · V2.2.7</h3>
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Gestión Inteligente de Costos y Proveedores · V2.2.8</h3>
         <button onclick="cerrarModalCostosProveedores()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
@@ -410,7 +410,7 @@
         <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-700 dark:to-slate-700 border dark:border-slate-600 rounded-xl">
           <h4 class="font-bold text-indigo-900 dark:text-indigo-300 text-sm mb-1">✨ Análisis Inteligente de Revistas y Catálogos con IA</h4>
           <p class="text-slate-600 dark:text-slate-300 mb-3">Adjuntá una revista o lista de precios en PDF. Se leerán PDF con texto seleccionable y PDF escaneados mediante OCR. También podés cargar imágenes. Los artículos y precios detectados se muestran para que los revises antes de guardarlos.</p>
-          <input type="file" id="inputFotoRevistaIA" accept="application/pdf,.pdf,image/*" class="w-full px-3 py-2 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900" onchange="analizarRevistaConIA(event)">
+          <label class="block font-semibold mb-1">Proveedor de la revista</label><input id="revistaProveedorGeneral" class="w-full px-3 py-2 mb-3 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900" placeholder="Nombre del proveedor"><p id="revistaEstado" class="my-2 text-indigo-400" role="status"></p><input type="file" id="inputFotoRevistaIA" accept="application/pdf,.pdf,image/*" class="w-full px-3 py-2 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900" onchange="analizarRevistaConIA(event)">
           <p class="text-[11px] text-slate-500 mt-2">El OCR puede tardar según la cantidad de páginas y la calidad del escaneo. Revisá los precios detectados: no se guardan automáticamente.</p>
         </div>
 
@@ -2232,112 +2232,46 @@ function cost221Export(){const safe=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&"
       renderizarArticulosProveedor(q?items.filter(p=>normalizarArticuloCostos(p.nombre_producto).includes(q)||String(p.codigo_barras||'').toLowerCase().includes(q)):items);
     }
 
+    function extraerOfertasRevista(words, pagina, proveedor) {
+      const out=[];
+      const anchors=words.filter(w=>/^\$\s*\d[\d.,]*$/.test(w.t.trim()));
+      for(const w of anchors){
+        const h=Math.max(w.h,1); const near=words.filter(v=>v!==w&&v.y>=w.y-h*.5&&v.y<w.y+h*5&&v.x>=w.x-h*1.2&&v.x<w.x+h*9);
+        if(near.some(v=>/PRECIO\s*S\s*\/\s*IMP/i.test(v.t)&&Math.abs(v.y-w.y)<h*.5))continue;
+        const below=near.filter(v=>v.y>w.y+h*.55).sort((a,b)=>a.y-b.y||a.x-b.x);
+        const code=below.find(v=>/C[oó]d\.?\s*\d+/i.test(v.t));
+        const desc=below.filter(v=>(!code||v.y<code.y-1)&&!/PRECIO|FINAL|^\$|^\d|DESCUENTO|LLEVANDO/i.test(v.t)&&/\p{L}{3}/u.test(v.t)).map(v=>v.t).join(' ').trim();
+        const raw=w.t.replace(/[^\d.,]/g,''); const price=Number(raw.replace(/\.(?=\d{3}(?:\D|$))/g,'').replace(',','.'));
+        if(!code||desc.length<8||!Number.isFinite(price)||price<=0)continue;
+        out.push({nombre:desc,precioSugerido:price,proveedor,pagina,codigo:code.t.match(/\d+/)[0],cantidad_unidades:1});
+      }return out;
+    }
     async function analizarRevistaConIA(event) {
-      const archivo = event.target.files && event.target.files[0];
-      if (!archivo) return;
-      const contenedorRes = document.getElementById('contenedorResultadoIA');
-      const tbody = document.getElementById('tablaItemsRevistaIA');
-      contenedorRes.classList.remove('hidden');
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-indigo-600">Preparando lectura del archivo...</td></tr>';
-      let worker = null;
-      try {
-        let texto = '';
-        const esPDF = archivo.type === 'application/pdf' || archivo.name.toLowerCase().endsWith('.pdf');
-        const actualizarEstado = (mensaje) => {
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-indigo-600">${mensaje}</td></tr>`;
-        };
-        const ejecutarOCR = async (fuente, etiqueta) => {
-          if (!window.Tesseract || !window.Tesseract.createWorker) {
-            throw new Error('No se pudo cargar el motor OCR. Verificá la conexión a internet, recargá el POS e intentá nuevamente.');
-          }
-          if (!worker) {
-            actualizarEstado('Cargando motor OCR en español e inglés...');
-            worker = await Tesseract.createWorker('spa+eng', 1, {
-              logger: info => {
-                if (info.status === 'recognizing text') {
-                  actualizarEstado(`${etiqueta}: reconocimiento OCR ${Math.round((info.progress || 0) * 100)}%...`);
-                }
-              }
-            });
-          }
-          const resultado = await worker.recognize(fuente);
-          return resultado && resultado.data ? (resultado.data.text || '') : '';
-        };
-
-        if (esPDF) {
-          if (!window.pdfjsLib) throw new Error('No se pudo cargar el lector PDF. Revisá la conexión a internet y recargá la página.');
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-          const bytes = await archivo.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
-          if (pdf.numPages > 40) throw new Error('El PDF tiene más de 40 páginas. Dividilo en partes para evitar que el navegador se quede sin memoria.');
-          for (let n = 1; n <= pdf.numPages; n++) {
-            actualizarEstado(`Leyendo página ${n} de ${pdf.numPages}...`);
-            const page = await pdf.getPage(n);
-            const content = await page.getTextContent();
-            const renglones = new Map();
-            for (const item of content.items) {
-              const y = Math.round((item.transform && item.transform[5]) || 0);
-              renglones.set(y, (renglones.get(y) || '') + ' ' + (item.str || ''));
+      const archivo=event.target.files?.[0];if(!archivo)return;
+      const proveedor=document.getElementById('revistaProveedorGeneral').value.trim();
+      if(!proveedor){alert('Ingresá el proveedor antes de cargar la revista.');event.target.value='';return;}
+      const tbody=document.getElementById('tablaItemsRevistaIA');document.getElementById('contenedorResultadoIA').classList.remove('hidden');
+      const estado=document.getElementById('revistaEstado');let worker=null;let pdf=null;const resultados=[];const pendientes=[];event.target.disabled=true;
+      const leer=async(canvas,n)=>{if(!worker)worker=await Tesseract.createWorker('spa+eng',1);const r=await worker.recognize(canvas,{}, {blocks:true});const lines=(r.data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[]));return lines.map(l=>({t:l.text.trim(),x:l.bbox.x0,y:l.bbox.y0,h:l.bbox.y1-l.bbox.y0}));};
+      try{
+        if(archivo.type==='application/pdf'||/\.pdf$/i.test(archivo.name)){
+          pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';pdf=await pdfjsLib.getDocument({data:await archivo.arrayBuffer()}).promise;if(pdf.numPages>40)throw Error('Máximo 40 páginas por archivo.');
+          for(let n=1;n<=pdf.numPages;n++){
+            estado.textContent=`Leyendo página ${n}/${pdf.numPages}…`;const page=await pdf.getPage(n);const c=await page.getTextContent();const v=page.getViewport({scale:1});
+            const words=c.items.filter(i=>i.str?.trim()).map(i=>({t:i.str.trim(),x:i.transform[4],y:v.height-i.transform[5],h:Math.abs(i.height)||8}));
+            // Unir símbolo monetario y número solamente cuando son vecinos.
+            for(const w of words.filter(w=>w.t==='$')){const next=words.find(z=>/^\d[\d.,]*$/.test(z.t)&&Math.abs(z.y-w.y)<w.h*.4&&z.x>w.x&&z.x-w.x<w.h*3);if(next)w.t='$'+next.t;}
+            let found=extraerOfertasRevista(words,n,proveedor);
+            if(!found.length){const vp=page.getViewport({scale:Math.min(3,2400/v.width)});const canvas=document.createElement('canvas');canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+              // Sectores independientes, con solapamiento para no cortar descripciones.
+              for(let col=0;col<5;col++){const x=Math.max(0,Math.floor(canvas.width*(col/5-.015)));const end=Math.min(canvas.width,Math.ceil(canvas.width*((col+1)/5+.015)));const crop=document.createElement('canvas');crop.width=end-x;crop.height=canvas.height;crop.getContext('2d').drawImage(canvas,x,0,crop.width,crop.height,0,0,crop.width,crop.height);found.push(...extraerOfertasRevista(await leer(crop,n),n,proveedor));crop.width=0;}canvas.width=0;
             }
-            let textoPagina = [...renglones.entries()].sort((a,b)=>b[0]-a[0]).map(x=>x[1]).join('\n').trim();
-            // Si la página no contiene texto seleccionable, renderizarla y aplicar OCR.
-            if (textoPagina.length < 25) {
-              const viewport = page.getViewport({scale: 2.0});
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d', {willReadFrequently: true});
-              canvas.width = Math.ceil(viewport.width);
-              canvas.height = Math.ceil(viewport.height);
-              await page.render({canvasContext: context, viewport}).promise;
-              textoPagina = await ejecutarOCR(canvas, `Página ${n}/${pdf.numPages}`);
-              canvas.width = 0;
-              canvas.height = 0;
-            }
-            texto += '\n' + textoPagina;
+            if(!found.length)pendientes.push(n);resultados.push(...found);page.cleanup();
           }
-        } else if (archivo.type.startsWith('image/')) {
-          texto = await ejecutarOCR(archivo, 'Imagen');
-        } else {
-          throw new Error('Formato no admitido. Seleccioná un archivo PDF o una imagen.');
-        }
-
-        if (!texto.trim()) throw new Error('No se pudo reconocer texto. Probá con un archivo más nítido o con mayor resolución.');
-        // Busca importes en el texto extraído. Se requiere revisión humana antes de aplicar.
-        const lineas = texto.split(/\n|(?<=[.;])\s{2,}/).map(x => x.replace(/\s+/g,' ').trim()).filter(Boolean);
-        const candidatos = [];
-        const regexPrecio = /(?:\$\s*)?(\d{1,3}(?:[.\s]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)/g;
-        for (const linea of lineas) {
-          const matches = [...linea.matchAll(regexPrecio)];
-          if (!matches.length) continue;
-          const m = matches[matches.length - 1];
-          let raw = m[1].replace(/\s/g,'');
-          if (raw.includes(',') && raw.includes('.')) raw = raw.replace(/\./g,'').replace(',','.');
-          else if (raw.includes(',')) raw = raw.replace(',','.');
-          else if ((raw.match(/\./g)||[]).length > 1) raw = raw.replace(/\./g,'');
-          const precio = Number(raw);
-          const nombre = linea.slice(0, m.index).replace(/[|•–—-]+$/,'').trim();
-          if (!nombre || nombre.length < 3 || !Number.isFinite(precio) || precio <= 0 || precio > 100000000) continue;
-          if (/^(pagina|página|subtotal|total|iva|fecha|codigo|código)$/i.test(nombre)) continue;
-          candidatos.push({nombre:nombre.slice(0,140), precioSugerido:precio});
-        }
-        const unicos = [];
-        const vistos = new Set();
-        for (const x of candidatos) { const k=normalizarArticuloCostos(x.nombre)+'|'+x.precioSugerido; if(!vistos.has(k)){vistos.add(k);unicos.push(x);} }
-        window._productosRevistaExtraidos = unicos;
-        if (!unicos.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-amber-600">Se pudo leer el archivo, pero no se detectaron renglones claros con artículo y precio. Revisá la calidad del escaneo o probá con una lista CSV.</td></tr>';
-          return;
-        }
-        renderizarProductosRevista();
-      } catch (e) {
-        console.error('Error al leer revista:', e);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-rose-500">${String(e.message||e).replace(/</g,'&lt;')}</td></tr>`;
-      } finally {
-        if (worker) {
-          try { await worker.terminate(); } catch (e) { console.warn('No se pudo cerrar el motor OCR:', e); }
-        }
-        // Permite volver a seleccionar el mismo archivo para reintentar.
-        event.target.value = '';
-      }
+        }else if(archivo.type.startsWith('image/')){const img=await createImageBitmap(archivo);const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;canvas.getContext('2d').drawImage(img,0,0);resultados.push(...extraerOfertasRevista(await leer(canvas,1),1,proveedor));img.close();if(!resultados.length)pendientes.push(1);}
+        else throw Error('Formato no admitido.');
+        const seen=new Set();window._productosRevistaExtraidos=resultados.filter(r=>{const k=r.pagina+'|'+r.codigo+'|'+r.precioSugerido;if(seen.has(k))return false;seen.add(k);return true;});renderizarProductosRevista();estado.textContent=`${window._productosRevistaExtraidos.length} candidatos para revisión. ${pendientes.length?'Páginas sin candidatos: '+pendientes.join(', ')+'. ':''}Puede haber artículos omitidos; verificá el original, presentación y condiciones.`;
+      }catch(e){estado.textContent='Lectura interrumpida: '+e.message;window._productosRevistaExtraidos=resultados;renderizarProductosRevista();}finally{if(worker)await worker.terminate().catch(()=>{});if(pdf)await pdf.destroy().catch(()=>{});event.target.disabled=false;event.target.value='';}
     }
 
     function renderizarProductosRevista() {
@@ -2349,7 +2283,7 @@ function cost221Export(){const safe=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&"
       }
       const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       tbody.innerHTML = items.map((item,i) => `<tr class="border-t dark:border-slate-700" data-revista-index="${i}">
-        <td class="p-2 min-w-64"><input id="revistaNombre_${i}" value="${esc(item.nombre)}" class="w-full min-w-56 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" /></td>
+        <td class="p-2 min-w-64"><input id="revistaNombre_${i}" value="${esc(item.nombre)}" class="w-full min-w-56 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" /><div class="text-slate-400">Página ${item.pagina||"—"} · Código ${esc(item.codigo||"—")}</div></td>
         <td class="p-2"><input id="revistaPrecio_${i}" type="number" min="0.01" step="0.01" value="${Number(item.precioSugerido)||0}" class="w-28 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-right text-slate-900 dark:text-white" /></td>
         <td class="p-2"><input id="revistaCantidad_${i}" type="number" min="0.001" step="0.001" value="${Number(item.cantidad_unidades)||1}" class="w-20 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-right text-slate-900 dark:text-white" /></td>
         <td class="p-2"><input id="revistaProveedor_${i}" value="${esc(item.proveedor||'')}" placeholder="Proveedor" class="w-32 px-2 py-2 rounded border dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" /></td>
@@ -2370,9 +2304,10 @@ function cost221Export(){const safe=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&"
       if (!Number.isFinite(precio) || precio <= 0) { alert('Ingresá un precio válido mayor a cero.'); return; }
       if (!Number.isFinite(cantidad) || cantidad <= 0) { alert('Ingresá una cantidad de unidades válida.'); return; }
       if (!proveedor) { alert('Ingresá el nombre del proveedor.'); return; }
+      if(!confirm("¿Verificaste el precio final, presentación, vigencia y condiciones en la revista original?"))return;
       const coincidencias = todosLosProductos.filter(p => {
         const a=normalizarArticuloCostos(p.nombre), b=normalizarArticuloCostos(nombre);
-        return a && b && (a===b || a.includes(b) || b.includes(a));
+        return a && b && (a===b);
       });
       const producto = coincidencias.length === 1 ? coincidencias[0] : null;
       try {
@@ -4532,5 +4467,3 @@ histButton.remove();window.abrirCompraInteligente=async()=>{try{if(!await rpc('h
 </script>
 </body>
 </html>
-
-  
