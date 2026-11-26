@@ -214,9 +214,6 @@
           <button id="menuBtn_exportarProductos" onclick="toggleSidebarMenu(); ejecutarAccionModulo('exportarProductos')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-2">
             <span>📦</span> Exportar Productos
           </button>
-          <button id="menuBtn_modificarPrecios" onclick="toggleSidebarMenu(); ejecutarAccionModulo('modificarPrecios')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-400 font-medium flex items-center gap-2">
-            <span>✏️</span> Modificar Precios
-          </button>
           <button id="menuBtn_reporteVentas" onclick="toggleSidebarMenu(); ejecutarAccionModulo('reporteVentas')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 font-medium flex items-center gap-2">
             <span>📊</span> Reporte de Ventas
           </button>
@@ -330,7 +327,7 @@
   <div id="modalCostosProveedores" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-4xl overflow-y-auto max-h-[90vh]">
       <div class="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
-        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Gestión Inteligente de Costos y Proveedores · V2.2.4</h3>
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">💰 Gestión Inteligente de Costos y Proveedores · V2.2.5</h3>
         <button onclick="cerrarModalCostosProveedores()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       
@@ -1874,7 +1871,6 @@
         'costosProveedores': document.getElementById('menuBtn_costosProveedores'),
         'cargaMasiva': document.getElementById('menuBtn_cargaMasiva'),
         'exportarProductos': document.getElementById('menuBtn_exportarProductos'),
-        'modificarPrecios': document.getElementById('menuBtn_modificarPrecios'),
         'reporteVentas': document.getElementById('menuBtn_reporteVentas'),
         'analisisVentas': document.getElementById('menuBtn_analisisVentas'),
         'auditoriaEliminaciones': document.getElementById('menuBtn_auditoriaEliminaciones'),
